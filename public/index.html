@@ -178,26 +178,42 @@
       <div class="panel hidden" id="p-done">
         <div class="done-dest-banner" id="done-dest-banner"></div>
 
-        <!-- Read-only calendar -->
-        <div class="done-cal-header">
-          <button onclick="calShift(-1)">‹</button>
-          <span id="done-cal-label"></span>
-          <button onclick="calShift(1)">›</button>
+        <!-- Tab navigation -->
+        <div class="done-tabs">
+          <button class="dtab active" id="dtab-schedule" onclick="switchDoneTab('schedule')">📅 Itinerár</button>
+          <button class="dtab" id="dtab-budget" onclick="switchDoneTab('budget')">💰 Budget</button>
         </div>
-        <div class="cal-grid done-cal-grid" id="done-cal-grid"></div>
 
-        <!-- Activities -->
-        <div class="act-section">
-          <div class="act-header">
-            <span>💡 Activities</span>
-            <button class="btn-ai" onclick="aiSuggest()">✨ AI suggestions</button>
+        <!-- SCHEDULE TAB -->
+        <div id="done-tab-schedule" class="done-tab-pane">
+          <div class="done-cal-header">
+            <button onclick="calShift(-1)">‹</button>
+            <span id="done-cal-label"></span>
+            <button onclick="calShift(1)">›</button>
           </div>
-          <div class="ai-chips" id="ai-chips"></div>
-          <div class="act-list" id="act-list"></div>
-          <div class="add-bar">
-            <input id="act-inp" type="text" placeholder="Add an activity…" maxlength="120"
-              onkeydown="if(event.key==='Enter')actAdd()"/>
-            <button onclick="actAdd()">Add</button>
+          <div class="cal-grid done-cal-grid" id="done-cal-grid"></div>
+
+          <button class="add-act-cal-btn" onclick="showAddActModal()">＋ Add activity</button>
+
+          <div class="act-section">
+            <div class="act-header">
+              <span>💡 Activities</span>
+              <button class="btn-ai" onclick="aiSuggest()">✨ AI suggestions</button>
+            </div>
+            <div class="ai-chips" id="ai-chips"></div>
+            <div class="act-list" id="act-list"></div>
+          </div>
+        </div>
+
+        <!-- BUDGET TAB -->
+        <div id="done-tab-budget" class="done-tab-pane done-tab-hidden">
+          <div class="budget-wrap">
+            <div class="budget-header">
+              <span>💰 Expenses</span>
+              <button class="btn-add-expense" onclick="showAddExpenseModal()">+ Add expense</button>
+            </div>
+            <div id="expense-list" class="expense-list"></div>
+            <div id="budget-summary"></div>
           </div>
         </div>
       </div>
@@ -267,6 +283,47 @@
     <div class="modal-error" id="join-modal-error"></div>
     <button class="btn-primary" onclick="joinByCode()" style="margin-top:12px">Join →</button>
     <button class="btn-ghost" onclick="closeJoinModal()" style="margin-top:6px">Cancel</button>
+  </div>
+</div>
+
+<!-- ADD ACTIVITY MODAL -->
+<div class="modal-overlay hidden" id="act-modal" onclick="if(event.target===this)closeActModal()">
+  <div class="modal-box">
+    <h3>💡 Add Activity</h3>
+    <p class="auth-sub" style="margin-bottom:12px">Add an activity to a specific day and time</p>
+    <input id="act-modal-inp" type="text" placeholder="Describe the activity…" maxlength="120"
+      onkeydown="if(event.key==='Enter')actModalSubmit()"/>
+    <div class="act-modal-row">
+      <select id="act-modal-date" class="act-modal-sel">
+        <option value="">No specific date</option>
+      </select>
+      <select id="act-modal-time" class="act-modal-sel">
+        <option value="">Any time</option>
+      </select>
+    </div>
+    <div class="modal-error" id="act-modal-error"></div>
+    <button class="btn-primary" onclick="actModalSubmit()" style="margin-top:12px">Add →</button>
+    <button class="btn-ghost" onclick="closeActModal()" style="margin-top:6px">Cancel</button>
+  </div>
+</div>
+
+<!-- ADD EXPENSE MODAL -->
+<div class="modal-overlay hidden" id="expense-modal" onclick="if(event.target===this)closeExpenseModal()">
+  <div class="modal-box">
+    <h3>💰 Add Expense</h3>
+    <p class="auth-sub" style="margin-bottom:12px">Track who paid and split the cost</p>
+    <input id="exp-desc" type="text" placeholder="What was it for? (e.g. Dinner, Hotel…)" maxlength="80"/>
+    <div class="exp-row">
+      <input id="exp-amount" type="number" placeholder="Amount (€)" min="0.01" step="0.01" class="exp-inp"/>
+      <select id="exp-paidby" class="exp-sel"></select>
+    </div>
+    <div class="exp-split-section">
+      <div class="exp-split-label">Split among:</div>
+      <div id="exp-split-checks" class="exp-split-checks"></div>
+    </div>
+    <div class="modal-error" id="expense-modal-error"></div>
+    <button class="btn-primary" onclick="expenseSubmit()" style="margin-top:12px">Add expense →</button>
+    <button class="btn-ghost" onclick="closeExpenseModal()" style="margin-top:6px">Cancel</button>
   </div>
 </div>
 

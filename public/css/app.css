@@ -488,3 +488,137 @@ input::placeholder { color: var(--c-muted); }
 @keyframes up { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: none; } }
 @keyframes bounce { 0%,60%,100%{transform:none} 30%{transform:translateY(-4px)} }
 ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-thumb { background: var(--c-border); border-radius: 3px; }
+
+/* ── Generic hidden util ─────────────────────────────── */
+.hidden { display: none !important; }
+
+/* ── Selects ─────────────────────────────────────────── */
+select {
+  border: 1.5px solid var(--c-border); border-radius: 9px;
+  padding: 10px 12px; font: 14px/1 'DM Sans', sans-serif;
+  background: var(--c-bg); color: var(--c-ink); outline: none;
+  transition: border-color .2s; cursor: pointer;
+}
+select:focus { border-color: var(--c-blue); }
+
+/* ── Done panel tabs ─────────────────────────────────── */
+.done-tabs {
+  display: flex; border-bottom: 1px solid var(--c-border);
+  background: var(--c-panel); flex-shrink: 0;
+}
+.dtab {
+  padding: 10px 18px; background: transparent; border: none;
+  border-bottom: 2px solid transparent; color: var(--c-muted);
+  font: 500 13px 'DM Sans', sans-serif; cursor: pointer; transition: all .2s;
+  margin-bottom: -1px;
+}
+.dtab.active { color: var(--c-accent); border-bottom-color: var(--c-accent); }
+.dtab:hover:not(.active) { color: var(--c-ink); }
+
+/* ── Done tab panes ──────────────────────────────────── */
+.done-tab-pane { flex: 1; overflow-y: auto; min-height: 0; }
+.done-tab-hidden { display: none !important; }
+
+/* Override act-section inside scrolling tab pane */
+.done-tab-pane .act-section { flex: none; overflow: visible; }
+.done-tab-pane .act-list    { overflow-y: visible; max-height: none; flex: none; }
+
+/* ── Add activity calendar button ────────────────────── */
+.add-act-cal-btn {
+  display: block; width: calc(100% - 24px); margin: 8px 12px;
+  padding: 10px 14px; border: 1.5px dashed var(--c-border); border-radius: 9px;
+  background: transparent; color: var(--c-muted);
+  font: 500 13px 'DM Sans', sans-serif; cursor: pointer; transition: all .2s; text-align: center;
+}
+.add-act-cal-btn:hover { border-color: var(--c-accent); color: var(--c-accent); background: rgba(232,87,42,.04); }
+
+/* ── Activity date label & content ───────────────────── */
+.act-content { flex: 1; min-width: 0; }
+.act-date {
+  display: block; font-size: 10px; color: var(--c-accent);
+  font-weight: 600; letter-spacing: .03em; margin-bottom: 2px; text-transform: uppercase;
+}
+
+/* ── Activity dot on done calendar ───────────────────── */
+.act-dot {
+  position: absolute; bottom: 3px; right: 3px;
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--c-accent); opacity: .85;
+}
+
+/* ── Activity modal ──────────────────────────────────── */
+.act-modal-row { display: flex; gap: 8px; margin-top: 8px; }
+.act-modal-sel { flex: 1; }
+
+/* ── Budget tab content ──────────────────────────────── */
+.budget-wrap { padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+.budget-header {
+  display: flex; align-items: center; justify-content: space-between;
+  font-family: 'Fraunces', serif; font-size: 14px; font-weight: 600;
+}
+.btn-add-expense {
+  padding: 7px 14px; border-radius: 8px; border: none;
+  background: var(--c-accent); color: #fff;
+  font: 500 12px 'DM Sans', sans-serif; cursor: pointer; transition: all .2s;
+}
+.btn-add-expense:hover { background: #C44A22; }
+
+/* ── Expense list items ──────────────────────────────── */
+.expense-list { display: flex; flex-direction: column; gap: 7px; }
+.expense-item {
+  background: var(--c-panel); border: 1px solid var(--c-border); border-radius: 10px;
+  padding: 10px 13px; display: flex; align-items: center; justify-content: space-between;
+  animation: up .2s ease;
+}
+.exp-left { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+.exp-av {
+  width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 600; color: #fff;
+}
+.exp-info { flex: 1; min-width: 0; }
+.exp-desc-text { font-weight: 500; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.exp-meta { font-size: 11px; color: var(--c-muted); margin-top: 2px; }
+.exp-right { display: flex; align-items: center; gap: 7px; flex-shrink: 0; }
+.exp-amount-num { font-family: 'Fraunces', serif; font-weight: 600; font-size: 15px; }
+.exp-del {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 1px solid rgba(232,87,42,.3); background: transparent; color: var(--c-accent);
+  font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all .2s; line-height: 1;
+}
+.exp-del:hover { background: var(--c-accent); color: #fff; border-color: var(--c-accent); }
+
+/* ── Budget summary ──────────────────────────────────── */
+.budget-summary-box {
+  background: var(--c-panel); border: 1px solid var(--c-border); border-radius: 12px; padding: 14px;
+}
+.bs-title { font-family: 'Fraunces', serif; font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+.bs-total { font-size: 15px; font-weight: 600; margin-bottom: 10px; }
+.bs-settle-title { font-size: 12px; color: var(--c-muted); margin-bottom: 6px; }
+.bs-settle-row {
+  display: flex; align-items: center; gap: 7px; font-size: 13px;
+  padding: 6px 0; border-top: 1px solid var(--c-border);
+}
+.bs-from, .bs-to { font-weight: 500; }
+.bs-arrow { color: var(--c-muted); font-size: 11px; }
+.bs-amount { margin-left: auto; font-family: 'Fraunces', serif; font-weight: 600; color: var(--c-accent); }
+.bs-balanced { font-size: 13px; color: var(--c-green); font-weight: 500; }
+
+/* ── Expense modal ───────────────────────────────────── */
+.exp-row { display: flex; gap: 8px; margin-top: 8px; }
+.exp-inp { flex: 1; }
+.exp-sel { flex: 1; }
+.exp-split-section { margin-top: 12px; text-align: left; }
+.exp-split-label { font-size: 12px; color: var(--c-muted); margin-bottom: 7px; }
+.exp-split-checks { display: flex; flex-wrap: wrap; gap: 6px; }
+.exp-member-check {
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 11px; border: 1.5px solid var(--c-border); border-radius: 20px;
+  cursor: pointer; font-size: 13px; transition: all .2s; user-select: none;
+}
+.exp-member-check:has(input:checked) {
+  border-color: var(--c-accent); background: rgba(232,87,42,.07); color: var(--c-ink);
+}
+.exp-member-check input { display: none; }
+.exp-member-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }

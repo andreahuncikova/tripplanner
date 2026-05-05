@@ -37,7 +37,18 @@ const ActivitySchema = new Schema({
   addedBy:   String,
   userId:    Schema.Types.ObjectId,
   calDate:   String,
+  calTime:   String,
   createdAt: { type: Date, default: Date.now },
+});
+
+const ExpenseSchema = new Schema({
+  description:  String,
+  amount:       Number,
+  paidBy:       String,
+  paidByColor:  String,
+  splitAmong:   [String],
+  addedBy:      String,
+  createdAt:    { type: Date, default: Date.now },
 });
 
 const MemberSchema = new Schema({
@@ -68,6 +79,7 @@ const GroupSchema = new Schema({
   finalDateLabel:      { type: String, default: null },
 
   activities:          { type: [ActivitySchema], default: [] },
+  expenses:            { type: [ExpenseSchema],  default: [] },
   messages:            { type: [MsgSchema],      default: [] },
   createdAt:           { type: Date, default: Date.now },
 });

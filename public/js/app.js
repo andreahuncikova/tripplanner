@@ -67,13 +67,20 @@ if (urlCode) {
 
   // Already logged in?
   if (token && me) {
-    showDash();
-    // Pre-fill join modal with pending code but let user confirm
-    const pending = localStorage.getItem('tp_pending_code');
-    if (pending) {
-      localStorage.removeItem('tp_pending_code');
-      document.getElementById('join-code-input').value = pending;
-      showJoinModal();
+    const lastGroup = localStorage.getItem('tp_last_group');
+    const pending   = localStorage.getItem('tp_pending_code');
+    if (lastGroup && !urlCode) {
+      // Auto-reconnect to last open group
+      currentCode = lastGroup;
+      initSocket(lastGroup);
+      showScreen('app');
+    } else {
+      showDash();
+      if (pending) {
+        localStorage.removeItem('tp_pending_code');
+        document.getElementById('join-code-input').value = pending;
+        showJoinModal();
+      }
     }
   } else {
     showScreen('auth');
@@ -221,6 +228,7 @@ function enterGroup() { initSocket(currentCode); }  // from invite screen
 function goToDash() {
   if (socket) { socket.disconnect(); socket = null; }
   currentCode = null; currentGroup = null;
+  localStorage.removeItem('tp_last_group');
   showDash();
 }
 
@@ -231,6 +239,7 @@ function dashErr(msg) {
 
 // ── SOCKET ────────────────────────────────────────────
 function initSocket(code) {
+  localStorage.setItem('tp_last_group', code.toUpperCase());
 
   // CLEAR OLD CHAT + STATE
   document.getElementById('chat-msgs').innerHTML = '';
@@ -246,7 +255,15 @@ function initSocket(code) {
     socket.emit('join', { code });
   });
   socket.on('disconnect', () => setWsStatus(false));
-  socket.on('err', msg => alert(msg));
+  socket.on('err', msg => {
+    // If error happens before group data loaded (e.g. group not found on auto-reconnect)
+    if (!currentGroup?.phase) {
+      localStorage.removeItem('tp_last_group');
+      showDash();
+    } else {
+      alert(msg);
+    }
+  });
 
 socket.on('joined', data => {
   //  CLEAR previous chat completely
@@ -288,8 +305,10 @@ socket.on('joined', data => {
     renderCal(); renderMembersLegend();
   });
   socket.on('range:votes',  ranges => { currentGroup.dateRanges = ranges; renderRanges(); });
-  socket.on('activity:new', act   => { currentGroup.activities.push(act); renderActivities(); });
+  socket.on('activity:new', act   => { currentGroup.activities.push(act); renderActivities(); renderDoneCal(); });
   socket.on('activity:suggestions', ({ dest, suggestions }) => renderAiChips(suggestions));
+  socket.on('expense:new',     exp => { if (!currentGroup.expenses) currentGroup.expenses = []; currentGroup.expenses.push(exp); renderExpenses(); });
+  socket.on('expense:removed', id  => { currentGroup.expenses = (currentGroup.expenses||[]).filter(e => String(e._id) !== String(id)); renderExpenses(); });
   socket.on('typing', uname => showTyping(uname));
 }
 
@@ -339,10 +358,11 @@ function renderPhase() {
   }
   if (phase === 'done') {
     document.getElementById('p-done').classList.remove('hidden');
-    hintBar.textContent = `🎉 Trip confirmed: ${g.finalDateLabel || g.finalDate}. Add your activities!`;
+    hintBar.textContent = `🎉 Trip confirmed: ${g.finalDateLabel || g.finalDate}. Add activities and track expenses!`;
     renderDoneBanner();
     renderDoneCal();
     renderActivities();
+    renderExpenses();
   }
 }
 
@@ -491,11 +511,21 @@ function renderDoneBanner() {
 function renderDoneCal() {
   document.getElementById('done-cal-label').textContent = MONTHS[calM] + ' ' + calY;
   const g = currentGroup;
+  const actsByDate = {};
+  (g.activities || []).forEach(a => {
+    if (a.calDate) (actsByDate[a.calDate] = actsByDate[a.calDate] || []).push(a);
+  });
   buildGrid('done-cal-grid', (key, el) => {
     el.classList.add('done');
     el.style.cursor = 'default';
     if (key === g.finalDate) { el.classList.add('final'); }
     else if (g.finalDate && inRange(key, g.finalDate, g.tripDuration)) { el.classList.add('in-range'); }
+    if (actsByDate[key]) {
+      const dot = document.createElement('div');
+      dot.className = 'act-dot';
+      dot.title = `${actsByDate[key].length} activit${actsByDate[key].length === 1 ? 'y' : 'ies'}`;
+      el.appendChild(dot);
+    }
   });
 }
 
@@ -507,24 +537,94 @@ function inRange(key, start, dur) {
 }
 
 // ── ACTIVITIES ────────────────────────────────────────
-function actAdd() {
-  const inp = document.getElementById('act-inp');
-  const v = inp.value.trim();
-  if (!v || !socket) return;
-  socket.emit('activity:add', { text: v, calDate: null });
-  inp.value = '';
+function showAddActModal() {
+  const dateSelect = document.getElementById('act-modal-date');
+  const timeSelect = document.getElementById('act-modal-time');
+
+  // Populate date dropdown with trip days
+  dateSelect.innerHTML = '<option value="">No specific date</option>';
+  if (currentGroup?.finalDate && currentGroup?.tripDuration) {
+    const start = new Date(currentGroup.finalDate + 'T12:00:00');
+    for (let i = 0; i < currentGroup.tripDuration; i++) {
+      const d = new Date(start);
+      d.setDate(d.getDate() + i);
+      const key = d.toISOString().split('T')[0];
+      const label = d.toLocaleDateString('sk', { weekday:'short', month:'short', day:'numeric' });
+      const opt = document.createElement('option');
+      opt.value = key;
+      opt.textContent = `Deň ${i + 1} – ${label}`;
+      dateSelect.appendChild(opt);
+    }
+  }
+
+  // Populate time dropdown (30-min slots 06:00–23:30)
+  timeSelect.innerHTML = '<option value="">Any time</option>';
+  for (let h = 6; h <= 23; h++) {
+    for (const m of [0, 30]) {
+      const val = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+      const opt = document.createElement('option');
+      opt.value = val; opt.textContent = val;
+      timeSelect.appendChild(opt);
+    }
+  }
+
+  document.getElementById('act-modal-inp').value = '';
+  document.getElementById('act-modal-error').textContent = '';
+  document.getElementById('act-modal').classList.remove('hidden');
+  setTimeout(() => document.getElementById('act-modal-inp').focus(), 50);
 }
+
+function closeActModal() {
+  document.getElementById('act-modal').classList.add('hidden');
+}
+
+function actModalSubmit() {
+  const text    = document.getElementById('act-modal-inp').value.trim();
+  const calDate = document.getElementById('act-modal-date').value || null;
+  const calTime = document.getElementById('act-modal-time').value || null;
+  if (!text) { document.getElementById('act-modal-error').textContent = 'Enter an activity description'; return; }
+  socket?.emit('activity:add', { text, calDate, calTime });
+  closeActModal();
+}
+
 function renderActivities() {
-  const el = document.getElementById('act-list');
+  const el   = document.getElementById('act-list');
   const acts = currentGroup.activities || [];
-  if (!acts.length) { el.innerHTML = '<div style="font-size:13px;color:var(--c-muted);padding:8px 0">No activities yet</div>'; return; }
-  el.innerHTML = acts.map(a => `
-    <div class="act-item">
-      <span>${esc(a.text)}</span>
+  if (!acts.length) {
+    el.innerHTML = '<div style="font-size:13px;color:var(--c-muted);padding:12px 0 4px">No activities yet. Use ＋ to add one!</div>';
+    return;
+  }
+
+  // Sort by date+time, undated last
+  const sorted = [...acts].sort((a, b) => {
+    if (!a.calDate && !b.calDate) return 0;
+    if (!a.calDate) return 1;
+    if (!b.calDate) return -1;
+    const ak = a.calDate + (a.calTime || '00:00');
+    const bk = b.calDate + (b.calTime || '00:00');
+    return ak.localeCompare(bk);
+  });
+
+  el.innerHTML = sorted.map(a => {
+    let dateLabel = '';
+    if (a.calDate) {
+      const d        = new Date(a.calDate + 'T12:00:00');
+      const tripStart = new Date((currentGroup.finalDate || a.calDate) + 'T12:00:00');
+      const dayNum   = Math.round((d - tripStart) / 86400000) + 1;
+      const dateStr  = d.toLocaleDateString('sk', { weekday:'short', month:'short', day:'numeric' });
+      const timeStr  = a.calTime ? ` · ${a.calTime}` : '';
+      dateLabel = `<span class="act-date">Deň ${dayNum} · ${dateStr}${timeStr}</span>`;
+    }
+    return `<div class="act-item">
+      <div class="act-content">
+        ${dateLabel}
+        <span>${esc(a.text)}</span>
+      </div>
       <span class="act-by">— ${esc(a.addedBy)}</span>
-    </div>`).join('');
-  el.scrollTop = el.scrollHeight;
+    </div>`;
+  }).join('');
 }
+
 function aiSuggest() { socket?.emit('activity:suggest'); }
 function renderAiChips(suggestions) {
   const el = document.getElementById('ai-chips');
@@ -534,6 +634,123 @@ function renderAiChips(suggestions) {
     </div>`).join('');
 }
 function shareActivity(text) { socket?.emit('activity:share', text); }
+
+// ── DONE TABS ─────────────────────────────────────────
+function switchDoneTab(tab) {
+  document.querySelectorAll('.dtab').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.done-tab-pane').forEach(p => p.classList.add('done-tab-hidden'));
+  document.getElementById(`dtab-${tab}`).classList.add('active');
+  document.getElementById(`done-tab-${tab}`).classList.remove('done-tab-hidden');
+}
+
+// ── BUDGET / EXPENSES ─────────────────────────────────
+function showAddExpenseModal() {
+  const members = currentGroup?.members || [];
+  document.getElementById('exp-paidby').innerHTML = members.map(m =>
+    `<option value="${esc(m.username)}" ${m.username === me.username ? 'selected' : ''}>${esc(m.username)}</option>`
+  ).join('');
+  document.getElementById('exp-split-checks').innerHTML = members.map(m => `
+    <label class="exp-member-check">
+      <input type="checkbox" value="${esc(m.username)}" checked/>
+      <span class="exp-member-dot" style="background:${m.color}"></span>
+      ${esc(m.username)}
+    </label>`).join('');
+  document.getElementById('exp-desc').value = '';
+  document.getElementById('exp-amount').value = '';
+  document.getElementById('expense-modal-error').textContent = '';
+  document.getElementById('expense-modal').classList.remove('hidden');
+  setTimeout(() => document.getElementById('exp-desc').focus(), 50);
+}
+
+function closeExpenseModal() {
+  document.getElementById('expense-modal').classList.add('hidden');
+}
+
+function expenseSubmit() {
+  const description = document.getElementById('exp-desc').value.trim();
+  const amount      = parseFloat(document.getElementById('exp-amount').value);
+  const paidBy      = document.getElementById('exp-paidby').value;
+  const splitAmong  = [...document.querySelectorAll('#exp-split-checks input:checked')].map(cb => cb.value);
+  if (!description)            { document.getElementById('expense-modal-error').textContent = 'Enter a description'; return; }
+  if (!amount || amount <= 0)  { document.getElementById('expense-modal-error').textContent = 'Enter a valid amount'; return; }
+  if (!splitAmong.length)      { document.getElementById('expense-modal-error').textContent = 'Select at least one person'; return; }
+  socket?.emit('expense:add', { description, amount, paidBy, splitAmong });
+  closeExpenseModal();
+}
+
+function expenseRemove(id) { socket?.emit('expense:remove', id); }
+
+function renderExpenses() {
+  const el       = document.getElementById('expense-list');
+  const expenses = currentGroup.expenses || [];
+  if (!expenses.length) {
+    el.innerHTML = '<div class="empty-state" style="padding:24px 0">No expenses yet. Add the first one!</div>';
+    renderBudgetSummary();
+    return;
+  }
+  el.innerHTML = expenses.map(e => {
+    const perPerson = (e.amount / (e.splitAmong?.length || 1)).toFixed(2);
+    const canDel = e.addedBy === me?.username || currentGroup?.adminUsername === me?.username;
+    return `<div class="expense-item">
+      <div class="exp-left">
+        <div class="exp-av" style="background:${e.paidByColor||'#888'}">${initials(e.paidBy)}</div>
+        <div class="exp-info">
+          <div class="exp-desc-text">${esc(e.description)}</div>
+          <div class="exp-meta">${esc(e.paidBy)} zaplatil · rozdelené na ${e.splitAmong?.length||1} (€${perPerson}/os.)</div>
+        </div>
+      </div>
+      <div class="exp-right">
+        <div class="exp-amount-num">€${Number(e.amount).toFixed(2)}</div>
+        ${canDel ? `<button class="exp-del" onclick="expenseRemove('${e._id}')">×</button>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+  renderBudgetSummary();
+}
+
+function renderBudgetSummary() {
+  const el       = document.getElementById('budget-summary');
+  const expenses = currentGroup.expenses || [];
+  if (!expenses.length) { el.innerHTML = ''; return; }
+
+  const balance = {};
+  (currentGroup.members || []).forEach(m => { balance[m.username] = 0; });
+  expenses.forEach(e => {
+    const share = e.amount / (e.splitAmong?.length || 1);
+    balance[e.paidBy] = (balance[e.paidBy] || 0) + e.amount;
+    (e.splitAmong || []).forEach(u => { balance[u] = (balance[u] || 0) - share; });
+  });
+
+  // Compute minimal settlements
+  const debtors   = Object.entries(balance).filter(([,b]) => b < -0.01).map(([u,b]) => ({ user:u, amt:-b }));
+  const creditors = Object.entries(balance).filter(([,b]) => b >  0.01).map(([u,b]) => ({ user:u, amt:b }));
+  const settlements = [];
+  const d = debtors.map(x => ({...x})), c = creditors.map(x => ({...x}));
+  while (d.length && c.length) {
+    const amt = Math.min(d[0].amt, c[0].amt);
+    if (amt > 0.01) settlements.push({ from: d[0].user, to: c[0].user, amt });
+    d[0].amt -= amt; c[0].amt -= amt;
+    if (d[0].amt < 0.01) d.shift();
+    if (c[0].amt < 0.01) c.shift();
+  }
+
+  const total = expenses.reduce((s, e) => s + e.amount, 0);
+  el.innerHTML = `
+    <div class="budget-summary-box">
+      <div class="bs-title">Súhrn</div>
+      <div class="bs-total">Celkovo: €${total.toFixed(2)}</div>
+      ${settlements.length
+        ? `<div class="bs-settle-title">Vyrovnania:</div>
+           ${settlements.map(s => `
+             <div class="bs-settle-row">
+               <span class="bs-from">${esc(s.from)}</span>
+               <span class="bs-arrow">→</span>
+               <span class="bs-to">${esc(s.to)}</span>
+               <span class="bs-amount">€${s.amt.toFixed(2)}</span>
+             </div>`).join('')}`
+        : '<div class="bs-balanced">Všetko vyrovnané! 🎉</div>'}
+    </div>`;
+}
 
 // ── CHAT ──────────────────────────────────────────────
 function chatSend() {

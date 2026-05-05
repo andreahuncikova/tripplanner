@@ -61,6 +61,7 @@ function serialize(g, onlineList) {
     finalDate:         g.finalDate,
     finalDateLabel:    g.finalDateLabel,
     activities:        g.activities,
+    expenses:          g.expenses,
     online:            (onlineList||[]).map(s => ({ username: s.username, color: s.color })),
   };
 }
@@ -207,15 +208,48 @@ io.on('connection', socket => {
   });
 
   // ADD ACTIVITY ──────────────────────────────────────
-  socket.on('activity:add', async ({ text, calDate }) => {
+  socket.on('activity:add', async ({ text, calDate, calTime }) => {
     const s = sessions[socket.id];
     if (!s || !text?.trim()) return;
     const g = await Group.findOne({ inviteCode: s.code });
     if (!g) return;
-    const act = { text: text.trim(), addedBy: username, userId, calDate: calDate||null };
+    const act = { text: text.trim(), addedBy: username, userId, calDate: calDate||null, calTime: calTime||null };
     g.activities.push(act);
     await g.save();
     io.to(s.code).emit('activity:new', g.activities.at(-1));
+  });
+
+  // ADD EXPENSE ───────────────────────────────────────
+  socket.on('expense:add', async ({ description, amount, paidBy, splitAmong }) => {
+    const s = sessions[socket.id];
+    if (!s || !description?.trim() || !amount || amount <= 0) return;
+    const g = await Group.findOne({ inviteCode: s.code });
+    if (!g || g.phase !== 'done') return;
+    const member = g.members.find(m => m.username === paidBy);
+    g.expenses.push({
+      description: description.trim(),
+      amount:      parseFloat(amount),
+      paidBy,
+      paidByColor: member?.color || '#888',
+      splitAmong:  splitAmong || g.members.map(m => m.username),
+      addedBy:     username,
+    });
+    await g.save();
+    io.to(s.code).emit('expense:new', g.expenses.at(-1));
+  });
+
+  // REMOVE EXPENSE ────────────────────────────────────
+  socket.on('expense:remove', async expenseId => {
+    const s = sessions[socket.id];
+    if (!s) return;
+    const g = await Group.findOne({ inviteCode: s.code });
+    if (!g) return;
+    const exp = g.expenses.id(expenseId);
+    if (!exp) return;
+    if (exp.addedBy !== username && g.adminUsername !== username) return;
+    exp.deleteOne();
+    await g.save();
+    io.to(s.code).emit('expense:removed', expenseId);
   });
 
   // SHARE ACTIVITY TO CHAT ────────────────────────────
