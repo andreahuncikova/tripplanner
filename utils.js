@@ -1,4 +1,4 @@
-const SK_MONTHS_GEN = ['januára','februára','marca','apríla','mája','júna','júla','augusta','septembra','októbra','novembra','decembra'];
+const SK_MONTHS_GEN = ['january','february','march','april','may','june','july','august','september','october','november','december'];
 
 function toKey(d) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;

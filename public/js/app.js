@@ -1,5 +1,5 @@
 // ════════════════════════════════════════════════════════
-//  TripPlanner v3 — Frontend
+//  TripPlanner — Frontend
 // ════════════════════════════════════════════════════════
 
 // ── State ─────────────────────────────────────────────
@@ -49,8 +49,21 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('f-login').addEventListener('submit',    e => { e.preventDefault(); authLogin(e.target); });
 
   // Invite code from URL — store for after login
-  const urlCode = new URLSearchParams(window.location.search).get('code');
-  if (urlCode) localStorage.setItem('tp_pending_code', urlCode.toUpperCase());
+const urlCode = new URLSearchParams(window.location.search).get('code');
+
+if (urlCode) {
+  const code = urlCode.toUpperCase();
+
+  // ak som prihlásený → rovno joinni group
+  if (token && me) {
+    currentCode = code;
+    initSocket(code);
+    showScreen('app');
+  } else {
+    // inak si to len zapamätaj
+    localStorage.setItem('tp_pending_code', code);
+  }
+}
 
   // Already logged in?
   if (token && me) {
@@ -218,6 +231,13 @@ function dashErr(msg) {
 
 // ── SOCKET ────────────────────────────────────────────
 function initSocket(code) {
+
+  // CLEAR OLD CHAT + STATE
+  document.getElementById('chat-msgs').innerHTML = '';
+  document.getElementById('typing-row').innerHTML = '';
+  
+  currentGroup = null;   // important reset
+  
   if (socket) socket.disconnect();
   socket = io({ auth: { token } });
 
@@ -228,13 +248,29 @@ function initSocket(code) {
   socket.on('disconnect', () => setWsStatus(false));
   socket.on('err', msg => alert(msg));
 
-  socket.on('joined', data => {
-    applyState(data);
-    data.messages.forEach(m => appendMsg(m, false));
-    document.getElementById('tb-group-name').textContent = currentGroup?.name || code;
-    showScreen('app');
-    document.getElementById('chat-inp').focus();
-  });
+socket.on('joined', data => {
+  //  CLEAR previous chat completely
+  const chatEl = document.getElementById('chat-msgs');
+  chatEl.innerHTML = '';
+
+  // (optional but good) clear typing indicator too
+  document.getElementById('typing-row').innerHTML = '';
+
+  // 🧠 reset state properly
+  currentGroup = null;
+
+  // apply new group state
+  applyState(data);
+
+  // load ONLY this group's messages
+  (data.messages || []).forEach(m => appendMsg(m, false));
+
+  document.getElementById('tb-group-name').textContent =
+    currentGroup?.name || code;
+
+  showScreen('app');
+  document.getElementById('chat-inp').focus();
+});
 
   socket.on('state',        data  => applyState(data));
   socket.on('online',       list  => renderOnline(list));
