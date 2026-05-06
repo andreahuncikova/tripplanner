@@ -63,9 +63,9 @@ const GroupSchema = new Schema({
   name:                { type: String, required: true },
   adminUserId:         Schema.Types.ObjectId,
   adminUsername:       String,
-  tripDuration:        { type: Number, default: 3 },
+  tripDuration:        { type: Number, default: null },
 
-  // Flow: destinations → calendar → date_vote → done
+ 
   phase:               { type: String, default: 'destinations', enum: ['destinations','calendar','date_vote','done'] },
 
   members:             { type: [MemberSchema],  default: [] },

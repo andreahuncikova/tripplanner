@@ -10,14 +10,13 @@ function ts() {
 
 // POST /api/groups  — create
 router.post('/', authMiddleware, async (req, res) => {
-  const { name, tripDuration } = req.body;
+  const { name } = req.body;
   if (!name?.trim()) return res.status(400).json({ error: 'Group name is required' });
   const { _id: userId, username, color } = req.user;
   const inviteCode = uuidv4().slice(0,8).toUpperCase();
   const group = await Group.create({
     inviteCode, name: name.trim(),
     adminUserId: userId, adminUsername: username,
-    tripDuration: Math.max(1, parseInt(tripDuration) || 3),
     members: [{ userId, username, color }],
     messages: [{ username:'System', text:`Group "${name.trim()}" created! Code: ${inviteCode}`, time: ts(), system: true }]
   });

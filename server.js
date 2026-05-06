@@ -168,7 +168,7 @@ io.on('connection', socket => {
     if (!g || String(g.adminUserId) !== String(userId) || g.phase !== 'calendar') return;
     const unavailMap = {};
     g.availability.forEach(a => { unavailMap[a.username] = a.unavailableDates; });
-    const ranges = computeDateRanges(g.members.map(m=>m.username), unavailMap, g.tripDuration);
+    const ranges = computeDateRanges(g.members.map(m=>m.username), unavailMap);
     g.dateRanges = ranges;
     g.phase = 'date_vote';
     g.messages.push({ username:'System', text:`📅 Available dates calculated. Time to vote!`, time:ts(), system:true });
@@ -177,7 +177,19 @@ io.on('connection', socket => {
     io.to(s.code).emit('msg', g.messages.at(-1));
   });
 
-  // VOTE DATE RANGE ───────────────────────────────────
+  // ADMIN: SET TRIP DURATION (after seeing free windows) ─────
+  socket.on('trip:setDuration', async dur => {
+    const s = sessions[socket.id];
+    if (!s) return;
+    const g = await Group.findOne({ inviteCode: s.code });
+    if (!g || String(g.adminUserId) !== String(userId) || g.phase !== 'date_vote') return;
+    const d = Math.max(1, parseInt(dur) || 1);
+    g.tripDuration = d;
+    await g.save();
+    await broadcastState(s.code);
+  });
+
+  // VOTE DATE RANGE ───────────────────────────────────────────
   socket.on('range:vote', async idx => {
     const s = sessions[socket.id];
     if (!s) return;

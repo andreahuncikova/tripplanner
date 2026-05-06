@@ -171,6 +171,7 @@
       <!-- ── PHASE: date_vote ── -->
       <div class="panel hidden" id="p-datevote">
         <div class="panel-title">🗳️ Vote for a trip date</div>
+        <div id="dur-setter-bar"></div>
         <div class="ranges-scroll" id="ranges-list"></div>
       </div>
 
@@ -257,15 +258,6 @@
     <p class="auth-sub" style="margin-bottom:14px">Create a group and invite friends via link</p>
     <input id="new-group-name" type="text" placeholder="Group name (e.g. Summer trip 🌊)" maxlength="40"
       onkeydown="if(event.key==='Enter')createGroup()"/>
-    <div class="dur-row" style="margin-top:12px">
-      <span>Trip duration:</span>
-      <div class="dur-opts">
-        <button class="dur active" data-d="2">2 days</button>
-        <button class="dur" data-d="3">3 days</button>
-        <button class="dur" data-d="5">5 days</button>
-        <button class="dur" data-d="7">7 days</button>
-      </div>
-    </div>
     <div class="modal-error" id="create-modal-error"></div>
     <button class="btn-primary" onclick="createGroup()" style="margin-top:14px">Create group →</button>
     <button class="btn-ghost" onclick="closeCreateModal()" style="margin-top:6px">Cancel</button>

@@ -9,7 +9,7 @@ let socket       = null;
 let currentCode  = null;
 let currentGroup = null;   // latest state from server
 let myUnavail    = new Set();
-let calY, calM, selectedDur = 3;
+let calY, calM;
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const DAYS   = ['Mo','Tu','We','Th','Fr','Sa','Su'];
@@ -32,15 +32,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       document.querySelectorAll('.auth-form').forEach(x => x.classList.remove('active'));
       t.classList.add('active');
       document.getElementById(`f-${t.dataset.tab}`).classList.add('active');
-    });
-  });
-
-  // Duration buttons
-  document.querySelectorAll('.dur').forEach(b => {
-    b.addEventListener('click', () => {
-      document.querySelectorAll('.dur').forEach(x => x.classList.remove('active'));
-      b.classList.add('active');
-      selectedDur = parseInt(b.dataset.d);
     });
   });
 
@@ -162,7 +153,7 @@ async function loadMyGroups() {
     <div class="group-item" onclick="enterGroupFromDash('${g.inviteCode}')">
       <div>
         <div class="gi-name">${esc(g.name)}</div>
-        <div class="gi-meta">${g.tripDuration} days · code: ${g.inviteCode}</div>
+        <div class="gi-meta">${g.tripDuration ? g.tripDuration + ' days · ' : ''}code: ${g.inviteCode}</div>
       </div>
       <span class="gi-phase">${PHASE_LABELS[g.phase] || g.phase}</span>
     </div>
@@ -172,7 +163,7 @@ async function loadMyGroups() {
 async function createGroup() {
   const name = document.getElementById('new-group-name').value.trim();
   if (!name) return modalErr('create-modal-error', 'Enter a group name');
-  const r = await api('/api/groups', 'POST', { name, tripDuration: selectedDur });
+  const r = await api('/api/groups', 'POST', { name });
   if (r.error) return modalErr('create-modal-error', r.error);
 
   closeCreateModal();
@@ -346,14 +337,24 @@ function renderPhase() {
   }
   if (phase === 'calendar') {
     document.getElementById('p-calendar').classList.remove('hidden');
-    hintBar.textContent = `📅 Click days when you CAN'T go. Trip length: ${g.tripDuration} days. ${isAdmin() ? 'Once everyone marks their days, click "Calculate dates".' : 'Waiting for others to mark their days.'}`;
+    hintBar.textContent = `📅 Click days when you CAN'T go. ${isAdmin() ? 'Once everyone marks their days, click "Calculate dates".' : 'Waiting for others to mark their days.'}`;
     renderCal();
     renderMembersLegend();
     renderCalAdminBar();
   }
   if (phase === 'date_vote') {
     document.getElementById('p-datevote').classList.remove('hidden');
-    hintBar.textContent = '🗳️ Everyone votes for their preferred date. The admin confirms the result.';
+    const dur = g.tripDuration;
+    if (isAdmin()) {
+      hintBar.textContent = dur
+        ? `🗳️ Trip duration set to ${dur} days. Vote and confirm a date below.`
+        : '🗳️ Set your trip duration below, then vote and confirm a date.';
+    } else {
+      hintBar.textContent = dur
+        ? `🗳️ Trip duration: ${dur} days. Vote for your preferred date window.`
+        : '🗳️ Vote for your preferred date window. Admin will set the final trip duration.';
+    }
+    renderDurSetter();
     renderRanges();
   }
   if (phase === 'done') {
@@ -476,6 +477,43 @@ function renderCalAdminBar() {
 }
 function computeDates() { socket?.emit('avail:compute'); }
 
+// ── TRIP DURATION SETTER (date_vote phase) ────────────
+function renderDurSetter() {
+  const el = document.getElementById('dur-setter-bar');
+  if (!el) return;
+  const g = currentGroup;
+  const dur = g.tripDuration;
+
+  if (isAdmin()) {
+    el.innerHTML = `
+      <div class="dur-setter">
+        <span class="dur-setter-label">✏️ Dĺžka výletu:</span>
+        <input id="dur-inp" type="number" min="1" max="60" value="${dur || ''}" placeholder="počet dní"
+          class="dur-inp" onkeydown="if(event.key==='Enter')setTripDuration()"/>
+        <button class="dur-setter-btn" onclick="setTripDuration()">
+          ${dur ? '✓ Uložené' : 'Nastaviť'}
+        </button>
+        ${dur ? `<span class="dur-setter-set">${dur} dní</span>` : ''}
+      </div>`;
+    if (dur) {
+      const btn = el.querySelector('.dur-setter-btn');
+      btn.textContent = 'Zmeniť';
+    }
+  } else if (dur) {
+    el.innerHTML = `<div class="dur-setter readonly"><span class="dur-setter-label">📏 Dĺžka výletu:</span><span class="dur-setter-set">${dur} dní</span></div>`;
+  } else {
+    el.innerHTML = `<div class="dur-setter readonly"><span class="dur-setter-label" style="color:var(--c-muted)">Admin ešte nenastavil dĺžku výletu…</span></div>`;
+  }
+}
+
+function setTripDuration() {
+  const inp = document.getElementById('dur-inp');
+  if (!inp) return;
+  const val = parseInt(inp.value);
+  if (!val || val < 1) return;
+  socket?.emit('trip:setDuration', val);
+}
+
 // ── DATE RANGES ───────────────────────────────────────
 function renderRanges() {
   const g  = currentGroup;
@@ -494,7 +532,8 @@ function renderRanges() {
       <div class="rc-voters">${r.votes.length ? r.votes.map(esc).join(', ') : 'Nobody yet'}</div>
       <div class="rc-bar-wrap"><div class="rc-bar" style="width:${pct}%"></div></div>
       <div class="rc-count">${r.votes.length} votes</div>
-      ${isAdmin() && top ? `<button class="rc-confirm" onclick="event.stopPropagation();rangeConfirm(${i})">✅ Confirm this date</button>` : ''}
+      ${isAdmin() && top && g.tripDuration ? `<button class="rc-confirm" onclick="event.stopPropagation();rangeConfirm(${i})">✅ Confirm this date</button>` : ''}
+      ${isAdmin() && top && !g.tripDuration ? `<div class="rc-confirm-hint">⚠️ Najprv nastav dĺžku výletu</div>` : ''}
     </div>`;
   }).join('');
 }

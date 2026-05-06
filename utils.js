@@ -9,19 +9,21 @@ function daysBetween(a, b) {
 }
 
 function formatRange(start, end) {
+  const days = daysBetween(start, end);
+  const dayWord = days === 1 ? 'deň' : days < 5 ? 'dni' : 'dní';
   const sm = start.getMonth(), em = end.getMonth();
-  if (sm === em)
-    return `${start.getDate()}. – ${end.getDate()}. ${SK_MONTHS_GEN[sm]}`;
-  return `${start.getDate()}. ${SK_MONTHS_GEN[sm]} – ${end.getDate()}. ${SK_MONTHS_GEN[em]}`;
+  const dateStr = sm === em
+    ? `${start.getDate()}. – ${end.getDate()}. ${SK_MONTHS_GEN[sm]}`
+    : `${start.getDate()}. ${SK_MONTHS_GEN[sm]} – ${end.getDate()}. ${SK_MONTHS_GEN[em]}`;
+  return `${dateStr} (${days} ${dayWord})`;
 }
 
 /**
- * Finds date windows where NO member has marked unavailability,
- * long enough for tripDuration days.
- * Returns up to 5 ranges: { label, start, end, votes:[] }
+ * Finds all date windows where NO member has marked unavailability.
+ * Returns up to 8 ranges: { label, start, end, votes:[] }
+ * Label includes total window length, e.g. "10. – 20. máj (10 dní)"
  */
-function computeDateRanges(memberNames, unavailMap, tripDuration, scanMonths = 5) {
-  // Build full blocked set
+function computeDateRanges(memberNames, unavailMap, scanMonths = 5) {
   const blocked = new Set();
   memberNames.forEach(name => {
     (unavailMap[name] || []).forEach(d => blocked.add(d));
@@ -39,16 +41,13 @@ function computeDateRanges(memberNames, unavailMap, tripDuration, scanMonths = 5
     if (blocked.has(key)) {
       if (windowStart) {
         const prev = new Date(cur); prev.setDate(prev.getDate()-1);
-        const len = daysBetween(windowStart, prev);
-        if (len >= tripDuration) {
-          ranges.push({
-            label: formatRange(windowStart, prev),
-            start: toKey(windowStart),
-            end:   toKey(prev),
-            votes: [],
-            selected: false
-          });
-        }
+        ranges.push({
+          label: formatRange(windowStart, prev),
+          start: toKey(windowStart),
+          end:   toKey(prev),
+          votes: [],
+          selected: false
+        });
         windowStart = null;
       }
     } else {
@@ -58,19 +57,16 @@ function computeDateRanges(memberNames, unavailMap, tripDuration, scanMonths = 5
   }
 
   if (windowStart) {
-    const len = daysBetween(windowStart, scanEnd);
-    if (len >= tripDuration) {
-      ranges.push({
-        label: formatRange(windowStart, scanEnd),
-        start: toKey(windowStart),
-        end:   toKey(scanEnd),
-        votes: [],
-        selected: false
-      });
-    }
+    ranges.push({
+      label: formatRange(windowStart, scanEnd),
+      start: toKey(windowStart),
+      end:   toKey(scanEnd),
+      votes: [],
+      selected: false
+    });
   }
 
-  return ranges.slice(0, 5);
+  return ranges.slice(0, 8);
 }
 
 module.exports = { computeDateRanges, toKey };
