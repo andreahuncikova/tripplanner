@@ -207,6 +207,19 @@
         <div class="panel-title">🗳️ Vote for a trip date</div>
         <div id="dur-setter-bar"></div>
         <div class="ranges-scroll" id="ranges-list"></div>
+        <!-- Sub-window picker (shown when window > trip duration) -->
+        <div class="hidden subwindow-overlay" id="subwindow-picker">
+          <div class="subwindow-card">
+            <div class="subwindow-header">
+              <div>
+                <div class="subwindow-title" id="subwindow-title">Choose your exact dates</div>
+                <div class="subwindow-sub" id="subwindow-sub"></div>
+              </div>
+              <button class="subwindow-close" onclick="closeSubWindowPicker()">✕</button>
+            </div>
+            <div class="subwindow-options" id="subwindow-options"></div>
+          </div>
+        </div>
       </div>
 
       <!-- ── PHASE: done ── -->

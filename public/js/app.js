@@ -571,8 +571,60 @@ function renderRanges() {
     </div>`;
   }).join('');
 }
-function rangeVote(i)    { socket?.emit('range:vote', i); }
-function rangeConfirm(i) { socket?.emit('range:confirm', i); }
+function rangeVote(i) { socket?.emit('range:vote', i); }
+
+function rangeConfirm(origIdx) {
+  const g   = currentGroup;
+  const r   = g.dateRanges[origIdx];
+  const dur = g.tripDuration;
+  if (!r) return;
+  if (dur && rangeDays(r) > dur) {
+    showSubWindowPicker(origIdx, r, dur);
+  } else {
+    socket?.emit('range:confirm', { idx: origIdx, start: r.start });
+  }
+}
+
+function dateKey(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function fmtShortRange(s, e) {
+  const sm = s.getMonth(), em = e.getMonth();
+  return sm === em
+    ? `${s.getDate()} – ${e.getDate()} ${MONTHS[sm]}`
+    : `${s.getDate()} ${MONTHS[sm]} – ${e.getDate()} ${MONTHS[em]}`;
+}
+
+function showSubWindowPicker(origIdx, r, dur) {
+  const windows   = [];
+  const rangeEnd  = new Date(r.end + 'T12:00:00');
+  const cur       = new Date(r.start + 'T12:00:00');
+  while (true) {
+    const end = new Date(cur);
+    end.setDate(end.getDate() + dur - 1);
+    if (end > rangeEnd) break;
+    windows.push({ start: dateKey(cur), label: fmtShortRange(cur, end) });
+    cur.setDate(cur.getDate() + 1);
+  }
+
+  document.getElementById('subwindow-title').textContent = `Choose your exact ${dur}-day window`;
+  document.getElementById('subwindow-sub').textContent   = `Available window: ${r.label}`;
+  document.getElementById('subwindow-options').innerHTML = windows.map(w => `
+    <button class="subwindow-opt" onclick="confirmSubWindow(${origIdx},'${w.start}')">
+      ${esc(w.label)}
+    </button>`).join('');
+  document.getElementById('subwindow-picker').classList.remove('hidden');
+}
+
+function confirmSubWindow(origIdx, start) {
+  socket?.emit('range:confirm', { idx: origIdx, start });
+  closeSubWindowPicker();
+}
+
+function closeSubWindowPicker() {
+  document.getElementById('subwindow-picker').classList.add('hidden');
+}
 
 // ── DONE ──────────────────────────────────────────────
 function renderDoneBanner() {

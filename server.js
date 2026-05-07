@@ -8,7 +8,7 @@ const path         = require('path');
 
 const { MONGO_URI, PORT, DEST_EMOJIS, ACTIVITY_SUGGESTIONS } = require('./config');
 const { socketAuth } = require('./middleware/auth');
-const { computeDateRanges } = require('./utils');
+const { computeDateRanges, formatTripLabel } = require('./utils');
 const Group = require('./models/Group');
 
 const app    = express();
@@ -202,18 +202,22 @@ io.on('connection', socket => {
   });
 
   // ADMIN: CONFIRM DATE ───────────────────────────────
-  socket.on('range:confirm', async idx => {
+  socket.on('range:confirm', async ({ idx, start }) => {
     const s = sessions[socket.id];
     if (!s) return;
     const g = await Group.findOne({ inviteCode: s.code });
     if (!g || String(g.adminUserId) !== String(userId) || g.phase !== 'date_vote') return;
     const r = g.dateRanges[idx];
     if (!r) return;
+    const chosenStart = start || r.start;
+    const label = (g.tripDuration && chosenStart !== r.start)
+      ? formatTripLabel(chosenStart, g.tripDuration)
+      : (g.tripDuration ? formatTripLabel(chosenStart, g.tripDuration) : r.label);
     g.dateRanges.forEach((x,i) => { x.selected = i===idx; });
-    g.finalDate      = r.start;
-    g.finalDateLabel = r.label;
+    g.finalDate      = chosenStart;
+    g.finalDateLabel = label;
     g.phase = 'done';
-    g.messages.push({ username:'System', text:`🎉 Trip confirmed: ${r.label}! Start adding activities.`, time:ts(), system:true });
+    g.messages.push({ username:'System', text:`🎉 Trip confirmed: ${label}! Start adding activities.`, time:ts(), system:true });
     await g.save();
     await broadcastState(s.code);
     io.to(s.code).emit('msg', g.messages.at(-1));
