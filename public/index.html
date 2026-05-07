@@ -182,19 +182,24 @@
 
       <!-- ── PHASE: calendar ── -->
       <div class="panel hidden" id="p-calendar">
-        <div class="panel-title">
-          📅 Mark days when you <u>CAN'T</u> go
-          <div class="cal-nav">
-            <button onclick="calShift(-1)">‹</button>
-            <span id="cal-label"></span>
-            <button onclick="calShift(1)">›</button>
+        <div class="done-schedule-layout">
+          <!-- Left: big calendar -->
+          <div class="done-cal-col">
+            <div class="done-cal-header">
+              <button onclick="calShift(-1)">‹</button>
+              <span id="cal-label"></span>
+              <button onclick="calShift(1)">›</button>
+            </div>
+            <div class="cal-grid" id="cal-grid"></div>
+          </div>
+          <!-- Right: day detail panel -->
+          <div class="done-day-panel avail-day-panel">
+            <div class="done-day-title" id="avail-day-title">Select a day</div>
+            <div id="avail-day-members" class="avail-day-members"></div>
+            <div class="avail-day-hint">Tap a day in the calendar to toggle unavailability</div>
+            <div class="admin-bar" id="cal-admin-bar"></div>
           </div>
         </div>
-        <div class="cal-grid-wrap">
-          <div class="cal-grid" id="cal-grid"></div>
-        </div>
-        <div class="members-legend" id="members-legend"></div>
-        <div class="admin-bar" id="cal-admin-bar"></div>
       </div>
 
       <!-- ── PHASE: date_vote ── -->

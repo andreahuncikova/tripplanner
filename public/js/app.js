@@ -11,6 +11,7 @@ let currentGroup = null;   // latest state from server
 let myUnavail       = new Set();
 let calY, calM;
 let selectedDoneDay = null;
+let selectedCalDay  = null;
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const DAYS   = ['Mo','Tu','We','Th','Fr','Sa','Su'];
@@ -436,8 +437,11 @@ function renderCal() {
   document.getElementById('cal-label').textContent = MONTHS[calM] + ' ' + calY;
   buildGrid('cal-grid', (key, el) => {
     if (myUnavail.has(key)) el.classList.add('unavail');
-    el.addEventListener('click', () => toggleUnavail(key, el));
-    // dots for each other member
+    if (key === selectedCalDay) el.classList.add('dc-selected');
+    el.addEventListener('click', () => {
+      selectedCalDay = key;
+      toggleUnavail(key, el);
+    });
     const dotRow = document.createElement('div');
     dotRow.className = 'cd-dots';
     (currentGroup.availability || []).forEach(a => {
@@ -449,24 +453,47 @@ function renderCal() {
     });
     el.appendChild(dotRow);
   });
+  renderCalDayPanel();
 }
 
 function toggleUnavail(key, el) {
   if (myUnavail.has(key)) { myUnavail.delete(key); el.classList.remove('unavail'); }
   else                     { myUnavail.add(key);    el.classList.add('unavail');    }
   socket?.emit('avail:set', [...myUnavail]);
+  renderCal();
+}
+
+function renderCalDayPanel() {
+  const titleEl   = document.getElementById('avail-day-title');
+  const membersEl = document.getElementById('avail-day-members');
+  if (!titleEl || !membersEl) return;
+
+  if (!selectedCalDay) {
+    titleEl.textContent  = 'Select a day';
+    membersEl.innerHTML  = '';
+    return;
+  }
+
+  const d        = new Date(selectedCalDay + 'T12:00:00');
+  const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  titleEl.textContent = `${dayNames[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}`;
+
+  const avl = currentGroup.availability || [];
+  if (!avl.length) { membersEl.innerHTML = '<p class="done-day-empty">No members yet</p>'; return; }
+
+  membersEl.innerHTML = avl.map(a => {
+    const unavail = a.unavailableDates.includes(selectedCalDay);
+    const isMe    = a.username === me.username;
+    return `<div class="avail-member-row ${unavail ? 'unavail-row' : 'avail-row'}">
+      <span class="avail-member-dot" style="background:${a.color||'#888'}"></span>
+      <span class="avail-member-name">${esc(a.username)}${isMe ? ' (you)' : ''}</span>
+      <span class="avail-member-status">${unavail ? '✗ unavailable' : '✓ available'}</span>
+    </div>`;
+  }).join('');
 }
 
 function renderMembersLegend() {
-  const el  = document.getElementById('members-legend');
-  const avl = currentGroup.availability || [];
-  if (!avl.length) { el.innerHTML = '<span style="font-size:12px;color:var(--c-muted)">Waiting…</span>'; return; }
-  el.innerHTML = avl.map(a => `
-    <div class="ml-row">
-      <div class="ml-dot" style="background:${a.color||'#888'}"></div>
-      <span>${esc(a.username)}</span>
-      <span class="ml-days">${a.unavailableDates.length} unavailable</span>
-    </div>`).join('');
+  renderCalDayPanel();
 }
 
 function renderCalAdminBar() {
