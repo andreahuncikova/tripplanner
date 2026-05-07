@@ -10,8 +10,11 @@ let currentCode  = null;
 let currentGroup = null;   // latest state from server
 let myUnavail       = new Set();
 let calY, calM;
-let selectedDoneDay = null;
-let selectedCalDay  = null;
+let selectedDoneDay     = null;
+let selectedCalDay      = null;
+let localPhaseOverride  = null;   // non-admin local view override
+
+const PHASE_ORDER = ['destinations', 'calendar', 'date_vote', 'done'];
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const DAYS   = ['Mo','Tu','We','Th','Fr','Sa','Su'];
@@ -310,36 +313,46 @@ function applyState(data) {
   if (!currentGroup) currentGroup = {};
   Object.assign(currentGroup, data);
 
-  // Sync my unavail
   const myA = (data.availability || []).find(a => a.username === me.username);
   myUnavail = new Set(myA?.unavailableDates || []);
 
+  // Clear local override if group phase caught up or rolled back to/past it
+  if (localPhaseOverride) {
+    const oi = PHASE_ORDER.indexOf(localPhaseOverride);
+    const gi = PHASE_ORDER.indexOf(data.phase);
+    if (gi <= oi) localPhaseOverride = null;
+  }
+
   renderPhase();
+  renderReturnBanner(data.phase);
   renderOnline(data.online || []);
 }
 
 function renderPhase() {
-  const g = currentGroup;
-  const phase = g.phase;
+  const g            = currentGroup;
+  const actualPhase  = g.phase;
+  const phase        = localPhaseOverride || actualPhase;
 
-  // Update topbar
-  document.getElementById('tb-phase').textContent = PHASE_LABELS[phase] || phase;
+  document.getElementById('tb-phase').textContent = PHASE_LABELS[actualPhase] || actualPhase;
 
-  // Show correct panel
   ['destinations','calendar','datevote','done'].forEach(p => {
-    document.getElementById(`p-${p}`).classList.toggle('hidden', true);
+    document.getElementById(`p-${p}`).classList.add('hidden');
   });
 
   const hintBar = document.getElementById('hint-bar');
 
   if (phase === 'destinations') {
     document.getElementById('p-destinations').classList.remove('hidden');
-    hintBar.textContent = '💡 Suggest a destination and vote. Once everyone agrees, the admin approves the winner.';
+    hintBar.textContent = localPhaseOverride
+      ? '🗺️ Viewing destination votes.'
+      : '💡 Suggest a destination and vote. Once everyone agrees, the admin approves the winner.';
     renderDests();
   }
   if (phase === 'calendar') {
     document.getElementById('p-calendar').classList.remove('hidden');
-    hintBar.textContent = `📅 Click days when you CAN'T go. ${isAdmin() ? 'Once everyone marks their days, click "Calculate dates".' : 'Waiting for others to mark their days.'}`;
+    hintBar.textContent = localPhaseOverride
+      ? '📅 You can update your unavailable days here.'
+      : `📅 Click days when you CAN'T go. ${isAdmin() ? 'Once everyone marks their days, click "Calculate dates".' : 'Waiting for others to mark their days.'}`;
     renderCal();
     renderMembersLegend();
     renderCalAdminBar();
@@ -347,17 +360,16 @@ function renderPhase() {
   if (phase === 'date_vote') {
     document.getElementById('p-datevote').classList.remove('hidden');
     const dur = g.tripDuration;
-    if (isAdmin()) {
-      hintBar.textContent = dur
-        ? `🗳️ Trip duration set to ${dur} days. Vote and confirm a date below.`
-        : '🗳️ Set your trip duration below, then vote and confirm a date.';
+    if (!localPhaseOverride) {
+      hintBar.textContent = isAdmin()
+        ? (dur ? `🗳️ Trip duration set to ${dur} days. Vote and confirm a date below.` : '🗳️ Set your trip duration below, then vote and confirm a date.')
+        : (dur ? `🗳️ Trip duration: ${dur} days. Vote for your preferred date window.` : '🗳️ Vote for your preferred date window. Admin will set the final trip duration.');
     } else {
-      hintBar.textContent = dur
-        ? `🗳️ Trip duration: ${dur} days. Vote for your preferred date window.`
-        : '🗳️ Vote for your preferred date window. Admin will set the final trip duration.';
+      hintBar.textContent = '🗳️ Viewing date vote.';
     }
     renderDurSetter();
     renderRanges();
+    renderDateVoteBackBtn();
   }
   if (phase === 'done') {
     document.getElementById('p-done').classList.remove('hidden');
@@ -369,8 +381,40 @@ function renderPhase() {
   }
 }
 
+function renderReturnBanner(actualPhase) {
+  const el = document.getElementById('return-banner');
+  if (!el) return;
+  if (localPhaseOverride && localPhaseOverride !== actualPhase) {
+    const label = PHASE_LABELS[actualPhase] || actualPhase;
+    el.innerHTML = `<span>Viewing a previous step</span><button onclick="returnToCurrent()">→ Back to ${label}</button>`;
+    el.classList.remove('hidden');
+  } else {
+    el.classList.add('hidden');
+  }
+}
+
+function returnToCurrent() {
+  localPhaseOverride = null;
+  renderPhase();
+  renderReturnBanner(currentGroup.phase);
+}
+
 function isAdmin() {
   return currentGroup?.adminUsername === me?.username;
+}
+
+function goBack() {
+  if (isAdmin()) {
+    socket?.emit('phase:back');
+  } else {
+    const current = localPhaseOverride || currentGroup.phase;
+    const idx = PHASE_ORDER.indexOf(current);
+    if (idx > 0) {
+      localPhaseOverride = PHASE_ORDER[idx - 1];
+      renderPhase();
+      renderReturnBanner(currentGroup.phase);
+    }
+  }
 }
 
 // ── DESTINATIONS ──────────────────────────────────────
@@ -498,12 +542,21 @@ function renderMembersLegend() {
 
 function renderCalAdminBar() {
   const el = document.getElementById('cal-admin-bar');
-  if (!isAdmin()) { el.innerHTML = ''; return; }
-  el.innerHTML = `
-    <button onclick="computeDates()">📅 Calculate dates →</button>
-    <span class="hint">Only admin can proceed</span>`;
+  const canGoBack = PHASE_ORDER.indexOf(localPhaseOverride || currentGroup.phase) > 0;
+  const isActualCalendar = currentGroup.phase === 'calendar';
+  let html = '';
+  if (canGoBack) html += `<button class="back-btn" onclick="goBack()">← Back</button>`;
+  if (isAdmin() && isActualCalendar) html += `<button onclick="computeDates()">Calculate dates →</button><span class="hint">Admin only</span>`;
+  el.innerHTML = html;
 }
 function computeDates() { socket?.emit('avail:compute'); }
+
+function renderDateVoteBackBtn() {
+  const el = document.getElementById('datevote-back-bar');
+  if (!el) return;
+  const canGoBack = PHASE_ORDER.indexOf(localPhaseOverride || currentGroup.phase) > 0;
+  el.innerHTML = canGoBack ? `<button class="phase-back-btn" onclick="goBack()">← Back</button>` : '';
+}
 
 // ── TRIP DURATION SETTER (date_vote phase) ────────────
 function renderDurSetter() {
@@ -628,9 +681,10 @@ function closeSubWindowPicker() {
 
 // ── DONE ──────────────────────────────────────────────
 function renderDoneBanner() {
-  const g  = currentGroup;
+  const g = currentGroup;
   document.getElementById('done-dest-banner').innerHTML =
-    `${g.approvedDestEmoji||'🌍'} ${esc(g.approvedDest||'')} &nbsp;·&nbsp; 📅 ${esc(g.finalDateLabel||g.finalDate||'')}`;
+    `<span>${g.approvedDestEmoji||'🌍'} ${esc(g.approvedDest||'')} &nbsp;·&nbsp; 📅 ${esc(g.finalDateLabel||g.finalDate||'')}</span>
+     <button class="phase-back-btn" onclick="goBack()">← Back</button>`;
 }
 
 function renderDoneCal() {

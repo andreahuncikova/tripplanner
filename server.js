@@ -152,7 +152,7 @@ io.on('connection', socket => {
     const s = sessions[socket.id];
     if (!s) return;
     const g = await Group.findOne({ inviteCode: s.code });
-    if (!g || g.phase !== 'calendar') return;
+    if (!g) return;
     const existing = g.availability.find(a => String(a.userId) === String(userId));
     if (existing) { existing.unavailableDates = dates; existing.color = color; }
     else g.availability.push({ userId, username, color, unavailableDates: dates });
@@ -218,6 +218,37 @@ io.on('connection', socket => {
     g.finalDateLabel = label;
     g.phase = 'done';
     g.messages.push({ username:'System', text:`🎉 Trip confirmed: ${label}! Start adding activities.`, time:ts(), system:true });
+    await g.save();
+    await broadcastState(s.code);
+    io.to(s.code).emit('msg', g.messages.at(-1));
+  });
+
+  // ADMIN: GO BACK ONE PHASE ─────────────────────────
+  socket.on('phase:back', async () => {
+    const s = sessions[socket.id];
+    if (!s) return;
+    const g = await Group.findOne({ inviteCode: s.code });
+    if (!g || String(g.adminUserId) !== String(userId)) return;
+    let msg = '';
+    if (g.phase === 'done') {
+      g.phase          = 'date_vote';
+      g.finalDate      = null;
+      g.finalDateLabel = null;
+      g.activities     = [];
+      g.dateRanges.forEach(r => { r.selected = false; });
+      msg = '↩️ Trip unconfirmed — back to date voting.';
+    } else if (g.phase === 'date_vote') {
+      g.phase      = 'calendar';
+      g.dateRanges = [];
+      msg = '↩️ Back to availability calendar.';
+    } else if (g.phase === 'calendar') {
+      g.phase        = 'destinations';
+      g.availability = [];
+      msg = '↩️ Back to destination selection.';
+    } else {
+      return;
+    }
+    g.messages.push({ username: 'System', text: msg, time: ts(), system: true });
     await g.save();
     await broadcastState(s.code);
     io.to(s.code).emit('msg', g.messages.at(-1));

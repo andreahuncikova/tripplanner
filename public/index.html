@@ -163,6 +163,9 @@
   <!-- PHASE HINT BAR -->
   <div class="hint-bar py-2 px-5 text-[12px] text-blue bg-blue/[.06] border-b border-blue/[.12] flex-shrink-0 leading-relaxed font-medium" id="hint-bar"></div>
 
+  <!-- RETURN TO CURRENT BANNER (shown when non-admin is viewing a previous step) -->
+  <div class="return-banner hidden" id="return-banner"></div>
+
   <!-- MAIN -->
   <div class="app-body">
 
@@ -172,6 +175,7 @@
       <!-- ── PHASE: destinations ── -->
       <div class="panel" id="p-destinations">
         <div class="panel-title">🗺️ Destinations <span class="ptitle-hint">Suggest &amp; vote</span></div>
+        <div id="dest-back-bar"></div>
         <div class="dest-scroll" id="dest-list"></div>
         <div class="flex gap-1.5 py-[11px] px-3 border-t border-rim bg-panel flex-shrink-0" id="dest-add-bar">
           <input id="dest-inp" type="text" placeholder="Suggest a destination (e.g. Paris, Vienna…)" maxlength="40"
@@ -204,7 +208,7 @@
 
       <!-- ── PHASE: date_vote ── -->
       <div class="panel hidden" id="p-datevote">
-        <div class="panel-title">🗳️ Vote for a trip date</div>
+        <div class="panel-title">🗳️ Vote for a trip date <div id="datevote-back-bar" class="inline-flex"></div></div>
         <div id="dur-setter-bar"></div>
         <div class="ranges-scroll" id="ranges-list"></div>
         <!-- Sub-window picker (shown when window > trip duration) -->
