@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="sk">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -12,24 +12,24 @@
     theme: {
       extend: {
         colors: {
-          bg:     '#F4EFE7',
-          deep:   '#1A1714',
-          ink:    '#2A2622',
-          muted:  '#8A8279',
-          panel:  '#FEFCF8',
+          bg:     '#F2EDE4',
+          deep:   '#18181B',
+          ink:    '#27272A',
+          muted:  '#71717A',
+          panel:  '#FFFFFF',
           accent: '#E8572A',
           blue:   '#4A90A4',
           green:  '#5C9E50',
           purple: '#9B59B6',
-          rim:    'rgba(42,38,34,.12)',
+          rim:    'rgba(24,24,27,.09)',
         },
         fontFamily: {
           sans:  ['DM Sans', 'sans-serif'],
           serif: ['Fraunces', 'serif'],
         },
         boxShadow: {
-          soft:  '0 2px 18px rgba(26,23,20,.09)',
-          modal: '0 24px 60px rgba(0,0,0,.35)',
+          soft:  '0 1px 3px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.07)',
+          modal: '0 8px 40px rgba(0,0,0,.22)',
         },
       },
     },
@@ -44,9 +44,9 @@
 ═══════════════════════════════════════════ -->
 <div id="s-auth" class="screen active">
   <div class="auth-bg min-h-screen flex items-center justify-center">
-    <div class="bg-panel rounded-[20px] py-10 px-9 w-[400px] max-w-[96vw] shadow-modal text-center">
+    <div class="bg-panel rounded-2xl py-10 px-9 w-[400px] max-w-[96vw] shadow-modal text-center">
       <div class="text-4xl mb-3">✈️</div>
-      <h1 class="font-serif text-[26px] font-semibold mb-1.5">TripPlanner</h1>
+      <h1 class="font-serif text-[26px] font-semibold mb-1.5 tracking-[-0.02em]">TripPlanner</h1>
       <p class="text-[13px] text-muted mb-[22px] leading-relaxed">Plan trips together, in real time</p>
 
       <div class="flex gap-1 bg-bg rounded-[10px] p-1 mb-[18px]">
@@ -128,9 +128,9 @@
 ═══════════════════════════════════════════ -->
 <div id="s-invite" class="screen">
   <div class="auth-bg min-h-screen flex items-center justify-center">
-    <div class="bg-panel rounded-[20px] py-10 px-9 w-[400px] max-w-[96vw] shadow-modal text-center">
+    <div class="bg-panel rounded-2xl py-10 px-9 w-[400px] max-w-[96vw] shadow-modal text-center">
       <div class="text-4xl mb-3">🎉</div>
-      <h2 id="inv-group-name" class="font-serif text-[26px] font-semibold mb-1.5"></h2>
+      <h2 id="inv-group-name" class="font-serif text-[26px] font-semibold mb-1.5 tracking-[-0.02em]"></h2>
       <p class="text-[13px] text-muted mb-[22px] leading-relaxed">Share this code with your friends</p>
       <div class="font-bold text-[30px] tracking-[.22em] bg-bg border-2 border-dashed border-rim rounded-xl p-4 mt-[14px] mb-2 text-ink" id="inv-code"></div>
       <div class="text-[11px] text-muted break-all mb-3" id="inv-link"></div>
@@ -146,22 +146,22 @@
 <div id="s-app" class="screen">
 
   <!-- TOPBAR -->
-  <header class="h-[50px] bg-deep flex items-center justify-between px-4 flex-shrink-0 gap-3" id="topbar">
-    <div class="flex items-center gap-2 min-w-0">
-      <button class="w-7 h-7 rounded-[6px] border border-white/15 bg-transparent text-white/60 cursor-pointer text-sm flex items-center justify-center transition-all flex-shrink-0 hover:bg-white/10 hover:text-white" onclick="goToDash()" title="Back">←</button>
-      <span class="text-[17px] flex-shrink-0">✈️</span>
-      <span class="font-serif text-sm font-semibold text-white truncate max-w-[200px]" id="tb-group-name">—</span>
-      <span class="text-[10px] py-0.5 px-[9px] rounded-full whitespace-nowrap bg-accent/25 text-[#FF9F85] font-medium flex-shrink-0" id="tb-phase">—</span>
+  <header class="h-[52px] bg-deep flex items-center justify-between px-5 flex-shrink-0 gap-3 border-b border-white/[.07]" id="topbar">
+    <div class="flex items-center gap-2.5 min-w-0">
+      <button class="w-7 h-7 rounded-lg border border-white/[.12] bg-transparent text-white/50 cursor-pointer text-sm flex items-center justify-center transition-all flex-shrink-0 hover:bg-white/[.08] hover:text-white hover:border-white/25" onclick="goToDash()" title="Back">←</button>
+      <span class="text-base flex-shrink-0">✈️</span>
+      <span class="font-serif text-[14px] font-semibold text-white/90 truncate max-w-[200px] tracking-[-0.01em]" id="tb-group-name">—</span>
+      <span class="text-[10px] py-[3px] px-[9px] rounded-full whitespace-nowrap bg-accent/20 text-[#FF9F85] font-semibold flex-shrink-0 tracking-[.02em]" id="tb-phase">—</span>
     </div>
-    <div class="flex items-center gap-2 flex-shrink-0">
+    <div class="flex items-center gap-2.5 flex-shrink-0">
       <div class="flex" id="online-row"></div>
       <div class="ws-pill" id="ws-pill"><span class="live-dot"></span> Live</div>
-      <button class="border border-rim rounded-lg py-[5px] px-2.5 bg-transparent text-muted text-[11px] cursor-pointer transition-all hover:border-ink hover:text-ink" onclick="showInviteModal()">🔗 Invite</button>
+      <button class="border border-white/[.12] rounded-lg py-[5px] px-3 bg-transparent text-white/50 text-[11px] cursor-pointer transition-all hover:border-white/25 hover:text-white/80 font-medium" onclick="showInviteModal()">🔗 Invite</button>
     </div>
   </header>
 
   <!-- PHASE HINT BAR -->
-  <div class="hint-bar py-[7px] px-4 text-xs text-blue bg-blue/[.08] border-b border-blue/15 flex-shrink-0 leading-[1.5]" id="hint-bar"></div>
+  <div class="hint-bar py-2 px-5 text-[12px] text-blue bg-blue/[.06] border-b border-blue/[.12] flex-shrink-0 leading-relaxed font-medium" id="hint-bar"></div>
 
   <!-- MAIN -->
   <div class="app-body">
@@ -196,7 +196,7 @@
           <div class="done-day-panel avail-day-panel">
             <div class="done-day-title" id="avail-day-title">Select a day</div>
             <div id="avail-day-members" class="avail-day-members"></div>
-            <div class="avail-day-hint">Tap a day in the calendar to toggle unavailability</div>
+            <div class="avail-day-hint">Click a day to mark it as unavailable. Click again to undo.</div>
             <div class="admin-bar" id="cal-admin-bar"></div>
           </div>
         </div>
@@ -215,7 +215,7 @@
 
         <!-- Tab navigation -->
         <div class="done-tabs">
-          <button class="dtab active" id="dtab-schedule" onclick="switchDoneTab('schedule')">📅 Itinerár</button>
+          <button class="dtab active" id="dtab-schedule" onclick="switchDoneTab('schedule')">📅 Itinerary</button>
           <button class="dtab" id="dtab-budget" onclick="switchDoneTab('budget')">💰 Budget</button>
         </div>
 
@@ -275,51 +275,57 @@
 </div><!-- /s-app -->
 
 <!-- INVITE MODAL -->
-<div class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-[100]" id="inv-modal" onclick="if(event.target===this)closeModal()">
-  <div class="bg-panel rounded-[16px] p-7 w-[360px] max-w-[95vw] text-center shadow-[0_20px_50px_rgba(0,0,0,.3)] flex flex-col gap-2">
-    <h3 class="font-serif text-lg mb-1.5">🔗 Invite to group</h3>
-    <div class="font-bold text-[30px] tracking-[.22em] bg-bg border-2 border-dashed border-rim rounded-xl p-4 text-ink" id="modal-code"></div>
-    <div class="text-[11px] text-muted break-all" id="modal-link"></div>
-    <button class="w-full py-[11px] border-[1.5px] border-rim rounded-[10px] bg-transparent text-ink font-medium text-[13px] cursor-pointer transition-all hover:bg-bg" onclick="copyInvite()">📋 Copy link</button>
-    <button class="border border-rim rounded-lg py-1.5 px-3.5 bg-transparent text-muted text-xs cursor-pointer transition-all hover:border-ink hover:text-ink" onclick="closeModal()">Close</button>
+<div class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[100]" id="inv-modal" onclick="if(event.target===this)closeModal()">
+  <div class="bg-panel rounded-2xl p-7 w-[360px] max-w-[95vw] text-center shadow-modal flex flex-col gap-3">
+    <h3 class="font-serif text-[18px] font-semibold tracking-[-0.02em]">Invite to group</h3>
+    <div class="font-bold text-[28px] tracking-[.2em] bg-bg border border-dashed border-rim rounded-xl p-4 text-ink" id="modal-code"></div>
+    <div class="text-[11px] text-muted break-all leading-relaxed" id="modal-link"></div>
+    <button class="w-full py-[11px] border-[1.5px] border-rim rounded-xl bg-transparent text-ink font-medium text-[13px] cursor-pointer transition-all hover:bg-bg hover:border-ink/20" onclick="copyInvite()">📋 Copy link</button>
+    <button class="text-muted text-xs cursor-pointer transition-all hover:text-ink font-medium py-1" onclick="closeModal()">Close</button>
   </div>
 </div>
 
 <!-- CREATE GROUP MODAL -->
-<div class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-[100]" id="create-modal" onclick="if(event.target===this)closeCreateModal()">
-  <div class="bg-panel rounded-[16px] p-7 w-[360px] max-w-[95vw] text-center shadow-[0_20px_50px_rgba(0,0,0,.3)] flex flex-col gap-2">
-    <h3 class="font-serif text-lg mb-1.5">New group</h3>
-    <p class="text-[13px] text-muted leading-relaxed">Create a group and invite friends via link</p>
+<div class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[100]" id="create-modal" onclick="if(event.target===this)closeCreateModal()">
+  <div class="bg-panel rounded-2xl p-7 w-[380px] max-w-[95vw] shadow-modal flex flex-col gap-3">
+    <div>
+      <h3 class="font-serif text-[18px] font-semibold tracking-[-0.02em]">New trip group</h3>
+      <p class="text-[13px] text-muted mt-1 leading-relaxed">Create a group and invite friends via link</p>
+    </div>
     <input id="new-group-name" type="text" placeholder="Group name (e.g. Summer trip 🌊)" maxlength="40"
       onkeydown="if(event.key==='Enter')createGroup()"/>
     <div class="text-xs text-accent min-h-[14px]" id="create-modal-error"></div>
-    <button class="w-full py-[13px] border-none rounded-[10px] bg-accent text-white font-semibold text-sm cursor-pointer transition-all hover:bg-[#C44A22]" onclick="createGroup()">Create group →</button>
-    <button class="border border-rim rounded-lg py-1.5 px-3.5 bg-transparent text-muted text-xs cursor-pointer transition-all hover:border-ink hover:text-ink" onclick="closeCreateModal()">Cancel</button>
+    <button class="w-full py-[13px] border-none rounded-xl bg-accent text-white font-semibold text-sm cursor-pointer transition-all hover:bg-[#C44A22] tracking-[.01em]" onclick="createGroup()">Create group →</button>
+    <button class="text-muted text-xs cursor-pointer transition-all hover:text-ink font-medium py-1 text-center" onclick="closeCreateModal()">Cancel</button>
   </div>
 </div>
 
 <!-- JOIN GROUP MODAL -->
-<div class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-[100]" id="join-modal" onclick="if(event.target===this)closeJoinModal()">
-  <div class="bg-panel rounded-[16px] p-7 w-[360px] max-w-[95vw] text-center shadow-[0_20px_50px_rgba(0,0,0,.3)] flex flex-col gap-2">
-    <h3 class="font-serif text-lg mb-1.5">Join a group</h3>
-    <p class="text-[13px] text-muted leading-relaxed">Enter the invite code from the group admin</p>
+<div class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[100]" id="join-modal" onclick="if(event.target===this)closeJoinModal()">
+  <div class="bg-panel rounded-2xl p-7 w-[380px] max-w-[95vw] shadow-modal flex flex-col gap-3">
+    <div>
+      <h3 class="font-serif text-[18px] font-semibold tracking-[-0.02em]">Join a group</h3>
+      <p class="text-[13px] text-muted mt-1 leading-relaxed">Enter the invite code shared by the group admin</p>
+    </div>
     <input id="join-code-input" type="text" placeholder="A1B2C3D4" maxlength="8"
-      style="text-transform:uppercase;letter-spacing:.18em;text-align:center;font-size:20px;font-weight:700;padding:14px"
+      style="text-transform:uppercase;letter-spacing:.18em;text-align:center;font-size:22px;font-weight:700;padding:16px"
       onkeydown="if(event.key==='Enter')joinByCode()"/>
     <div class="text-xs text-accent min-h-[14px]" id="join-modal-error"></div>
-    <button class="w-full py-[13px] border-none rounded-[10px] bg-accent text-white font-semibold text-sm cursor-pointer transition-all hover:bg-[#C44A22]" onclick="joinByCode()">Join →</button>
-    <button class="border border-rim rounded-lg py-1.5 px-3.5 bg-transparent text-muted text-xs cursor-pointer transition-all hover:border-ink hover:text-ink" onclick="closeJoinModal()">Cancel</button>
+    <button class="w-full py-[13px] border-none rounded-xl bg-accent text-white font-semibold text-sm cursor-pointer transition-all hover:bg-[#C44A22] tracking-[.01em]" onclick="joinByCode()">Join →</button>
+    <button class="text-muted text-xs cursor-pointer transition-all hover:text-ink font-medium py-1 text-center" onclick="closeJoinModal()">Cancel</button>
   </div>
 </div>
 
 <!-- ADD ACTIVITY MODAL -->
-<div class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-[100]" id="act-modal" onclick="if(event.target===this)closeActModal()">
-  <div class="bg-panel rounded-[16px] p-7 w-[360px] max-w-[95vw] text-center shadow-[0_20px_50px_rgba(0,0,0,.3)] flex flex-col gap-2">
-    <h3 class="font-serif text-lg mb-1.5">💡 Add Activity</h3>
-    <p class="text-[13px] text-muted leading-relaxed">Add an activity to a specific day and time</p>
+<div class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[100]" id="act-modal" onclick="if(event.target===this)closeActModal()">
+  <div class="bg-panel rounded-2xl p-7 w-[380px] max-w-[95vw] shadow-modal flex flex-col gap-3">
+    <div>
+      <h3 class="font-serif text-[18px] font-semibold tracking-[-0.02em]">Add Activity</h3>
+      <p class="text-[13px] text-muted mt-1 leading-relaxed">Assign an activity to a day and optional time</p>
+    </div>
     <input id="act-modal-inp" type="text" placeholder="Describe the activity…" maxlength="120"
       onkeydown="if(event.key==='Enter')actModalSubmit()"/>
-    <div class="flex gap-2 mt-1">
+    <div class="flex gap-2">
       <select id="act-modal-date" class="flex-1">
         <option value="">No specific date</option>
       </select>
@@ -328,28 +334,30 @@
       </select>
     </div>
     <div class="text-xs text-accent min-h-[14px]" id="act-modal-error"></div>
-    <button class="w-full py-[13px] border-none rounded-[10px] bg-accent text-white font-semibold text-sm cursor-pointer transition-all hover:bg-[#C44A22]" onclick="actModalSubmit()">Add →</button>
-    <button class="border border-rim rounded-lg py-1.5 px-3.5 bg-transparent text-muted text-xs cursor-pointer transition-all hover:border-ink hover:text-ink" onclick="closeActModal()">Cancel</button>
+    <button class="w-full py-[13px] border-none rounded-xl bg-accent text-white font-semibold text-sm cursor-pointer transition-all hover:bg-[#C44A22] tracking-[.01em]" onclick="actModalSubmit()">Add activity →</button>
+    <button class="text-muted text-xs cursor-pointer transition-all hover:text-ink font-medium py-1 text-center" onclick="closeActModal()">Cancel</button>
   </div>
 </div>
 
 <!-- ADD EXPENSE MODAL -->
-<div class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-[100]" id="expense-modal" onclick="if(event.target===this)closeExpenseModal()">
-  <div class="bg-panel rounded-[16px] p-7 w-[360px] max-w-[95vw] text-center shadow-[0_20px_50px_rgba(0,0,0,.3)] flex flex-col gap-2">
-    <h3 class="font-serif text-lg mb-1.5">💰 Add Expense</h3>
-    <p class="text-[13px] text-muted leading-relaxed">Track who paid and split the cost</p>
+<div class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[100]" id="expense-modal" onclick="if(event.target===this)closeExpenseModal()">
+  <div class="bg-panel rounded-2xl p-7 w-[380px] max-w-[95vw] shadow-modal flex flex-col gap-3">
+    <div>
+      <h3 class="font-serif text-[18px] font-semibold tracking-[-0.02em]">Add Expense</h3>
+      <p class="text-[13px] text-muted mt-1 leading-relaxed">Track who paid and split the cost</p>
+    </div>
     <input id="exp-desc" type="text" placeholder="What was it for? (e.g. Dinner, Hotel…)" maxlength="80"/>
     <div class="flex gap-2">
       <input id="exp-amount" type="number" placeholder="Amount (€)" min="0.01" step="0.01" class="flex-1"/>
       <select id="exp-paidby" class="flex-1"></select>
     </div>
-    <div class="mt-1 text-left">
-      <div class="text-xs text-muted mb-[7px]">Split among:</div>
+    <div class="text-left">
+      <div class="text-xs text-muted mb-2 font-medium">Split among:</div>
       <div id="exp-split-checks" class="flex flex-wrap gap-1.5"></div>
     </div>
     <div class="text-xs text-accent min-h-[14px]" id="expense-modal-error"></div>
-    <button class="w-full py-[13px] border-none rounded-[10px] bg-accent text-white font-semibold text-sm cursor-pointer transition-all hover:bg-[#C44A22]" onclick="expenseSubmit()">Add expense →</button>
-    <button class="border border-rim rounded-lg py-1.5 px-3.5 bg-transparent text-muted text-xs cursor-pointer transition-all hover:border-ink hover:text-ink" onclick="closeExpenseModal()">Cancel</button>
+    <button class="w-full py-[13px] border-none rounded-xl bg-accent text-white font-semibold text-sm cursor-pointer transition-all hover:bg-[#C44A22] tracking-[.01em]" onclick="expenseSubmit()">Add expense →</button>
+    <button class="text-muted text-xs cursor-pointer transition-all hover:text-ink font-medium py-1 text-center" onclick="closeExpenseModal()">Cancel</button>
   </div>
 </div>
 

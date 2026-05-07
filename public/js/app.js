@@ -515,22 +515,18 @@ function renderDurSetter() {
   if (isAdmin()) {
     el.innerHTML = `
       <div class="dur-setter">
-        <span class="dur-setter-label">✏️ Dĺžka výletu:</span>
-        <input id="dur-inp" type="number" min="1" max="60" value="${dur || ''}" placeholder="počet dní"
+        <span class="dur-setter-label">✏️ Trip duration:</span>
+        <input id="dur-inp" type="number" min="1" max="60" value="${dur || ''}" placeholder="days"
           class="dur-inp" onkeydown="if(event.key==='Enter')setTripDuration()"/>
         <button class="dur-setter-btn" onclick="setTripDuration()">
-          ${dur ? '✓ Uložené' : 'Nastaviť'}
+          ${dur ? 'Change' : 'Set'}
         </button>
-        ${dur ? `<span class="dur-setter-set">${dur} dní</span>` : ''}
+        ${dur ? `<span class="dur-setter-set">${dur} days</span>` : ''}
       </div>`;
-    if (dur) {
-      const btn = el.querySelector('.dur-setter-btn');
-      btn.textContent = 'Zmeniť';
-    }
   } else if (dur) {
-    el.innerHTML = `<div class="dur-setter readonly"><span class="dur-setter-label">📏 Dĺžka výletu:</span><span class="dur-setter-set">${dur} dní</span></div>`;
+    el.innerHTML = `<div class="dur-setter readonly"><span class="dur-setter-label">📏 Trip duration:</span><span class="dur-setter-set">${dur} days</span></div>`;
   } else {
-    el.innerHTML = `<div class="dur-setter readonly"><span class="dur-setter-label" style="color:var(--c-muted)">Admin ešte nenastavil dĺžku výletu…</span></div>`;
+    el.innerHTML = `<div class="dur-setter readonly"><span class="dur-setter-label" style="color:var(--c-muted)">Admin hasn't set the trip duration yet…</span></div>`;
   }
 }
 
@@ -571,7 +567,7 @@ function renderRanges() {
       <div class="rc-bar-wrap"><div class="rc-bar" style="width:${pct}%"></div></div>
       <div class="rc-count">${r.votes.length} votes</div>
       ${isAdmin() && top && g.tripDuration ? `<button class="rc-confirm" onclick="event.stopPropagation();rangeConfirm(${origIdx})">✅ Confirm this date</button>` : ''}
-      ${isAdmin() && top && !g.tripDuration ? `<div class="rc-confirm-hint">⚠️ Najprv nastav dĺžku výletu</div>` : ''}
+      ${isAdmin() && top && !g.tripDuration ? `<div class="rc-confirm-hint">⚠️ Set the trip duration first</div>` : ''}
     </div>`;
   }).join('');
 }
@@ -671,10 +667,10 @@ function showAddActModal(preDate) {
       const d = new Date(start);
       d.setDate(d.getDate() + i);
       const key = d.toISOString().split('T')[0];
-      const label = d.toLocaleDateString('sk', { weekday:'short', month:'short', day:'numeric' });
+      const label = d.toLocaleDateString('en', { weekday:'short', month:'short', day:'numeric' });
       const opt = document.createElement('option');
       opt.value = key;
-      opt.textContent = `Deň ${i + 1} – ${label}`;
+      opt.textContent = `Day ${i + 1} – ${label}`;
       dateSelect.appendChild(opt);
     }
   }
