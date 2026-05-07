@@ -515,24 +515,34 @@ function setTripDuration() {
 }
 
 // ── DATE RANGES ───────────────────────────────────────
+function rangeDays(r) {
+  const ms = new Date(r.end) - new Date(r.start);
+  return Math.round(ms / 86400000) + 1;
+}
+
 function renderRanges() {
   const g  = currentGroup;
   const el = document.getElementById('ranges-list');
-  if (!g.dateRanges?.length) {
-    el.innerHTML = '<div class="empty-state">No common dates.<br>Try changing your unavailable days.</div>';
+  const dur = g.tripDuration;
+  const ranges = (g.dateRanges || []).filter(r => !dur || rangeDays(r) >= dur);
+  if (!ranges.length) {
+    el.innerHTML = dur
+      ? `<div class="empty-state">No date windows long enough for ${dur} days.<br>Try changing your unavailable days.</div>`
+      : '<div class="empty-state">No common dates.<br>Try changing your unavailable days.</div>';
     return;
   }
-  const maxV = Math.max(...g.dateRanges.map(r => r.votes.length), 1);
-  el.innerHTML = g.dateRanges.map((r, i) => {
+  const maxV = Math.max(...ranges.map(r => r.votes.length), 1);
+  el.innerHTML = ranges.map((r, i) => {
+    const origIdx = g.dateRanges.indexOf(r);
     const voted = r.votes.includes(me.username);
-    const top   = r.votes.length === Math.max(...g.dateRanges.map(x => x.votes.length)) && r.votes.length > 0;
+    const top   = r.votes.length === Math.max(...ranges.map(x => x.votes.length)) && r.votes.length > 0;
     const pct   = Math.round((r.votes.length / maxV) * 100);
-    return `<div class="range-card ${voted?'voted':''} ${top?'top':''}" onclick="rangeVote(${i})">
+    return `<div class="range-card ${voted?'voted':''} ${top?'top':''}" onclick="rangeVote(${origIdx})">
       <div class="rc-label">${esc(r.label)}</div>
       <div class="rc-voters">${r.votes.length ? r.votes.map(esc).join(', ') : 'Nobody yet'}</div>
       <div class="rc-bar-wrap"><div class="rc-bar" style="width:${pct}%"></div></div>
       <div class="rc-count">${r.votes.length} votes</div>
-      ${isAdmin() && top && g.tripDuration ? `<button class="rc-confirm" onclick="event.stopPropagation();rangeConfirm(${i})">✅ Confirm this date</button>` : ''}
+      ${isAdmin() && top && g.tripDuration ? `<button class="rc-confirm" onclick="event.stopPropagation();rangeConfirm(${origIdx})">✅ Confirm this date</button>` : ''}
       ${isAdmin() && top && !g.tripDuration ? `<div class="rc-confirm-hint">⚠️ Najprv nastav dĺžku výletu</div>` : ''}
     </div>`;
   }).join('');
