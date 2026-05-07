@@ -27,10 +27,11 @@ function formatTripLabel(startKey, dur) {
 
 /**
  * Finds free date windows where NO member has unavailability.
- * Only scans months where at least one member has marked unavailability.
+ * If windowStart/windowEnd are provided, scans that explicit range.
+ * Otherwise scans months where at least one member marked unavailability.
  * Returns up to 8 ranges: { label, start, end, votes:[] }
  */
-function computeDateRanges(memberNames, unavailMap) {
+function computeDateRanges(memberNames, unavailMap, windowStart, windowEnd) {
   const blocked = new Set();
   const allUnavailKeys = [];
   memberNames.forEach(name => {
@@ -40,45 +41,50 @@ function computeDateRanges(memberNames, unavailMap) {
     });
   });
 
-  if (!allUnavailKeys.length) return [];
-
-  // Determine scan range: first day of earliest unavail month → last day of latest unavail month
-  const monthStrs = [...new Set(allUnavailKeys.map(d => d.substring(0, 7)))].sort();
-  const [fy, fm] = monthStrs[0].split('-').map(Number);
-  const [ly, lm] = monthStrs[monthStrs.length - 1].split('-').map(Number);
-
   const now = new Date(); now.setHours(0, 0, 0, 0);
-  const rangeStart = new Date(fy, fm - 1, 1);
-  const scanEnd   = new Date(ly, lm, 0); // last day of last month (month lm in 0-indexed = next month, day 0 = last of current)
+  let scanStart, scanEnd;
+
+  if (windowStart && windowEnd) {
+    scanStart = new Date(windowStart + 'T12:00:00');
+    scanEnd   = new Date(windowEnd   + 'T12:00:00');
+    scanStart.setHours(0,0,0,0); scanEnd.setHours(0,0,0,0);
+  } else {
+    if (!allUnavailKeys.length) return [];
+    const monthStrs = [...new Set(allUnavailKeys.map(d => d.substring(0, 7)))].sort();
+    const [fy, fm] = monthStrs[0].split('-').map(Number);
+    const [ly, lm] = monthStrs[monthStrs.length - 1].split('-').map(Number);
+    scanStart = new Date(fy, fm - 1, 1);
+    scanEnd   = new Date(ly, lm, 0);
+  }
 
   const ranges = [];
-  const cur = new Date(Math.max(now.getTime(), rangeStart.getTime()));
-  let windowStart = null;
+  const cur = new Date(Math.max(now.getTime(), scanStart.getTime()));
+  let windowStart_ = null;
 
   while (cur <= scanEnd) {
     const key = toKey(cur);
     if (blocked.has(key)) {
-      if (windowStart) {
+      if (windowStart_) {
         const prev = new Date(cur); prev.setDate(prev.getDate() - 1);
         ranges.push({
-          label: formatRange(windowStart, prev),
-          start: toKey(windowStart),
+          label: formatRange(windowStart_, prev),
+          start: toKey(windowStart_),
           end:   toKey(prev),
           votes: [],
           selected: false
         });
-        windowStart = null;
+        windowStart_ = null;
       }
     } else {
-      if (!windowStart) windowStart = new Date(cur);
+      if (!windowStart_) windowStart_ = new Date(cur);
     }
     cur.setDate(cur.getDate() + 1);
   }
 
-  if (windowStart) {
+  if (windowStart_) {
     ranges.push({
-      label: formatRange(windowStart, scanEnd),
-      start: toKey(windowStart),
+      label: formatRange(windowStart_, scanEnd),
+      start: toKey(windowStart_),
       end:   toKey(scanEnd),
       votes: [],
       selected: false

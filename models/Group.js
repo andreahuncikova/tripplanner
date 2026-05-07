@@ -64,6 +64,8 @@ const GroupSchema = new Schema({
   adminUserId:         Schema.Types.ObjectId,
   adminUsername:       String,
   tripDuration:        { type: Number, default: null },
+  tripWindowStart:     { type: String, default: null },
+  tripWindowEnd:       { type: String, default: null },
 
  
   phase:               { type: String, default: 'destinations', enum: ['destinations','calendar','date_vote','done'] },

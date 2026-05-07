@@ -353,6 +353,8 @@ function renderPhase() {
     hintBar.textContent = localPhaseOverride
       ? '📅 You can update your unavailable days here.'
       : `📅 Click days when you CAN'T go. ${isAdmin() ? 'Once everyone marks their days, click "Calculate dates".' : 'Waiting for others to mark their days.'}`;
+    renderTripWindowSetter();
+    jumpToWindow();
     renderCal();
     renderMembersLegend();
     renderCalAdminBar();
@@ -476,10 +478,83 @@ function destSuggest() {
 function destVote(id)    { socket?.emit('dest:vote', id); }
 function destApprove(id) { socket?.emit('dest:approve', id); }
 
+// ── TRIP WINDOW SETTER ────────────────────────────────
+function renderTripWindowSetter() {
+  const el = document.getElementById('trip-window-bar');
+  if (!el) return;
+  const g  = currentGroup;
+  const ws = g.tripWindowStart || '';
+  const we = g.tripWindowEnd   || '';
+
+  // Always-visible range badge
+  const rangeBadge = ws && we
+    ? `<span class="tw-range-badge">${fmtWindowLabel(ws, we)}</span>`
+    : `<span class="tw-no-range">Not set yet</span>`;
+
+  if (isAdmin() && !localPhaseOverride) {
+    el.innerHTML = `
+      <div class="trip-window-bar">
+        <span class="trip-window-label">🗓️ Trip dates</span>
+        ${rangeBadge}
+        <div class="tw-edit-row">
+          <input type="date" id="tw-start" class="tw-date-inp" value="${ws}" />
+          <span class="trip-window-sep">–</span>
+          <input type="date" id="tw-end"   class="tw-date-inp" value="${we}" />
+          <button class="trip-window-btn" onclick="setTripWindow()">${ws && we ? 'Update' : 'Set'}</button>
+        </div>
+      </div>`;
+  } else {
+    el.innerHTML = `
+      <div class="trip-window-bar readonly">
+        <span class="trip-window-label">🗓️ Trip dates</span>
+        ${rangeBadge}
+      </div>`;
+  }
+}
+
+function fmtWindowLabel(ws, we) {
+  const s = new Date(ws + 'T12:00:00');
+  const e = new Date(we + 'T12:00:00');
+  const sy = s.getFullYear(), ey = e.getFullYear();
+  const yearSuffix = sy === ey ? ` ${sy}` : '';
+  return sy === ey
+    ? `${s.getDate()} ${MONTHS[s.getMonth()]} – ${e.getDate()} ${MONTHS[e.getMonth()]} ${sy}`
+    : `${s.getDate()} ${MONTHS[s.getMonth()]} ${sy} – ${e.getDate()} ${MONTHS[e.getMonth()]} ${ey}`;
+}
+
+function setTripWindow() {
+  const start = document.getElementById('tw-start')?.value;
+  const end   = document.getElementById('tw-end')?.value;
+  if (!start || !end || start >= end) return;
+  socket?.emit('trip:setWindow', { start, end });
+}
+
+// Jump to window start only if current view is outside the window
+function jumpToWindow() {
+  const g = currentGroup;
+  if (!g.tripWindowStart) return;
+  const ws  = new Date(g.tripWindowStart + 'T12:00:00');
+  const we  = g.tripWindowEnd ? new Date(g.tripWindowEnd + 'T12:00:00') : ws;
+  const cur = calY * 12 + calM;
+  const min = ws.getFullYear() * 12 + ws.getMonth();
+  const max = we.getFullYear() * 12 + we.getMonth();
+  if (cur < min || cur > max) {
+    calY = ws.getFullYear(); calM = ws.getMonth();
+  }
+}
+
 // ── CALENDAR ──────────────────────────────────────────
 function renderCal() {
   document.getElementById('cal-label').textContent = MONTHS[calM] + ' ' + calY;
+  const g  = currentGroup;
+  const ws = g.tripWindowStart;
+  const we = g.tripWindowEnd;
   buildGrid('cal-grid', (key, el) => {
+    const outOfWindow = (ws && key < ws) || (we && key > we);
+    if (outOfWindow) {
+      el.classList.add('out-of-window');
+      return;
+    }
     if (myUnavail.has(key)) el.classList.add('unavail');
     if (key === selectedCalDay) el.classList.add('dc-selected');
     el.addEventListener('click', () => {
@@ -939,7 +1014,7 @@ function renderBudgetSummary() {
                <span class="bs-to">${esc(s.to)}</span>
                <span class="bs-amount">€${s.amt.toFixed(2)}</span>
              </div>`).join('')}`
-        : '<div class="bs-balanced">Všetko vyrovnané! 🎉</div>'}
+        : '<div class="bs-balanced">All settled up! 🎉</div>'}
     </div>`;
 }
 
@@ -1029,9 +1104,26 @@ function calShift(dir) {
   calM += dir;
   if (calM < 0)  { calM = 11; calY--; }
   if (calM > 11) { calM = 0;  calY++; }
-  const phase = currentGroup?.phase;
-  if (phase === 'calendar') renderCal();
-  if (phase === 'done')     renderDoneCal();
+
+  // Clamp to trip window when in calendar phase
+  const g = currentGroup;
+  const displayPhase = localPhaseOverride || g?.phase;
+  if (displayPhase === 'calendar' && (g.tripWindowStart || g.tripWindowEnd)) {
+    const ym = calY * 12 + calM;
+    if (g.tripWindowStart) {
+      const ws = new Date(g.tripWindowStart + 'T12:00:00');
+      const minYM = ws.getFullYear() * 12 + ws.getMonth();
+      if (ym < minYM) { calY = ws.getFullYear(); calM = ws.getMonth(); }
+    }
+    if (g.tripWindowEnd) {
+      const we = new Date(g.tripWindowEnd + 'T12:00:00');
+      const maxYM = we.getFullYear() * 12 + we.getMonth();
+      if (ym > maxYM) { calY = we.getFullYear(); calM = we.getMonth(); }
+    }
+  }
+
+  if (displayPhase === 'calendar') renderCal();
+  if (g?.phase === 'done')         renderDoneCal();
 }
 
 // ── INVITE ────────────────────────────────────────────

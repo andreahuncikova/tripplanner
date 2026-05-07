@@ -51,6 +51,8 @@ function serialize(g, onlineList) {
   return {
     phase:             g.phase,
     tripDuration:      g.tripDuration,
+    tripWindowStart:   g.tripWindowStart,
+    tripWindowEnd:     g.tripWindowEnd,
     adminUsername:     g.adminUsername,
     members:           g.members,
     destinations:      g.destinations,
@@ -153,9 +155,12 @@ io.on('connection', socket => {
     if (!s) return;
     const g = await Group.findOne({ inviteCode: s.code });
     if (!g) return;
+    const filtered = (g.tripWindowStart && g.tripWindowEnd)
+      ? dates.filter(d => d >= g.tripWindowStart && d <= g.tripWindowEnd)
+      : dates;
     const existing = g.availability.find(a => String(a.userId) === String(userId));
-    if (existing) { existing.unavailableDates = dates; existing.color = color; }
-    else g.availability.push({ userId, username, color, unavailableDates: dates });
+    if (existing) { existing.unavailableDates = filtered; existing.color = color; }
+    else g.availability.push({ userId, username, color, unavailableDates: filtered });
     await g.save();
     io.to(s.code).emit('avail:update', { username, color, unavailableDates: dates });
   });
@@ -168,13 +173,30 @@ io.on('connection', socket => {
     if (!g || String(g.adminUserId) !== String(userId) || g.phase !== 'calendar') return;
     const unavailMap = {};
     g.availability.forEach(a => { unavailMap[a.username] = a.unavailableDates; });
-    const ranges = computeDateRanges(g.members.map(m=>m.username), unavailMap);
+    const ranges = computeDateRanges(g.members.map(m=>m.username), unavailMap, g.tripWindowStart, g.tripWindowEnd);
     g.dateRanges = ranges;
     g.phase = 'date_vote';
     g.messages.push({ username:'System', text:`📅 Available dates calculated. Time to vote!`, time:ts(), system:true });
     await g.save();
     await broadcastState(s.code);
     io.to(s.code).emit('msg', g.messages.at(-1));
+  });
+
+  // ADMIN: SET TRIP WINDOW ─────────────────────────────
+  socket.on('trip:setWindow', async ({ start, end }) => {
+    const s = sessions[socket.id];
+    if (!s) return;
+    const g = await Group.findOne({ inviteCode: s.code });
+    if (!g || String(g.adminUserId) !== String(userId)) return;
+    if (!start || !end || start >= end) return;
+    g.tripWindowStart = start;
+    g.tripWindowEnd   = end;
+    // Clear any unavailability outside the new window
+    g.availability.forEach(a => {
+      a.unavailableDates = a.unavailableDates.filter(d => d >= start && d <= end);
+    });
+    await g.save();
+    await broadcastState(s.code);
   });
 
   // ADMIN: SET TRIP DURATION (after seeing free windows) ─────

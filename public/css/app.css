@@ -140,6 +140,33 @@ select:focus { border-color: var(--c-blue); }
 }
 .empty-state { text-align: center; padding: 48px 0; color: var(--c-muted); font-size: 14px; line-height: 1.6; }
 
+/* ── TRIP WINDOW SETTER (calendar phase) ─────────────── */
+.trip-window-bar {
+  display: flex; align-items: center; gap: 10px; padding: 10px 16px;
+  background: var(--c-panel); border-bottom: 1px solid var(--c-border);
+  flex-shrink: 0; flex-wrap: wrap;
+}
+.trip-window-bar.readonly { background: rgba(74,144,164,.05); }
+.trip-window-label { font-size: 12px; font-weight: 600; color: var(--c-muted); white-space: nowrap; text-transform: uppercase; letter-spacing: .04em; }
+.tw-range-badge {
+  font-family: 'Fraunces', serif; font-size: 15px; font-weight: 700;
+  color: var(--c-blue); letter-spacing: -.01em;
+}
+.tw-no-range { font-size: 13px; color: var(--c-muted); font-style: italic; }
+.tw-edit-row { display: flex; align-items: center; gap: 6px; margin-left: auto; flex-wrap: wrap; }
+.tw-date-inp {
+  width: auto; padding: 5px 9px; border: 1.5px solid var(--c-border); border-radius: 8px;
+  font-size: 13px; font-weight: 500; background: var(--c-bg); color: var(--c-ink);
+  outline: none; cursor: pointer; transition: border-color .18s;
+}
+.tw-date-inp:focus { border-color: var(--c-blue); box-shadow: 0 0 0 3px rgba(74,144,164,.1); }
+.trip-window-sep { font-size: 13px; color: var(--c-muted); }
+.trip-window-btn {
+  padding: 5px 13px; background: var(--c-blue); color: #fff; border: none; border-radius: 7px;
+  font: 600 12px 'DM Sans', sans-serif; cursor: pointer; transition: all .18s; white-space: nowrap;
+}
+.trip-window-btn:hover { background: #3a7a8e; transform: translateY(-1px); }
+
 /* ── CALENDAR ────────────────────────────────────────── */
 .cal-nav { display: flex; align-items: center; gap: 6px; }
 .cal-nav button, .done-cal-header button {
@@ -169,6 +196,11 @@ select:focus { border-color: var(--c-blue); }
 .cd:hover { border-color: rgba(74,144,164,.4); background: rgba(74,144,164,.05); z-index: 2; }
 .cd.empty { background: transparent; border-color: transparent; cursor: default; }
 .cd.empty:hover { transform: none; border-color: transparent; background: transparent; }
+.cd.out-of-window {
+  background: transparent; border-color: transparent; color: rgba(24,24,27,.18);
+  cursor: default; pointer-events: none;
+}
+.cd.out-of-window:hover { transform: none; border-color: transparent; background: transparent; }
 .cd.unavail {
   background: rgba(232,87,42,.1); border-color: rgba(232,87,42,.4); color: var(--c-accent); font-weight: 600;
 }
