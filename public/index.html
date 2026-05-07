@@ -216,20 +216,22 @@
 
         <!-- SCHEDULE TAB -->
         <div id="done-tab-schedule" class="done-tab-pane">
-          <div class="done-cal-header">
-            <button onclick="calShift(-1)">‹</button>
-            <span id="done-cal-label"></span>
-            <button onclick="calShift(1)">›</button>
-          </div>
-          <div class="cal-grid done-cal-grid" id="done-cal-grid"></div>
-
-          <button class="add-act-cal-btn" onclick="showAddActModal()">＋ Add activity</button>
-
-          <div class="act-section">
-            <div class="act-header">
-              <span>💡 Activities</span>
+          <div class="done-schedule-layout">
+            <!-- Left: big calendar -->
+            <div class="done-cal-col">
+              <div class="done-cal-header">
+                <button onclick="calShift(-1)">‹</button>
+                <span id="done-cal-label"></span>
+                <button onclick="calShift(1)">›</button>
+              </div>
+              <div class="done-cal-grid" id="done-cal-grid"></div>
             </div>
-            <div class="act-list" id="act-list"></div>
+            <!-- Right: day detail panel -->
+            <div class="done-day-panel" id="done-day-panel">
+              <div class="done-day-title" id="done-day-title">Select a day</div>
+              <div class="done-day-acts" id="done-day-acts"><p class="done-day-empty">—</p></div>
+              <button class="done-day-add-btn hidden" id="done-day-add-btn" onclick="showAddActForDay()">+ Add activity</button>
+            </div>
           </div>
         </div>
 

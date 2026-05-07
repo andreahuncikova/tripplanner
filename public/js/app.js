@@ -8,8 +8,9 @@ let me           = JSON.parse(localStorage.getItem('tp_me') || 'null');
 let socket       = null;
 let currentCode  = null;
 let currentGroup = null;   // latest state from server
-let myUnavail    = new Set();
+let myUnavail       = new Set();
 let calY, calM;
+let selectedDoneDay = null;
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const DAYS   = ['Mo','Tu','We','Th','Fr','Sa','Su'];
@@ -565,17 +566,62 @@ function renderDoneCal() {
     if (a.calDate) (actsByDate[a.calDate] = actsByDate[a.calDate] || []).push(a);
   });
   buildGrid('done-cal-grid', (key, el) => {
-    el.classList.add('done');
-    el.style.cursor = 'default';
     if (key === g.finalDate) { el.classList.add('final'); }
     else if (g.finalDate && inRange(key, g.finalDate, g.tripDuration)) { el.classList.add('in-range'); }
-    if (actsByDate[key]) {
-      const dot = document.createElement('div');
-      dot.className = 'act-dot';
-      dot.title = `${actsByDate[key].length} activit${actsByDate[key].length === 1 ? 'y' : 'ies'}`;
-      el.appendChild(dot);
+    if (key === selectedDoneDay) { el.classList.add('dc-selected'); }
+    const count = actsByDate[key]?.length || 0;
+    if (count) {
+      const dots = document.createElement('div');
+      dots.className = 'dc-dots';
+      for (let i = 0; i < Math.min(count, 3); i++) {
+        const dot = document.createElement('span');
+        dot.className = 'dc-dot';
+        dots.appendChild(dot);
+      }
+      el.appendChild(dots);
     }
+    el.addEventListener('click', () => selectDoneDay(key));
   });
+  renderDayPanel();
+}
+
+function selectDoneDay(key) {
+  selectedDoneDay = key;
+  renderDoneCal();
+}
+
+function renderDayPanel() {
+  const titleEl   = document.getElementById('done-day-title');
+  const actsEl    = document.getElementById('done-day-acts');
+  const addBtn    = document.getElementById('done-day-add-btn');
+  if (!selectedDoneDay) {
+    titleEl.textContent = 'Select a day';
+    actsEl.innerHTML    = '<p class="done-day-empty">—</p>';
+    addBtn.classList.add('hidden');
+    return;
+  }
+  const d        = new Date(selectedDoneDay + 'T12:00:00');
+  const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  titleEl.textContent = `${dayNames[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}`;
+  addBtn.classList.remove('hidden');
+
+  const g      = currentGroup;
+  const acts   = (g.activities || []).filter(a => a.calDate === selectedDoneDay)
+    .sort((a, b) => (a.calTime || '').localeCompare(b.calTime || ''));
+  if (!acts.length) {
+    actsEl.innerHTML = '<p class="done-day-empty">Nothing scheduled</p>';
+    return;
+  }
+  actsEl.innerHTML = acts.map(a => `
+    <div class="done-day-act-item">
+      ${a.calTime ? `<span class="done-day-act-time">${esc(a.calTime)}</span>` : ''}
+      <span class="done-day-act-text">${esc(a.text)}</span>
+      <span class="done-day-act-by">— ${esc(a.addedBy)}</span>
+    </div>`).join('');
+}
+
+function showAddActForDay() {
+  showAddActModal(selectedDoneDay);
 }
 
 function inRange(key, start, dur) {
@@ -586,7 +632,7 @@ function inRange(key, start, dur) {
 }
 
 // ── ACTIVITIES ────────────────────────────────────────
-function showAddActModal() {
+function showAddActModal(preDate) {
   const dateSelect = document.getElementById('act-modal-date');
   const timeSelect = document.getElementById('act-modal-time');
 
@@ -617,6 +663,7 @@ function showAddActModal() {
     }
   }
 
+  if (preDate) dateSelect.value = preDate;
   document.getElementById('act-modal-inp').value = '';
   document.getElementById('act-modal-error').textContent = '';
   document.getElementById('act-modal').classList.remove('hidden');
@@ -637,41 +684,7 @@ function actModalSubmit() {
 }
 
 function renderActivities() {
-  const el   = document.getElementById('act-list');
-  const acts = currentGroup.activities || [];
-  if (!acts.length) {
-    el.innerHTML = '<div style="font-size:13px;color:var(--c-muted);padding:12px 0 4px">No activities yet. Use ＋ to add one!</div>';
-    return;
-  }
-
-  // Sort by date+time, undated last
-  const sorted = [...acts].sort((a, b) => {
-    if (!a.calDate && !b.calDate) return 0;
-    if (!a.calDate) return 1;
-    if (!b.calDate) return -1;
-    const ak = a.calDate + (a.calTime || '00:00');
-    const bk = b.calDate + (b.calTime || '00:00');
-    return ak.localeCompare(bk);
-  });
-
-  el.innerHTML = sorted.map(a => {
-    let dateLabel = '';
-    if (a.calDate) {
-      const d        = new Date(a.calDate + 'T12:00:00');
-      const tripStart = new Date((currentGroup.finalDate || a.calDate) + 'T12:00:00');
-      const dayNum   = Math.round((d - tripStart) / 86400000) + 1;
-      const dateStr  = d.toLocaleDateString('sk', { weekday:'short', month:'short', day:'numeric' });
-      const timeStr  = a.calTime ? ` · ${a.calTime}` : '';
-      dateLabel = `<span class="act-date">Deň ${dayNum} · ${dateStr}${timeStr}</span>`;
-    }
-    return `<div class="act-item">
-      <div class="act-content">
-        ${dateLabel}
-        <span>${esc(a.text)}</span>
-      </div>
-      <span class="act-by">— ${esc(a.addedBy)}</span>
-    </div>`;
-  }).join('');
+  renderDoneCal();
 }
 
 function aiSuggest() { socket?.emit('activity:suggest'); }
