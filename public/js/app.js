@@ -2,6 +2,20 @@
 //  TripPlanner — Frontend
 // ════════════════════════════════════════════════════════
 
+const IC = {
+  check:    `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M20 6 9 17 4 12"/></svg>`,
+  x:        `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M18 6 6 18M6 6l12 12"/></svg>`,
+  arrowL:   `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>`,
+  arrowR:   `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="m12 5 7 7-7 7"/><path d="M5 12h14"/></svg>`,
+  calendar: `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>`,
+  pencil:   `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>`,
+  ruler:    `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M21.3 8.7 8.7 21.3c-1 1-2.5 1-3.4 0l-2.6-2.6c-1-1-1-2.5 0-3.4L15.3 2.7c1-1 2.5-1 3.4 0l2.6 2.6c1 1 1 2.5 0 3.4"/><path d="m7.5 10.5 2 2"/><path d="m10.5 7.5 2 2"/><path d="m13.5 4.5 2 2"/></svg>`,
+  warn:     `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>`,
+  heart:    `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>`,
+  heartO:   `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>`,
+  copy:     `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>`,
+};
+
 // ── State ─────────────────────────────────────────────
 let token        = localStorage.getItem('tp_token')  || null;
 let me           = JSON.parse(localStorage.getItem('tp_me') || 'null');
@@ -388,7 +402,7 @@ function renderReturnBanner(actualPhase) {
   if (!el) return;
   if (localPhaseOverride && localPhaseOverride !== actualPhase) {
     const label = PHASE_LABELS[actualPhase] || actualPhase;
-    el.innerHTML = `<span>Viewing a previous step</span><button onclick="returnToCurrent()">→ Back to ${label}</button>`;
+    el.innerHTML = `<span>Viewing a previous step</span><button onclick="returnToCurrent()">${IC.arrowR} Back to ${label}</button>`;
     el.classList.remove('hidden');
   } else {
     el.classList.add('hidden');
@@ -461,8 +475,8 @@ function renderDests() {
       <div class="d-right">
         <div class="vbar-wrap"><div class="vbar-fill" style="width:${pct}%"></div></div>
         <span class="vnum">${d.votes.length}</span>
-        <button class="vbtn ${voted?'on':''}" onclick="destVote('${d._id}')">${voted?'♥':'♡'}</button>
-        ${isAdmin() ? `<button class="approve-btn" onclick="destApprove('${d._id}')">✓ Approve</button>` : ''}
+        <button class="vbtn ${voted?'on':''}" onclick="destVote('${d._id}')">${voted?IC.heart:IC.heartO}</button>
+        ${isAdmin() ? `<button class="approve-btn" onclick="destApprove('${d._id}')">${IC.check} Approve</button>` : ''}
       </div>
     </div>`;
   }).join('');
@@ -494,7 +508,7 @@ function renderTripWindowSetter() {
   if (isAdmin() && !localPhaseOverride) {
     el.innerHTML = `
       <div class="trip-window-bar">
-        <span class="trip-window-label">🗓️ Trip dates</span>
+        <span class="trip-window-label">${IC.calendar} Trip dates</span>
         ${rangeBadge}
         <div class="tw-edit-row">
           <input type="date" id="tw-start" class="tw-date-inp" value="${ws}" />
@@ -506,7 +520,7 @@ function renderTripWindowSetter() {
   } else {
     el.innerHTML = `
       <div class="trip-window-bar readonly">
-        <span class="trip-window-label">🗓️ Trip dates</span>
+        <span class="trip-window-label">${IC.calendar} Trip dates</span>
         ${rangeBadge}
       </div>`;
   }
@@ -606,7 +620,7 @@ function renderCalDayPanel() {
     return `<div class="avail-member-row ${unavail ? 'unavail-row' : 'avail-row'}">
       <span class="avail-member-dot" style="background:${a.color||'#888'}"></span>
       <span class="avail-member-name">${esc(a.username)}${isMe ? ' (you)' : ''}</span>
-      <span class="avail-member-status">${unavail ? '✗ unavailable' : '✓ available'}</span>
+      <span class="avail-member-status">${unavail ? `${IC.x} unavailable` : `${IC.check} available`}</span>
     </div>`;
   }).join('');
 }
@@ -620,8 +634,8 @@ function renderCalAdminBar() {
   const canGoBack = PHASE_ORDER.indexOf(localPhaseOverride || currentGroup.phase) > 0;
   const isActualCalendar = currentGroup.phase === 'calendar';
   let html = '';
-  if (canGoBack) html += `<button class="back-btn" onclick="goBack()">← Back</button>`;
-  if (isAdmin() && isActualCalendar) html += `<button onclick="computeDates()">Calculate dates →</button><span class="hint">Admin only</span>`;
+  if (canGoBack) html += `<button class="back-btn" onclick="goBack()">${IC.arrowL} Back</button>`;
+  if (isAdmin() && isActualCalendar) html += `<button onclick="computeDates()">Calculate dates ${IC.arrowR}</button><span class="hint">Admin only</span>`;
   el.innerHTML = html;
 }
 function computeDates() { socket?.emit('avail:compute'); }
@@ -630,7 +644,7 @@ function renderDateVoteBackBtn() {
   const el = document.getElementById('datevote-back-bar');
   if (!el) return;
   const canGoBack = PHASE_ORDER.indexOf(localPhaseOverride || currentGroup.phase) > 0;
-  el.innerHTML = canGoBack ? `<button class="phase-back-btn" onclick="goBack()">← Back</button>` : '';
+  el.innerHTML = canGoBack ? `<button class="phase-back-btn" onclick="goBack()">${IC.arrowL} Back</button>` : '';
 }
 
 // ── TRIP DURATION SETTER (date_vote phase) ────────────
@@ -643,7 +657,7 @@ function renderDurSetter() {
   if (isAdmin()) {
     el.innerHTML = `
       <div class="dur-setter">
-        <span class="dur-setter-label">✏️ Trip duration:</span>
+        <span class="dur-setter-label">${IC.pencil} Trip duration:</span>
         <input id="dur-inp" type="number" min="1" max="60" value="${dur || ''}" placeholder="days"
           class="dur-inp" onkeydown="if(event.key==='Enter')setTripDuration()"/>
         <button class="dur-setter-btn" onclick="setTripDuration()">
@@ -652,7 +666,7 @@ function renderDurSetter() {
         ${dur ? `<span class="dur-setter-set">${dur} days</span>` : ''}
       </div>`;
   } else if (dur) {
-    el.innerHTML = `<div class="dur-setter readonly"><span class="dur-setter-label">📏 Trip duration:</span><span class="dur-setter-set">${dur} days</span></div>`;
+    el.innerHTML = `<div class="dur-setter readonly"><span class="dur-setter-label">${IC.ruler} Trip duration:</span><span class="dur-setter-set">${dur} days</span></div>`;
   } else {
     el.innerHTML = `<div class="dur-setter readonly"><span class="dur-setter-label" style="color:var(--c-muted)">Admin hasn't set the trip duration yet…</span></div>`;
   }
@@ -694,8 +708,8 @@ function renderRanges() {
       <div class="rc-voters">${r.votes.length ? r.votes.map(esc).join(', ') : 'Nobody yet'}</div>
       <div class="rc-bar-wrap"><div class="rc-bar" style="width:${pct}%"></div></div>
       <div class="rc-count">${r.votes.length} votes</div>
-      ${isAdmin() && top && g.tripDuration ? `<button class="rc-confirm" onclick="event.stopPropagation();rangeConfirm(${origIdx})">✅ Confirm this date</button>` : ''}
-      ${isAdmin() && top && !g.tripDuration ? `<div class="rc-confirm-hint">⚠️ Set the trip duration first</div>` : ''}
+      ${isAdmin() && top && g.tripDuration ? `<button class="rc-confirm" onclick="event.stopPropagation();rangeConfirm(${origIdx})">${IC.check} Confirm this date</button>` : ''}
+      ${isAdmin() && top && !g.tripDuration ? `<div class="rc-confirm-hint">${IC.warn} Set the trip duration first</div>` : ''}
     </div>`;
   }).join('');
 }
@@ -758,8 +772,8 @@ function closeSubWindowPicker() {
 function renderDoneBanner() {
   const g = currentGroup;
   document.getElementById('done-dest-banner').innerHTML =
-    `<span>${g.approvedDestEmoji||'🌍'} ${esc(g.approvedDest||'')} &nbsp;·&nbsp; 📅 ${esc(g.finalDateLabel||g.finalDate||'')}</span>
-     <button class="phase-back-btn" onclick="goBack()">← Back</button>`;
+    `<span>${g.approvedDestEmoji||'🌍'} ${esc(g.approvedDest||'')} &nbsp;·&nbsp; ${IC.calendar} ${esc(g.finalDateLabel||g.finalDate||'')}</span>
+     <button class="phase-back-btn" onclick="goBack()">${IC.arrowL} Back</button>`;
 }
 
 function renderDoneCal() {
@@ -1136,8 +1150,8 @@ function closeModal() { document.getElementById('inv-modal').classList.add('hidd
 function copyInvite() {
   navigator.clipboard.writeText(`${location.origin}?code=${currentCode}`).then(() => {
     document.querySelectorAll('[onclick="copyInvite()"]').forEach(b => {
-      b.textContent = '✅ Copied!';
-      setTimeout(() => b.textContent = '📋 Copy link', 2000);
+      b.innerHTML = `${IC.check} Copied!`;
+      setTimeout(() => { b.innerHTML = `${IC.copy} Copy link`; }, 2000);
     });
   });
 }

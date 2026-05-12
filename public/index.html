@@ -4,8 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>TripPlanner</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <meta name="description" content="Plan trips together, in real time">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@300;400;600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
   tailwind.config = {
@@ -24,8 +25,8 @@
           rim:    'rgba(24,24,27,.09)',
         },
         fontFamily: {
-          sans:  ['DM Sans', 'sans-serif'],
-          serif: ['Fraunces', 'serif'],
+          sans:  ['Plus Jakarta Sans', 'sans-serif'],
+          serif: ['Instrument Serif', 'serif'],
         },
         boxShadow: {
           soft:  '0 1px 3px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.07)',
@@ -35,6 +36,7 @@
     },
   }
 </script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 <link rel="stylesheet" href="/css/app.css">
 </head>
 <body>
@@ -45,8 +47,7 @@
 <div id="s-auth" class="screen active">
   <div class="auth-bg min-h-screen flex items-center justify-center">
     <div class="bg-panel rounded-2xl py-10 px-9 w-[400px] max-w-[96vw] shadow-modal text-center">
-      <div class="text-4xl mb-3">✈️</div>
-      <h1 class="font-serif text-[26px] font-semibold mb-1.5 tracking-[-0.02em]">TripPlanner</h1>
+      <img src="/logo.svg" alt="TripPlanner" class="h-14 mx-auto mb-1.5">
       <p class="text-[13px] text-muted mb-[22px] leading-relaxed">Plan trips together, in real time</p>
 
       <div class="flex gap-1 bg-bg rounded-[10px] p-1 mb-[18px]">
@@ -81,7 +82,7 @@
 <div id="s-dash" class="screen overflow-y-auto">
   <div class="max-w-xl mx-auto py-6 px-5">
     <div class="flex items-center justify-between mb-8 pb-4 border-b border-rim">
-      <span class="font-serif text-lg font-semibold">✈️ TripPlanner</span>
+      <img src="/logo.svg" alt="TripPlanner" class="h-9">
       <div class="flex items-center gap-2.5">
         <span id="d-username" class="text-[13px] text-muted"></span>
         <button class="border border-rim rounded-lg py-1.5 px-3.5 bg-transparent text-muted text-xs cursor-pointer transition-all hover:border-ink hover:text-ink" onclick="logout()">Log out</button>
@@ -90,17 +91,23 @@
 
     <!-- Empty state -->
     <div class="hidden text-center py-12 px-4" id="dash-empty">
-      <div class="text-5xl mb-3.5">✈️</div>
+      <div class="mb-4 flex justify-center">
+        <i data-lucide="plane-takeoff" class="w-14 h-14 text-accent"></i>
+      </div>
       <h2 class="font-serif text-[22px] font-semibold mb-2">Welcome, <span id="de-username"></span>!</h2>
       <p class="text-sm text-muted mb-8">Start planning a trip with your friends.</p>
       <div class="flex gap-4 justify-center flex-wrap">
         <button class="flex-1 min-w-[170px] max-w-[210px] py-6 px-[18px] bg-panel border border-rim rounded-[16px] cursor-pointer transition-all text-center flex flex-col items-center gap-2 hover:border-accent hover:shadow-soft hover:-translate-y-0.5" onclick="showCreateModal()">
-          <div class="text-[22px] w-[50px] h-[50px] rounded-full bg-accent/10 flex items-center justify-center font-bold text-accent">+</div>
+          <div class="w-[50px] h-[50px] rounded-full bg-accent/10 flex items-center justify-center text-accent">
+            <i data-lucide="plus" class="w-6 h-6"></i>
+          </div>
           <div class="font-semibold text-sm">Create a group</div>
           <div class="text-xs text-muted leading-snug">Start a new trip and invite friends</div>
         </button>
         <button class="flex-1 min-w-[170px] max-w-[210px] py-6 px-[18px] bg-panel border border-rim rounded-[16px] cursor-pointer transition-all text-center flex flex-col items-center gap-2 hover:border-accent hover:shadow-soft hover:-translate-y-0.5" onclick="showJoinModal()">
-          <div class="text-[22px] w-[50px] h-[50px] rounded-full bg-accent/10 flex items-center justify-center font-bold text-accent">🔗</div>
+          <div class="w-[50px] h-[50px] rounded-full bg-accent/10 flex items-center justify-center text-accent">
+            <i data-lucide="link-2" class="w-6 h-6"></i>
+          </div>
           <div class="font-semibold text-sm">Join with a code</div>
           <div class="text-xs text-muted leading-snug">Enter an invite code or open a link</div>
         </button>
@@ -112,8 +119,12 @@
       <div class="flex items-center justify-between mb-3.5">
         <h2 class="font-serif text-lg font-semibold">My groups</h2>
         <div class="flex gap-2 items-center">
-          <button class="border border-rim rounded-lg py-1.5 px-3.5 bg-transparent text-muted text-xs cursor-pointer transition-all hover:border-ink hover:text-ink" onclick="showJoinModal()">🔗 Join</button>
-          <button class="py-2 px-4 rounded-[9px] border-none bg-accent text-white text-[13px] font-semibold cursor-pointer transition-all hover:bg-[#C44A22]" onclick="showCreateModal()">+ New group</button>
+          <button class="inline-flex items-center gap-1.5 border border-rim rounded-lg py-1.5 px-3.5 bg-transparent text-muted text-xs cursor-pointer transition-all hover:border-ink hover:text-ink" onclick="showJoinModal()">
+            <i data-lucide="link-2" class="w-3.5 h-3.5"></i>Join
+          </button>
+          <button class="inline-flex items-center gap-1.5 py-2 px-4 rounded-[9px] border-none bg-accent text-white text-[13px] font-semibold cursor-pointer transition-all hover:bg-[#C44A22]" onclick="showCreateModal()">
+            <i data-lucide="plus" class="w-4 h-4"></i>New group
+          </button>
         </div>
       </div>
       <div id="my-groups-list" class="groups-list"></div>
@@ -129,13 +140,19 @@
 <div id="s-invite" class="screen">
   <div class="auth-bg min-h-screen flex items-center justify-center">
     <div class="bg-panel rounded-2xl py-10 px-9 w-[400px] max-w-[96vw] shadow-modal text-center">
-      <div class="text-4xl mb-3">🎉</div>
+      <div class="mb-3 flex justify-center">
+        <i data-lucide="sparkles" class="w-10 h-10 text-accent"></i>
+      </div>
       <h2 id="inv-group-name" class="font-serif text-[26px] font-semibold mb-1.5 tracking-[-0.02em]"></h2>
       <p class="text-[13px] text-muted mb-[22px] leading-relaxed">Share this code with your friends</p>
       <div class="font-bold text-[30px] tracking-[.22em] bg-bg border-2 border-dashed border-rim rounded-xl p-4 mt-[14px] mb-2 text-ink" id="inv-code"></div>
       <div class="text-[11px] text-muted break-all mb-3" id="inv-link"></div>
-      <button class="w-full py-[11px] border-[1.5px] border-rim rounded-[10px] bg-transparent text-ink font-medium text-[13px] cursor-pointer transition-all hover:bg-bg" onclick="copyInvite()">📋 Copy link</button>
-      <button class="w-full py-[13px] border-none rounded-[10px] bg-accent text-white font-semibold text-sm cursor-pointer transition-all hover:bg-[#C44A22] mt-2" onclick="enterGroup()">Enter →</button>
+      <button class="inline-flex items-center justify-center gap-2 w-full py-[11px] border-[1.5px] border-rim rounded-[10px] bg-transparent text-ink font-medium text-[13px] cursor-pointer transition-all hover:bg-bg" onclick="copyInvite()">
+        <i data-lucide="copy" class="w-4 h-4"></i>Copy link
+      </button>
+      <button class="inline-flex items-center justify-center gap-2 w-full py-[13px] border-none rounded-[10px] bg-accent text-white font-semibold text-sm cursor-pointer transition-all hover:bg-[#C44A22] mt-2" onclick="enterGroup()">
+        Enter<i data-lucide="arrow-right" class="w-4 h-4"></i>
+      </button>
     </div>
   </div>
 </div>
@@ -148,22 +165,26 @@
   <!-- TOPBAR -->
   <header class="h-[52px] bg-deep flex items-center justify-between px-5 flex-shrink-0 gap-3 border-b border-white/[.07]" id="topbar">
     <div class="flex items-center gap-2.5 min-w-0">
-      <button class="w-7 h-7 rounded-lg border border-white/[.12] bg-transparent text-white/50 cursor-pointer text-sm flex items-center justify-center transition-all flex-shrink-0 hover:bg-white/[.08] hover:text-white hover:border-white/25" onclick="goToDash()" title="Back">←</button>
-      <span class="text-base flex-shrink-0">✈️</span>
+      <button class="w-7 h-7 rounded-lg border border-white/[.12] bg-transparent text-white/50 cursor-pointer flex items-center justify-center transition-all flex-shrink-0 hover:bg-white/[.08] hover:text-white hover:border-white/25" onclick="goToDash()" title="Back">
+        <i data-lucide="arrow-left" class="w-4 h-4"></i>
+      </button>
+      <i data-lucide="plane" class="w-4 h-4 text-white/60 flex-shrink-0"></i>
       <span class="font-serif text-[14px] font-semibold text-white/90 truncate max-w-[200px] tracking-[-0.01em]" id="tb-group-name">—</span>
       <span class="text-[10px] py-[3px] px-[9px] rounded-full whitespace-nowrap bg-accent/20 text-[#FF9F85] font-semibold flex-shrink-0 tracking-[.02em]" id="tb-phase">—</span>
     </div>
     <div class="flex items-center gap-2.5 flex-shrink-0">
       <div class="flex" id="online-row"></div>
       <div class="ws-pill" id="ws-pill"><span class="live-dot"></span> Live</div>
-      <button class="border border-white/[.12] rounded-lg py-[5px] px-3 bg-transparent text-white/50 text-[11px] cursor-pointer transition-all hover:border-white/25 hover:text-white/80 font-medium" onclick="showInviteModal()">🔗 Invite</button>
+      <button class="inline-flex items-center gap-1.5 border border-white/[.12] rounded-lg py-[5px] px-3 bg-transparent text-white/50 text-[11px] cursor-pointer transition-all hover:border-white/25 hover:text-white/80 font-medium" onclick="showInviteModal()">
+        <i data-lucide="link-2" class="w-3.5 h-3.5"></i>Invite
+      </button>
     </div>
   </header>
 
   <!-- PHASE HINT BAR -->
   <div class="hint-bar py-2 px-5 text-[12px] text-blue bg-blue/[.06] border-b border-blue/[.12] flex-shrink-0 leading-relaxed font-medium" id="hint-bar"></div>
 
-  <!-- RETURN TO CURRENT BANNER (shown when non-admin is viewing a previous step) -->
+  <!-- RETURN TO CURRENT BANNER -->
   <div class="return-banner hidden" id="return-banner"></div>
 
   <!-- MAIN -->
@@ -174,7 +195,12 @@
 
       <!-- ── PHASE: destinations ── -->
       <div class="panel" id="p-destinations">
-        <div class="panel-title">🗺️ Destinations <span class="ptitle-hint">Suggest &amp; vote</span></div>
+        <div class="panel-title">
+          <span class="flex items-center gap-2">
+            <i data-lucide="map" class="w-4 h-4 text-muted"></i>Destinations
+            <span class="ptitle-hint">Suggest &amp; vote</span>
+          </span>
+        </div>
         <div id="dest-back-bar"></div>
         <div class="dest-scroll" id="dest-list"></div>
         <div class="flex gap-1.5 py-[11px] px-3 border-t border-rim bg-panel flex-shrink-0" id="dest-add-bar">
@@ -191,9 +217,9 @@
           <!-- Left: big calendar -->
           <div class="done-cal-col">
             <div class="done-cal-header">
-              <button onclick="calShift(-1)">‹</button>
+              <button onclick="calShift(-1)"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
               <span id="cal-label"></span>
-              <button onclick="calShift(1)">›</button>
+              <button onclick="calShift(1)"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
             </div>
             <div class="cal-grid" id="cal-grid"></div>
           </div>
@@ -209,10 +235,15 @@
 
       <!-- ── PHASE: date_vote ── -->
       <div class="panel hidden" id="p-datevote">
-        <div class="panel-title">🗳️ Vote for a trip date <div id="datevote-back-bar" class="inline-flex"></div></div>
+        <div class="panel-title">
+          <span class="flex items-center gap-2">
+            <i data-lucide="calendar-check" class="w-4 h-4 text-muted"></i>Vote for a trip date
+            <div id="datevote-back-bar" class="inline-flex"></div>
+          </span>
+        </div>
         <div id="dur-setter-bar"></div>
         <div class="ranges-scroll" id="ranges-list"></div>
-        <!-- Sub-window picker (shown when window > trip duration) -->
+        <!-- Sub-window picker -->
         <div class="hidden subwindow-overlay" id="subwindow-picker">
           <div class="subwindow-card">
             <div class="subwindow-header">
@@ -220,7 +251,9 @@
                 <div class="subwindow-title" id="subwindow-title">Choose your exact dates</div>
                 <div class="subwindow-sub" id="subwindow-sub"></div>
               </div>
-              <button class="subwindow-close" onclick="closeSubWindowPicker()">✕</button>
+              <button class="subwindow-close" onclick="closeSubWindowPicker()">
+                <i data-lucide="x" class="w-3.5 h-3.5"></i>
+              </button>
             </div>
             <div class="subwindow-options" id="subwindow-options"></div>
           </div>
@@ -233,8 +266,12 @@
 
         <!-- Tab navigation -->
         <div class="done-tabs">
-          <button class="dtab active" id="dtab-schedule" onclick="switchDoneTab('schedule')">📅 Itinerary</button>
-          <button class="dtab" id="dtab-budget" onclick="switchDoneTab('budget')">💰 Budget</button>
+          <button class="dtab active" id="dtab-schedule" onclick="switchDoneTab('schedule')">
+            <i data-lucide="calendar" class="w-3.5 h-3.5 inline-block align-middle -mt-0.5 mr-1.5"></i>Itinerary
+          </button>
+          <button class="dtab" id="dtab-budget" onclick="switchDoneTab('budget')">
+            <i data-lucide="wallet" class="w-3.5 h-3.5 inline-block align-middle -mt-0.5 mr-1.5"></i>Budget
+          </button>
         </div>
 
         <!-- SCHEDULE TAB -->
@@ -243,9 +280,9 @@
             <!-- Left: big calendar -->
             <div class="done-cal-col">
               <div class="done-cal-header">
-                <button onclick="calShift(-1)">‹</button>
+                <button onclick="calShift(-1)"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
                 <span id="done-cal-label"></span>
-                <button onclick="calShift(1)">›</button>
+                <button onclick="calShift(1)"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
               </div>
               <div class="done-cal-grid" id="done-cal-grid"></div>
             </div>
@@ -253,7 +290,9 @@
             <div class="done-day-panel" id="done-day-panel">
               <div class="done-day-title" id="done-day-title">Select a day</div>
               <div class="done-day-acts" id="done-day-acts"><p class="done-day-empty">—</p></div>
-              <button class="done-day-add-btn hidden" id="done-day-add-btn" onclick="showAddActForDay()">+ Add activity</button>
+              <button class="done-day-add-btn hidden" id="done-day-add-btn" onclick="showAddActForDay()">
+                <i data-lucide="plus" class="w-4 h-4 inline-block align-middle -mt-0.5 mr-1"></i>Add activity
+              </button>
             </div>
           </div>
         </div>
@@ -262,8 +301,12 @@
         <div id="done-tab-budget" class="done-tab-pane done-tab-hidden">
           <div class="budget-wrap">
             <div class="budget-header">
-              <span>💰 Expenses</span>
-              <button class="btn-add-expense" onclick="showAddExpenseModal()">+ Add expense</button>
+              <span class="flex items-center gap-2">
+                <i data-lucide="wallet" class="w-4 h-4"></i>Expenses
+              </span>
+              <button class="btn-add-expense" onclick="showAddExpenseModal()">
+                <i data-lucide="plus" class="w-3.5 h-3.5 inline-block align-middle -mt-0.5 mr-1"></i>Add expense
+              </button>
             </div>
             <div id="expense-list" class="expense-list"></div>
             <div id="budget-summary"></div>
@@ -276,7 +319,7 @@
     <!-- ── RIGHT: CHAT ── -->
     <div class="right-col">
       <div class="chat-head">
-        💬 Group chat
+        <i data-lucide="message-circle" class="w-4 h-4 text-muted"></i>Group chat
       </div>
       <div class="chat-msgs" id="chat-msgs"></div>
       <div class="typing-row" id="typing-row"></div>
@@ -284,7 +327,9 @@
         <input id="chat-inp" type="text" placeholder="Type a message…" maxlength="300"
           onkeydown="if(event.key==='Enter')chatSend()"
           oninput="chatTyping()"/>
-        <button onclick="chatSend()">↑</button>
+        <button onclick="chatSend()">
+          <i data-lucide="arrow-up" class="w-4 h-4"></i>
+        </button>
       </div>
     </div>
 
@@ -297,7 +342,9 @@
     <h3 class="font-serif text-[18px] font-semibold tracking-[-0.02em]">Invite to group</h3>
     <div class="font-bold text-[28px] tracking-[.2em] bg-bg border border-dashed border-rim rounded-xl p-4 text-ink" id="modal-code"></div>
     <div class="text-[11px] text-muted break-all leading-relaxed" id="modal-link"></div>
-    <button class="w-full py-[11px] border-[1.5px] border-rim rounded-xl bg-transparent text-ink font-medium text-[13px] cursor-pointer transition-all hover:bg-bg hover:border-ink/20" onclick="copyInvite()">📋 Copy link</button>
+    <button class="inline-flex items-center justify-center gap-2 w-full py-[11px] border-[1.5px] border-rim rounded-xl bg-transparent text-ink font-medium text-[13px] cursor-pointer transition-all hover:bg-bg hover:border-ink/20" onclick="copyInvite()">
+      <i data-lucide="copy" class="w-4 h-4"></i>Copy link
+    </button>
     <button class="text-muted text-xs cursor-pointer transition-all hover:text-ink font-medium py-1" onclick="closeModal()">Close</button>
   </div>
 </div>
@@ -380,5 +427,6 @@
 
 <script src="/socket.io/socket.io.js"></script>
 <script src="/js/app.js"></script>
+<script>lucide.createIcons();</script>
 </body>
 </html>
