@@ -25,14 +25,20 @@ async function loadMyGroups() {
     const admin = g.adminUsername === me?.username;
     const deleteIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>`;
     const leaveIcon  = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>`;
+    const monthLabel = dashMonthLabel(g.tripWindowStart, g.tripWindowEnd);
     return `
     <div class="bg-panel border border-rim rounded-xl px-4 py-3.5 transition-all flex items-center justify-between shadow-soft animate-up hover:border-blue/25 hover:shadow-md hover:-translate-y-px" id="dash-card-${g.inviteCode}">
       <div class="min-w-0 flex-1 cursor-pointer" onclick="enterGroupFromDash('${g.inviteCode}')">
         <div class="font-semibold text-sm tracking-tight" id="dash-name-${g.inviteCode}">${esc(g.name)}</div>
-        <div class="text-[11px] text-muted mt-0.5">${g.tripDuration ? g.tripDuration + ' days · ' : ''}${g.inviteCode}</div>
+        <div class="text-[11px] text-muted mt-0.5 flex items-center gap-1.5 flex-wrap">
+          ${g.tripDuration ? `<span>${g.tripDuration} days</span><span>·</span>` : ''}
+          <span id="dash-window-${g.inviteCode}">${monthLabel ? `<span class="text-blue font-medium">${monthLabel}</span>` : g.inviteCode}</span>
+          ${!monthLabel ? '' : `<span>·</span><span>${g.inviteCode}</span>`}
+        </div>
       </div>
       <div class="flex items-center gap-2 flex-shrink-0 ml-3">
         <span class="text-[10px] px-[9px] py-[3px] rounded-full bg-blue/10 text-blue font-semibold tracking-[.01em] whitespace-nowrap">${PHASE_LABELS[g.phase] || g.phase}</span>
+        ${admin ? `<button class="w-7 h-7 rounded-lg border border-rim bg-transparent text-muted flex items-center justify-center transition-all hover:border-blue/40 hover:text-blue flex-shrink-0" title="Change trip months" onclick="dashWindowStart('${g.inviteCode}','${g.tripWindowStart||''}','${g.tripWindowEnd||''}')">${IC.calendar}</button>` : ''}
         ${admin ? `<button class="w-7 h-7 rounded-lg border border-rim bg-transparent text-muted flex items-center justify-center transition-all hover:border-blue/40 hover:text-blue flex-shrink-0" title="Rename group" onclick="dashRenameStart('${g.inviteCode}','${esc(g.name)}')">${IC.pencil}</button>` : ''}
         <button
           class="w-7 h-7 rounded-lg border border-rim bg-transparent text-muted flex items-center justify-center transition-all hover:border-accent/40 hover:text-accent flex-shrink-0"
@@ -118,6 +124,48 @@ function enterGroupFromDash(code) {
 }
 
 function enterGroup() { initSocket(currentCode); }
+
+function dashMonthLabel(ws, we) {
+  if (!ws || !we) return '';
+  const s = new Date(ws + 'T12:00:00'), e = new Date(we + 'T12:00:00');
+  const sm = MONTHS[s.getMonth()], em = MONTHS[e.getMonth()];
+  return sm === em ? `${sm} ${s.getFullYear()}` : `${sm} – ${em} ${s.getFullYear()}`;
+}
+
+function dashMonthOpts(selectedYM) {
+  const now = new Date();
+  return Array.from({ length: 24 }, (_, i) => {
+    const d   = new Date(now.getFullYear(), now.getMonth() + i, 1);
+    const val = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    return `<option value="${val}"${val === selectedYM ? ' selected' : ''}>${MONTHS[d.getMonth()]} ${d.getFullYear()}</option>`;
+  }).join('');
+}
+
+function dashWindowStart(code, ws, we) {
+  const el = document.getElementById(`dash-window-${code}`);
+  if (!el) return;
+  const selFrom = ws ? ws.slice(0, 7) : '';
+  const selTo   = we ? we.slice(0, 7) : '';
+  el.innerHTML = `
+    <div class="flex items-center gap-1.5 flex-wrap" onclick="event.stopPropagation()">
+      <select id="dash-wfrom-${code}" style="padding:2px 5px;font-size:11px;border-radius:6px">${dashMonthOpts(selFrom)}</select>
+      <span class="text-muted">–</span>
+      <select id="dash-wto-${code}" style="padding:2px 5px;font-size:11px;border-radius:6px">${dashMonthOpts(selTo || selFrom)}</select>
+      <button class="text-[11px] px-2 py-0.5 rounded-lg bg-blue text-white border-none cursor-pointer font-semibold hover:bg-[#3a7a8e]" onclick="dashWindowSave('${code}')">Save</button>
+      <button class="text-[11px] px-2 py-0.5 rounded-lg border border-rim text-muted cursor-pointer hover:text-ink" onclick="loadMyGroups()">Cancel</button>
+    </div>`;
+}
+
+async function dashWindowSave(code) {
+  const fromM = document.getElementById(`dash-wfrom-${code}`)?.value;
+  const toM   = document.getElementById(`dash-wto-${code}`)?.value;
+  if (!fromM || !toM) return;
+  const start = fromM + '-01';
+  const end   = (toM >= fromM ? toM : fromM) + '-01';
+  const r = await api(`/api/groups/${code}/window`, 'PATCH', { start, end });
+  if (r.error) { alert(r.error); return; }
+  loadMyGroups();
+}
 
 function dashRenameStart(code, currentName) {
   const nameEl = document.getElementById(`dash-name-${code}`);

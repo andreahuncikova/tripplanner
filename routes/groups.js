@@ -33,7 +33,7 @@ router.get('/:code', async (req, res) => {
 // GET /api/groups  — my groups
 router.get('/', authMiddleware, async (req, res) => {
   const groups = await Group.find({ 'members.userId': req.user._id })
-    .select('name inviteCode phase members createdAt tripDuration adminUsername')
+    .select('name inviteCode phase members createdAt tripDuration adminUsername tripWindowStart tripWindowEnd')
     .sort('-createdAt').limit(20);
   res.json({ groups });
 });
@@ -53,6 +53,23 @@ router.post('/:code/leave', authMiddleware, async (req, res) => {
       await g.deleteOne();
       return res.json({ ok: true });
     }
+    await g.save();
+    res.json({ ok: true });
+  } catch { res.json({ error: 'Server error' }); }
+});
+
+// PATCH /api/groups/:code/window  — update trip window (admin only)
+router.patch('/:code/window', authMiddleware, async (req, res) => {
+  try {
+    const { start, end } = req.body;
+    if (!start || !end || start >= end) return res.status(400).json({ error: 'Invalid window' });
+    const g = await Group.findOne({ inviteCode: req.params.code.toUpperCase() });
+    if (!g) return res.json({ error: 'Group not found' });
+    if (String(g.adminUserId) !== String(req.user._id)) return res.json({ error: 'Not admin' });
+    const endDate = new Date(end + 'T12:00:00');
+    const lastDay = new Date(endDate.getFullYear(), endDate.getMonth() + 1, 0);
+    g.tripWindowStart = start;
+    g.tripWindowEnd   = `${lastDay.getFullYear()}-${String(lastDay.getMonth()+1).padStart(2,'0')}-${String(lastDay.getDate()).padStart(2,'0')}`;
     await g.save();
     res.json({ ok: true });
   } catch { res.json({ error: 'Server error' }); }

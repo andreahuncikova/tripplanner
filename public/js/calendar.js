@@ -7,7 +7,7 @@ function renderTripWindowSetter() {
   const ws = g.tripWindowStart || '';
   const we = g.tripWindowEnd   || '';
 
-  if (isAdmin() && !localPhaseOverride) {
+  if (isAdmin()) {
     // admin always sees the month pickers so they can set or adjust
     bar.innerHTML = `
       <div class="flex items-center gap-2.5 px-4 py-2 bg-panel border-b border-rim flex-shrink-0 flex-wrap">
