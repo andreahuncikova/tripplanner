@@ -68,9 +68,11 @@ function setTripWindow() {
   if (!fromM) return;
   const endMonth = (toM && toM >= fromM) ? toM : fromM;
   const [ty, tm] = endMonth.split('-').map(Number);
+  const lastDay = new Date(ty, tm, 0);
+  const end = `${lastDay.getFullYear()}-${String(lastDay.getMonth()+1).padStart(2,'0')}-${String(lastDay.getDate()).padStart(2,'0')}`;
   socket?.emit('trip:setWindow', {
     start: fromM + '-01',
-    end:   new Date(ty, tm, 0).toISOString().split('T')[0], // last day of end month
+    end,
   });
 }
 
@@ -87,11 +89,18 @@ function jumpToWindow() {
 
 // ── Availability calendar ─────────────────────────────
 
+function monthEnd(dateStr) {
+  if (!dateStr) return dateStr;
+  const d = new Date(dateStr + 'T12:00:00');
+  const last = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+  return `${last.getFullYear()}-${String(last.getMonth()+1).padStart(2,'0')}-${String(last.getDate()).padStart(2,'0')}`;
+}
+
 function renderCal() {
   document.getElementById('cal-label').textContent = MONTHS[calM] + ' ' + calY;
   const g  = currentGroup;
   const ws = g.tripWindowStart;
-  const we = g.tripWindowEnd;
+  const we = monthEnd(g.tripWindowEnd);
 
   buildGrid('cal-grid', (key, el) => {
     if ((ws && key < ws) || (we && key > we)) {

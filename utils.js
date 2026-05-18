@@ -41,12 +41,12 @@ function computeDateRanges(memberNames, unavailMap, windowStart, windowEnd) {
     });
   });
 
-  const now = new Date(); now.setHours(0, 0, 0, 0);
   let scanStart, scanEnd;
 
   if (windowStart && windowEnd) {
     scanStart = new Date(windowStart + 'T12:00:00');
-    scanEnd   = new Date(windowEnd   + 'T12:00:00');
+    const weDate = new Date(windowEnd + 'T12:00:00');
+    scanEnd = new Date(weDate.getFullYear(), weDate.getMonth() + 1, 0);
     scanStart.setHours(0,0,0,0); scanEnd.setHours(0,0,0,0);
   } else {
     if (!allUnavailKeys.length) return [];
@@ -58,7 +58,7 @@ function computeDateRanges(memberNames, unavailMap, windowStart, windowEnd) {
   }
 
   const ranges = [];
-  const cur = new Date(Math.max(now.getTime(), scanStart.getTime()));
+  const cur = new Date(scanStart);
   let windowStart_ = null;
 
   while (cur <= scanEnd) {

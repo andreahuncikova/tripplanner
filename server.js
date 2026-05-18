@@ -176,8 +176,14 @@ io.on('connection', socket => {
     if (!s) return;
     const g = await Group.findOne({ inviteCode: s.code });
     if (!g) return;
-    const filtered = (g.tripWindowStart && g.tripWindowEnd)
-      ? dates.filter(d => d >= g.tripWindowStart && d <= g.tripWindowEnd)
+    const weRaw = g.tripWindowEnd;
+    const weSnapped = weRaw ? (() => {
+      const d = new Date(weRaw + 'T12:00:00');
+      const last = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+      return `${last.getFullYear()}-${String(last.getMonth()+1).padStart(2,'0')}-${String(last.getDate()).padStart(2,'0')}`;
+    })() : weRaw;
+    const filtered = (g.tripWindowStart && weSnapped)
+      ? dates.filter(d => d >= g.tripWindowStart && d <= weSnapped)
       : dates;
     const existing = g.availability.find(a => String(a.userId) === String(userId));
     if (existing) { existing.unavailableDates = filtered; existing.color = color; }
@@ -210,8 +216,12 @@ io.on('connection', socket => {
     const g = await Group.findOne({ inviteCode: s.code });
     if (!g || String(g.adminUserId) !== String(userId)) return;
     if (!start || !end || start >= end) return;
+    // always snap end to the true last day of its month to avoid UTC timezone shifts
+    const endDate = new Date(end + 'T12:00:00');
+    const lastDay = new Date(endDate.getFullYear(), endDate.getMonth() + 1, 0);
+    const correctedEnd = `${lastDay.getFullYear()}-${String(lastDay.getMonth()+1).padStart(2,'0')}-${String(lastDay.getDate()).padStart(2,'0')}`;
     g.tripWindowStart = start;
-    g.tripWindowEnd   = end;
+    g.tripWindowEnd   = correctedEnd;
     // Clear any unavailability outside the new window
     g.availability.forEach(a => {
       a.unavailableDates = a.unavailableDates.filter(d => d >= start && d <= end);
