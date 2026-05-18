@@ -162,15 +162,20 @@ function renderCalDayPanel() {
 
 function renderCalAdminBar() {
   const el = document.getElementById('cal-admin-bar');
-  if (!isAdmin() || currentGroup.phase !== 'calendar') {
+  const inOverride = localPhaseOverride === 'calendar';
+  if (!isAdmin() || (!inOverride && currentGroup.phase !== 'calendar')) {
     el.innerHTML = '';
     return;
   }
+  const label = inOverride ? 'Recalculate dates' : 'Calculate dates';
   el.className = 'p-[11px_14px] border-t border-rim bg-panel flex-shrink-0 flex items-center gap-2.5';
-  el.innerHTML = `<button class="bg-deep text-white border-none rounded-[9px] px-[18px] py-[9px] text-[13px] font-semibold cursor-pointer transition-all tracking-[.01em] hover:bg-[#27272A] hover:-translate-y-px" onclick="computeDates()">Calculate dates ${IC.arrowR}</button><span class="text-[11px] text-muted">Admin only</span>`;
+  el.innerHTML = `<button class="bg-deep text-white border-none rounded-[9px] px-[18px] py-[9px] text-[13px] font-semibold cursor-pointer transition-all tracking-[.01em] hover:bg-[#27272A] hover:-translate-y-px" onclick="computeDates()">${label} ${IC.arrowR}</button><span class="text-[11px] text-muted">Admin only</span>`;
 }
 
-function computeDates() { socket?.emit('avail:compute'); }
+function computeDates() {
+  pendingClearOverride = true;
+  socket?.emit('avail:compute');
+}
 
 // ── Date voting ───────────────────────────────────────
 
@@ -243,7 +248,10 @@ function renderRanges() {
   }).join('');
 }
 
-function rangeVote(i) { socket?.emit('range:vote', i); }
+function rangeVote(i) {
+  if (localPhaseOverride) pendingClearOverride = true;
+  socket?.emit('range:vote', i);
+}
 
 function rangeConfirm(origIdx) {
   const g   = currentGroup;
@@ -254,6 +262,7 @@ function rangeConfirm(origIdx) {
   if (dur && rangeDays(r) > dur) {
     showSubWindowPicker(origIdx, r, dur);
   } else {
+    if (localPhaseOverride) pendingClearOverride = true;
     socket?.emit('range:confirm', { idx: origIdx, start: r.start });
   }
 }
@@ -289,6 +298,7 @@ function showSubWindowPicker(origIdx, r, dur) {
 }
 
 function confirmSubWindow(origIdx, start) {
+  if (localPhaseOverride) pendingClearOverride = true;
   socket?.emit('range:confirm', { idx: origIdx, start });
   closeSubWindowPicker();
 }

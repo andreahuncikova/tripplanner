@@ -191,12 +191,12 @@ io.on('connection', socket => {
     const s = sessions[socket.id];
     if (!s) return;
     const g = await Group.findOne({ inviteCode: s.code });
-    if (!g || String(g.adminUserId) !== String(userId) || g.phase !== 'calendar') return;
+    if (!g || String(g.adminUserId) !== String(userId) || !['calendar', 'date_vote', 'done'].includes(g.phase)) return;
     const unavailMap = {};
     g.availability.forEach(a => { unavailMap[a.username] = a.unavailableDates; });
     const ranges = computeDateRanges(g.members.map(m=>m.username), unavailMap, g.tripWindowStart, g.tripWindowEnd);
     g.dateRanges = ranges;
-    g.phase = 'date_vote';
+    if (g.phase === 'calendar') g.phase = 'date_vote';
     g.messages.push({ username:'System', text:`Available dates calculated. Time to vote!`, time:ts(), system:true });
     await g.save();
     await broadcastState(s.code);
@@ -237,7 +237,7 @@ io.on('connection', socket => {
     const s = sessions[socket.id];
     if (!s) return;
     const g = await Group.findOne({ inviteCode: s.code });
-    if (!g || g.phase !== 'date_vote') return;
+    if (!g || !['date_vote', 'done'].includes(g.phase)) return;
     g.dateRanges.forEach(r => { r.votes = r.votes.filter(u => u !== username); });
     if (g.dateRanges[idx]) g.dateRanges[idx].votes.push(username);
     await g.save();
@@ -249,7 +249,7 @@ io.on('connection', socket => {
     const s = sessions[socket.id];
     if (!s) return;
     const g = await Group.findOne({ inviteCode: s.code });
-    if (!g || String(g.adminUserId) !== String(userId) || g.phase !== 'date_vote') return;
+    if (!g || String(g.adminUserId) !== String(userId) || !['date_vote', 'done'].includes(g.phase)) return;
     const r = g.dateRanges[idx];
     if (!r) return;
     const chosenStart = start || r.start;

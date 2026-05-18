@@ -83,6 +83,11 @@ function applyState(data) {
   const myA = (data.availability || []).find(a => a.username === me.username);
   myUnavail = new Set(myA?.unavailableDates || []);
 
+  if (pendingClearOverride) {
+    pendingClearOverride = false;
+    localPhaseOverride = null;
+  }
+
   // if the group phase moved past our local override, clear it
   if (localPhaseOverride) {
     const oi = PHASE_ORDER.indexOf(localPhaseOverride);
