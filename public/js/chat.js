@@ -1,3 +1,41 @@
+let chatOpen    = true;
+let unreadCount = 0;
+
+function toggleChat() {
+  chatOpen = !chatOpen;
+  const panel   = document.getElementById('chat-panel');
+  const body    = document.getElementById('chat-body');
+  const chevron = document.getElementById('chat-chevron');
+  const labels  = panel.querySelectorAll('.chat-label');
+
+  panel.style.width = chatOpen ? '340px' : '48px';
+  body.classList.toggle('hidden', !chatOpen);
+  labels.forEach(el => el.classList.toggle('hidden', !chatOpen));
+  chevron.style.transform = chatOpen ? 'rotate(180deg)' : '';
+
+  if (chatOpen) {
+    unreadCount = 0;
+    updateChatBadge();
+    setTimeout(() => {
+      const msgs = document.getElementById('chat-msgs');
+      msgs.scrollTop = msgs.scrollHeight;
+    }, 230);
+  }
+}
+
+function updateChatBadge() {
+  const badge = document.getElementById('chat-unread-badge');
+  if (!badge) return;
+  if (unreadCount > 0) {
+    badge.textContent = unreadCount > 99 ? '99+' : unreadCount;
+    badge.classList.remove('hidden');
+    badge.classList.add('flex');
+  } else {
+    badge.classList.add('hidden');
+    badge.classList.remove('flex');
+  }
+}
+
 function chatSend() {
   const inp = document.getElementById('chat-inp');
   const v = inp.value.trim();
@@ -27,6 +65,11 @@ function appendMsg(m, animate = true) {
 
   el.appendChild(div);
   el.scrollTop = el.scrollHeight;
+
+  if (!chatOpen && animate && !m.system && m.username !== me?.username) {
+    unreadCount++;
+    updateChatBadge();
+  }
 }
 
 let typingTimers = {};

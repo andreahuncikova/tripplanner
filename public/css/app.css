@@ -52,7 +52,7 @@ select:focus { border-color: #4A90A4; }
 /* ── Calendar 7-col grid (repeat()  ── */
 .cal-grid, .done-cal-grid    { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:4px; max-width:380px; margin:0 auto; }
 .done-cal-col .cal-grid,
-.done-cal-col .done-cal-grid { flex:1; padding:14px 18px; max-width:none; gap:7px; }
+.done-cal-col .done-cal-grid { flex:1; padding:14px 18px; max-width:none; gap:7px;}
 
 /* ── Done tab panes (flex layout needed here) ── */
 .done-tab-pane   { flex:1; overflow:hidden; min-height:0; display:flex; flex-direction:column; }
