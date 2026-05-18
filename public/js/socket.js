@@ -33,7 +33,12 @@ function initSocket(code) {
     applyState(data);
     (data.messages || []).forEach(m => appendMsg(m, false));
 
-    document.getElementById('tb-group-name').textContent = currentGroup?.name || code;
+    // if we just created this group and picked months, apply them now
+    if (pendingTripWindow && isAdmin() && !data.tripWindowStart) {
+      socket.emit('trip:setWindow', pendingTripWindow);
+      pendingTripWindow = null;
+    }
+
     showScreen('app');
     document.getElementById('chat-inp').focus();
   });
@@ -62,4 +67,6 @@ function initSocket(code) {
   socket.on('expense:new',     exp    => { if (!currentGroup.expenses) currentGroup.expenses = []; currentGroup.expenses.push(exp); renderExpenses(); });
   socket.on('expense:removed', id     => { currentGroup.expenses = (currentGroup.expenses || []).filter(e => String(e._id) !== String(id)); renderExpenses(); });
   socket.on('typing',          uname  => showTyping(uname));
+  socket.on('group:left',    () => goToDash());
+  socket.on('group:deleted', () => goToDash());
 }

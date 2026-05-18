@@ -49,6 +49,7 @@ async function broadcastState(code) {
 
 function serialize(g, onlineList) {
   return {
+    name:              g.name,
     phase:             g.phase,
     tripDuration:      g.tripDuration,
     tripWindowStart:   g.tripWindowStart,
@@ -341,6 +342,68 @@ io.on('connection', socket => {
       ACTIVITY_SUGGESTIONS[Object.keys(ACTIVITY_SUGGESTIONS).find(k=>dest?.includes(k))] ||
       ['🗺️ City sightseeing tour','🍽️ Local food experience','🏛️ Historic city centre','📸 Photo walk','🛍️ Local market'];
     socket.emit('activity:suggestions', { dest, suggestions });
+  });
+
+  // LEAVE GROUP ───────────────────────────────────────
+  socket.on('group:leave', async () => {
+    const s = sessions[socket.id];
+    if (!s) return;
+    const g = await Group.findOne({ inviteCode: s.code });
+    if (!g) return;
+    const isAdm = String(g.adminUserId) === String(s.userId);
+    g.members = g.members.filter(m => String(m.userId) !== String(s.userId));
+    if (isAdm && g.members.length > 0) {
+      g.adminUserId   = g.members[0].userId;
+      g.adminUsername = g.members[0].username;
+      g.messages.push({ username:'System', text:`${s.username} left. ${g.adminUsername} is now admin.`, time:ts(), system:true });
+    } else if (isAdm) {
+      await g.deleteOne();
+      socket.emit('group:left');
+      return;
+    } else {
+      g.messages.push({ username:'System', text:`${s.username} left the group.`, time:ts(), system:true });
+    }
+    await g.save();
+    socket.emit('group:left');
+    io.to(s.code).emit('state', serialize(g, getOnline(s.code)));
+  });
+
+  // DELETE GROUP (admin) ──────────────────────────────
+  socket.on('group:delete', async () => {
+    const s = sessions[socket.id];
+    if (!s) return;
+    const g = await Group.findOne({ inviteCode: s.code });
+    if (!g || String(g.adminUserId) !== String(s.userId)) return;
+    await g.deleteOne();
+    io.to(s.code).emit('group:deleted');
+  });
+
+  // REMOVE DESTINATION ────────────────────────────────
+  socket.on('dest:remove', async destId => {
+    const s = sessions[socket.id];
+    if (!s) return;
+    const g = await Group.findOne({ inviteCode: s.code });
+    if (!g || g.phase !== 'destinations') return;
+    const dest = g.destinations.find(d => String(d._id) === String(destId));
+    if (!dest) return;
+    if (dest.by !== s.username && String(g.adminUserId) !== String(s.userId)) return;
+    g.destinations = g.destinations.filter(d => String(d._id) !== String(destId));
+    await g.save();
+    io.to(s.code).emit('state', serialize(g, getOnline(s.code)));
+  });
+
+  // REMOVE ACTIVITY ───────────────────────────────────
+  socket.on('activity:remove', async actId => {
+    const s = sessions[socket.id];
+    if (!s) return;
+    const g = await Group.findOne({ inviteCode: s.code });
+    if (!g) return;
+    const act = g.activities.find(a => String(a._id) === String(actId));
+    if (!act) return;
+    if (String(act.userId) !== String(s.userId) && String(g.adminUserId) !== String(s.userId)) return;
+    g.activities = g.activities.filter(a => String(a._id) !== String(actId));
+    await g.save();
+    io.to(s.code).emit('state', serialize(g, getOnline(s.code)));
   });
 
   // TYPING ────────────────────────────────────────────

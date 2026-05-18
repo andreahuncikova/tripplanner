@@ -21,22 +21,48 @@ async function loadMyGroups() {
   empty.classList.add('hidden');
   wrap.classList.remove('hidden');
 
-  document.getElementById('my-groups-list').innerHTML = r.groups.map(g => `
+  document.getElementById('my-groups-list').innerHTML = r.groups.map(g => {
+    const admin = g.adminUsername === me?.username;
+    const actionIcon = admin
+      ? `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>`
+      : `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>`;
+    return `
     <div class="bg-panel border border-rim rounded-xl px-4 py-3.5 cursor-pointer transition-all flex items-center justify-between shadow-soft animate-up hover:border-blue/25 hover:shadow-md hover:-translate-y-px" onclick="enterGroupFromDash('${g.inviteCode}')">
-      <div>
+      <div class="min-w-0 flex-1">
         <div class="font-semibold text-sm tracking-tight">${esc(g.name)}</div>
-        <div class="text-[11px] text-muted mt-0.5">${g.tripDuration ? g.tripDuration + ' days · ' : ''}code: ${g.inviteCode}</div>
+        <div class="text-[11px] text-muted mt-0.5">${g.tripDuration ? g.tripDuration + ' days · ' : ''}${g.inviteCode}</div>
       </div>
-      <span class="text-[10px] px-[9px] py-[3px] rounded-full bg-blue/10 text-blue font-semibold tracking-[.01em] whitespace-nowrap">${PHASE_LABELS[g.phase] || g.phase}</span>
-    </div>
-  `).join('');
+      <div class="flex items-center gap-2 flex-shrink-0 ml-3">
+        <span class="text-[10px] px-[9px] py-[3px] rounded-full bg-blue/10 text-blue font-semibold tracking-[.01em] whitespace-nowrap">${PHASE_LABELS[g.phase] || g.phase}</span>
+        <button
+          class="w-7 h-7 rounded-lg border border-rim bg-transparent text-muted flex items-center justify-center transition-all hover:border-accent/40 hover:text-accent flex-shrink-0"
+          title="${admin ? 'Delete group' : 'Leave group'}"
+          onclick="event.stopPropagation();dashGroupAction(this,'${g.inviteCode}',${admin})"
+        >${actionIcon}</button>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 async function createGroup() {
-  const name = document.getElementById('new-group-name').value.trim();
+  const name      = document.getElementById('new-group-name').value.trim();
+  const monthFrom = document.getElementById('new-group-month-from').value;
+  const monthTo   = document.getElementById('new-group-month-to').value;
+
   if (!name) return modalErr('create-modal-error', 'Enter a group name');
   const r = await api('/api/groups', 'POST', { name });
   if (r.error) return modalErr('create-modal-error', r.error);
+
+  // store the selected months — socket.js will emit trip:setWindow after joining
+  if (monthFrom) {
+    const from = monthFrom > (monthTo || '') ? monthTo || monthFrom : monthFrom;
+    const to   = monthFrom > (monthTo || '') ? monthFrom : monthTo || monthFrom;
+    const [ty, tm] = to.split('-').map(Number);
+    pendingTripWindow = {
+      start: from + '-01',
+      end:   new Date(ty, tm, 0).toISOString().split('T')[0],
+    };
+  }
 
   closeCreateModal();
   document.getElementById('new-group-name').value = '';
@@ -64,6 +90,18 @@ async function joinByCode() {
 
 function showCreateModal() {
   document.getElementById('create-modal').classList.remove('hidden');
+
+  // populate month selects with the next 18 months in English
+  const now = new Date();
+  const opts = Array.from({ length: 18 }, (_, i) => {
+    const d   = new Date(now.getFullYear(), now.getMonth() + i, 1);
+    const val = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    return `<option value="${val}">${MONTHS[d.getMonth()]} ${d.getFullYear()}</option>`;
+  }).join('');
+  document.getElementById('new-group-month-from').innerHTML = opts;
+  document.getElementById('new-group-month-to').innerHTML   = opts;
+  document.getElementById('new-group-month-to').selectedIndex = 1; // default to next month
+
   setTimeout(() => document.getElementById('new-group-name').focus(), 50);
 }
 function closeCreateModal() { document.getElementById('create-modal').classList.add('hidden'); }
@@ -80,6 +118,24 @@ function enterGroupFromDash(code) {
 }
 
 function enterGroup() { initSocket(currentCode); }
+
+// dashboard group card: leave (member) or delete (admin)
+async function dashGroupAction(btn, code, isAdmin) {
+  confirmThen(btn, async () => {
+    const r = isAdmin
+      ? await api(`/api/groups/${code}`, 'DELETE')
+      : await api(`/api/groups/${code}/leave`, 'POST');
+    if (!r.error) loadMyGroups();
+  });
+}
+
+// in-app leave/delete (while connected via socket)
+function leaveGroupInApp(btn) {
+  confirmThen(btn, () => { closeModal(); socket?.emit('group:leave'); });
+}
+function deleteGroupInApp(btn) {
+  confirmThen(btn, () => { closeModal(); socket?.emit('group:delete'); });
+}
 
 function goToDash() {
   if (socket) { socket.disconnect(); socket = null; }

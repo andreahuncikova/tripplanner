@@ -167,7 +167,6 @@
       </button>
       <i data-lucide="plane" class="w-4 h-4 text-muted flex-shrink-0"></i>
       <span class="text-[14px] font-semibold text-white/90 truncate max-w-[200px] tracking-[-0.01em]" id="tb-group-name">—</span>
-      <span class="text-[10px] py-[3px] px-[9px] rounded-full whitespace-nowrap bg-accent/20 text-[#FF9F85] font-semibold flex-shrink-0 tracking-[.02em]" id="tb-phase">—</span>
     </div>
     <div class="flex items-center gap-2.5 flex-shrink-0">
       <div class="flex" id="online-row"></div>
@@ -178,11 +177,11 @@
     </div>
   </header>
 
-  <!-- PHASE HINT BAR -->
-  <div class="hint-bar py-2 px-5 text-[12px] text-blue bg-blue/[.06] border-b border-blue/[.12] flex-shrink-0 leading-relaxed font-medium" id="hint-bar"></div>
+  <!-- PHASE STEPPER — single source of truth for navigation -->
+  <div id="phase-stepper" class="bg-panel border-b border-rim flex-shrink-0"></div>
 
-  <!-- RETURN TO CURRENT BANNER -->
-  <div class="items-center justify-between px-5 py-2 text-xs flex-shrink-0 bg-accent/[.07] border-b border-accent/[.18] text-accent font-medium gap-3" style="display:none" id="return-banner"></div>
+  <!-- HINT BAR — context-sensitive help for each phase -->
+  <div class="hint-bar py-2 px-5 text-[12px] text-blue bg-blue/[.06] border-b border-blue/[.12] flex-shrink-0 leading-relaxed font-medium" id="hint-bar"></div>
 
   <!-- MAIN -->
   <div class="flex-1 overflow-hidden flex min-h-0">
@@ -198,7 +197,6 @@
             <span class="text-[11px] font-sans font-normal text-muted tracking-normal">Suggest &amp; vote</span>
           </span>
         </div>
-        <div id="dest-back-bar"></div>
         <div class="flex-1 overflow-y-auto p-3.5 flex flex-col gap-2 [scrollbar-width:thin]" id="dest-list"></div>
         <div class="flex gap-1.5 py-[11px] px-3 border-t border-rim bg-panel flex-shrink-0" id="dest-add-bar">
           <input id="dest-inp" type="text" placeholder="Suggest a destination (e.g. Paris, Vienna…)" maxlength="40"
@@ -232,7 +230,6 @@
       <div class="flex flex-col flex-1 min-h-0 overflow-hidden hidden" id="p-datevote">
         <div class="px-[18px] py-[13px] bg-panel border-b border-rim text-sm font-semibold flex-shrink-0 flex items-center gap-2 tracking-tight">
           <i data-lucide="calendar-check" class="w-4 h-4 text-muted"></i>Vote for a trip date
-          <div id="datevote-back-bar" class="inline-flex ml-auto"></div>
         </div>
         <div id="dur-setter-bar"></div>
         <div class="flex-1 overflow-y-auto p-3.5 flex flex-col gap-2" id="ranges-list"></div>
@@ -332,6 +329,10 @@
       <i data-lucide="copy" class="w-4 h-4"></i>Copy link
     </button>
     <button class="text-muted text-xs cursor-pointer transition-all hover:text-ink font-medium py-1" onclick="closeModal()">Close</button>
+    <div class="border-t border-rim pt-2 flex flex-col gap-1">
+      <button id="inv-modal-leave"  class="text-muted text-xs cursor-pointer transition-all hover:text-ink font-medium py-1" onclick="leaveGroupInApp(this)">Leave group</button>
+      <button id="inv-modal-delete" class="hidden text-accent text-xs cursor-pointer transition-all hover:text-[#C44A22] font-medium py-1" onclick="deleteGroupInApp(this)">Delete group</button>
+    </div>
   </div>
 </div>
 
@@ -344,6 +345,15 @@
     </div>
     <input id="new-group-name" type="text" placeholder="Group name (e.g. Summer trip 🌊)" maxlength="40"
       onkeydown="if(event.key==='Enter')createGroup()"/>
+    <div>
+      <div class="text-xs text-muted mb-2 font-medium">When are you planning to go?</div>
+      <div class="flex items-center gap-2">
+        <select id="new-group-month-from" class="flex-1"></select>
+        <span class="text-muted text-sm flex-shrink-0">–</span>
+        <select id="new-group-month-to" class="flex-1"></select>
+      </div>
+      <div class="text-[11px] text-muted mt-1.5">You can adjust this later</div>
+    </div>
     <div class="text-xs text-accent min-h-[14px]" id="create-modal-error"></div>
     <button class="w-full py-[13px] border-none rounded-xl bg-accent text-white font-semibold text-sm cursor-pointer transition-all hover:bg-[#C44A22] tracking-[.01em]" onclick="createGroup()">Create group →</button>
     <button class="text-muted text-xs cursor-pointer transition-all hover:text-ink font-medium py-1 text-center" onclick="closeCreateModal()">Cancel</button>

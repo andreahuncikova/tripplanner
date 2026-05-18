@@ -1,3 +1,81 @@
+// ── Phase stepper ─────────────────────────────────────
+// Single source of truth for "where am I" and "go back".
+// Replaces the scattered back buttons that were in each panel.
+
+const STEP_LABELS = ['Destinations', 'Availability', 'Date voting', 'Trip!'];
+
+function renderPhaseStepper() {
+  const el = document.getElementById('phase-stepper');
+  if (!el) return;
+
+  const actualIdx  = PHASE_ORDER.indexOf(currentGroup.phase);
+  const viewIdx    = PHASE_ORDER.indexOf(localPhaseOverride || currentGroup.phase);
+  const inOverride = !!localPhaseOverride;
+
+  // build the 4 step nodes separated by connectors
+  const stepsHtml = [];
+  PHASE_ORDER.forEach((phase, i) => {
+    const done    = i < actualIdx;
+    const current = i === viewIdx;
+    const future  = i > actualIdx;
+
+    let circle, labelCls;
+    if (current) {
+      circle   = `<span class="w-6 h-6 rounded-full bg-accent text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0">${done || i < actualIdx ? IC.check : i + 1}</span>`;
+      labelCls = 'text-ink font-semibold';
+    } else if (done) {
+      circle   = `<span class="w-6 h-6 rounded-full bg-green/15 text-green flex items-center justify-center flex-shrink-0">${IC.check}</span>`;
+      labelCls = 'text-muted';
+    } else {
+      circle   = `<span class="w-6 h-6 rounded-full border border-rim text-muted/40 text-[10px] flex items-center justify-center flex-shrink-0">${i + 1}</span>`;
+      labelCls = 'text-muted/40';
+    }
+
+    // completed steps are clickable (jump to them locally without affecting the group)
+    const clickable = done;
+    const btn = `<button
+      class="flex items-center gap-1.5 ${clickable ? 'cursor-pointer hover:opacity-70' : 'cursor-default'} transition-opacity"
+      ${clickable ? `onclick="jumpToPhase(${i})"` : ''}>
+      ${circle}
+      <span class="text-[11px] ${labelCls} hidden md:inline">${STEP_LABELS[i]}</span>
+    </button>`;
+    stepsHtml.push(btn);
+
+    if (i < PHASE_ORDER.length - 1) {
+      const connectorColor = i < actualIdx ? 'bg-green/30' : 'bg-rim';
+      stepsHtml.push(`<div class="h-px ${connectorColor} flex-1 max-w-10 min-w-3"></div>`);
+    }
+  });
+
+  // left side: back button (always the same spot)
+  const canGoBack = viewIdx > 0;
+  const backLabel = isAdmin() && !inOverride ? `${IC.arrowL} Back` : `${IC.arrowL} Back`;
+  const backBtn = canGoBack
+    ? `<button class="flex items-center gap-1 text-[11px] font-medium text-muted cursor-pointer hover:text-ink transition-colors flex-shrink-0 mr-2" onclick="goBack()">${backLabel}</button>`
+    : `<div class="w-10 mr-2 flex-shrink-0"></div>`;
+
+  // right side: "return to current" only when viewing an older phase
+  const returnBtn = inOverride
+    ? `<button class="flex items-center gap-1 text-[11px] font-semibold text-accent cursor-pointer hover:opacity-70 transition-opacity flex-shrink-0 ml-2" onclick="returnToCurrent()">${IC.arrowR} Current</button>`
+    : `<div class="w-10 ml-2 flex-shrink-0"></div>`;
+
+  el.innerHTML = `<div class="flex items-center px-4 py-2.5">
+    ${backBtn}
+    <div class="flex items-center gap-1.5 flex-1 justify-center">${stepsHtml.join('')}</div>
+    ${returnBtn}
+  </div>`;
+}
+
+// jump to a previous phase locally (doesn't affect other users)
+function jumpToPhase(idx) {
+  if (idx < PHASE_ORDER.indexOf(currentGroup.phase)) {
+    localPhaseOverride = PHASE_ORDER[idx];
+    renderPhase();
+  }
+}
+
+// ── State ─────────────────────────────────────────────
+
 function applyState(data) {
   if (!currentGroup) currentGroup = {};
   Object.assign(currentGroup, data);
@@ -5,7 +83,7 @@ function applyState(data) {
   const myA = (data.availability || []).find(a => a.username === me.username);
   myUnavail = new Set(myA?.unavailableDates || []);
 
-  // if the group phase moved past the local override, clear it
+  // if the group phase moved past our local override, clear it
   if (localPhaseOverride) {
     const oi = PHASE_ORDER.indexOf(localPhaseOverride);
     const gi = PHASE_ORDER.indexOf(data.phase);
@@ -13,7 +91,6 @@ function applyState(data) {
   }
 
   renderPhase();
-  renderReturnBanner(data.phase);
   renderOnline(data.online || []);
 }
 
@@ -22,27 +99,32 @@ function renderPhase() {
   const actualPhase = g.phase;
   const phase       = localPhaseOverride || actualPhase;
 
-  document.getElementById('tb-phase').textContent = PHASE_LABELS[actualPhase] || actualPhase;
+  // group name + approved destination (if set)
+  const dest = g.approvedDest
+    ? ` — ${g.approvedDestEmoji ? g.approvedDestEmoji + ' ' : ''}${g.approvedDest}`
+    : '';
+  document.getElementById('tb-group-name').textContent = (g.name || '') + dest;
 
   ['destinations', 'calendar', 'datevote', 'done'].forEach(p => {
     document.getElementById(`p-${p}`).classList.add('hidden');
   });
 
+  renderPhaseStepper();
   const hintBar = document.getElementById('hint-bar');
 
   if (phase === 'destinations') {
     document.getElementById('p-destinations').classList.remove('hidden');
     hintBar.innerHTML = localPhaseOverride
       ? `${IC.map} Viewing destination votes.`
-      : `${IC.info} Suggest a destination and vote. Once everyone agrees, the admin approves the winner.`;
+      : `${IC.info} Suggest destinations and vote for your favourite. The admin approves the winner.`;
     renderDests();
   }
 
   if (phase === 'calendar') {
     document.getElementById('p-calendar').classList.remove('hidden');
     hintBar.innerHTML = localPhaseOverride
-      ? `${IC.calendar} You can update your unavailable days here.`
-      : `${IC.calendar} Click days when you CAN'T go. ${isAdmin() ? 'Once everyone marks their days, click "Calculate dates".' : 'Waiting for others to mark their days.'}`;
+      ? `${IC.calendar} You can still update your unavailable days here.`
+      : `${IC.calendar} Click days you <strong>can't</strong> go. ${isAdmin() ? 'When everyone is done, click "Calculate dates".' : 'Waiting for everyone to mark their days.'}`;
     renderTripWindowSetter();
     jumpToWindow();
     renderCal();
@@ -55,41 +137,31 @@ function renderPhase() {
     const dur = g.tripDuration;
     if (!localPhaseOverride) {
       hintBar.innerHTML = isAdmin()
-        ? (dur ? `${IC.calCheck} Trip duration set to ${dur} days. Vote and confirm a date below.` : `${IC.calCheck} Set your trip duration below, then vote and confirm a date.`)
-        : (dur ? `${IC.calCheck} Trip duration: ${dur} days. Vote for your preferred date window.` : `${IC.calCheck} Vote for your preferred date window. Admin will set the final trip duration.`);
+        ? (dur
+            ? `${IC.calCheck} Duration set to ${dur} days. Vote below, then confirm when ready.`
+            : `${IC.calCheck} First set the trip duration, then everyone votes on a date.`)
+        : (dur
+            ? `${IC.calCheck} Trip duration: ${dur} days. Vote for your preferred window.`
+            : `${IC.calCheck} Waiting for the admin to set the trip duration.`);
     } else {
-      hintBar.innerHTML = `${IC.calCheck} Viewing date vote.`;
+      hintBar.innerHTML = `${IC.calCheck} Viewing date voting.`;
     }
     renderDurSetter();
     renderRanges();
-    renderDateVoteBackBtn();
   }
 
   if (phase === 'done') {
     document.getElementById('p-done').classList.remove('hidden');
-    hintBar.innerHTML = `${IC.sparkles} Trip confirmed: ${esc(g.finalDateLabel || g.finalDate || '')}. Add activities and track expenses!`;
+    hintBar.innerHTML = `${IC.sparkles} Trip confirmed: <strong>${esc(g.finalDateLabel || g.finalDate || '')}</strong>. Add activities and track expenses.`;
     renderDoneBanner();
     renderDoneCal();
     renderExpenses();
   }
 }
 
-function renderReturnBanner(actualPhase) {
-  const el = document.getElementById('return-banner');
-  if (!el) return;
-  if (localPhaseOverride && localPhaseOverride !== actualPhase) {
-    const label = PHASE_LABELS[actualPhase] || actualPhase;
-    el.innerHTML = `<span>Viewing a previous step</span><button class="bg-accent text-white border-none rounded-[7px] px-[13px] py-[5px] text-xs font-semibold cursor-pointer transition-colors whitespace-nowrap flex-shrink-0 hover:bg-[#C44A22]" onclick="returnToCurrent()">${IC.arrowR} Back to ${label}</button>`;
-    el.style.display = 'flex';
-  } else {
-    el.style.display = 'none';
-  }
-}
-
 function returnToCurrent() {
   localPhaseOverride = null;
   renderPhase();
-  renderReturnBanner(currentGroup.phase);
 }
 
 function isAdmin() {
@@ -97,17 +169,17 @@ function isAdmin() {
 }
 
 function goBack() {
-  if (isAdmin()) {
+  const current = localPhaseOverride || currentGroup.phase;
+  const idx     = PHASE_ORDER.indexOf(current);
+  if (idx <= 0) return;
+
+  if (!localPhaseOverride && isAdmin()) {
+    // admin at actual current phase — this moves the whole group back
     socket?.emit('phase:back');
   } else {
-    // non-admins can browse previous phases locally without affecting others
-    const current = localPhaseOverride || currentGroup.phase;
-    const idx = PHASE_ORDER.indexOf(current);
-    if (idx > 0) {
-      localPhaseOverride = PHASE_ORDER[idx - 1];
-      renderPhase();
-      renderReturnBanner(currentGroup.phase);
-    }
+    // everyone else (or admin already in view-override): navigate locally
+    localPhaseOverride = PHASE_ORDER[idx - 1];
+    renderPhase();
   }
 }
 
@@ -117,7 +189,7 @@ function renderDests() {
   const g  = currentGroup;
   const el = document.getElementById('dest-list');
 
-  // once a destination is approved, just show that one
+  // once approved, just show the winner
   if (g.phase !== 'destinations') {
     el.innerHTML = `
       <div class="bg-panel border border-green/45 bg-green/[.05] rounded-xl p-[13px_15px] flex items-center gap-[11px] shadow-soft">
@@ -150,13 +222,14 @@ function renderDests() {
       <div class="text-2xl flex-shrink-0">${d.emoji}</div>
       <div class="flex-1 min-w-0">
         <div class="text-[15px] font-semibold tracking-tight">${esc(d.name)}${win ? `<span class="inline-flex items-center gap-1 text-[10px] bg-green/[.12] text-green border border-green/25 rounded-full px-2 py-0.5 ml-1.5 font-semibold">${IC.trophy} Winner</span>` : ''}</div>
-        <div class="text-xs text-muted mt-0.5">Suggested by: ${esc(d.by)}</div>
+        <div class="text-xs text-muted mt-0.5">Suggested by ${esc(d.by)}</div>
       </div>
       <div class="flex items-center gap-[7px] flex-shrink-0">
         <div class="w-[52px] h-1 bg-rim rounded-full overflow-hidden"><div class="h-full bg-blue rounded-full transition-[width_.5s]" style="width:${pct}%"></div></div>
         <span class="text-sm font-semibold min-w-4 text-center">${d.votes.length}</span>
         <button class="w-8 h-8 rounded-full border-[1.5px] ${voted ? 'bg-accent border-accent text-white' : 'border-rim bg-transparent text-muted hover:bg-accent/[.08] hover:border-accent/35 hover:text-accent hover:scale-[1.08]'} flex items-center justify-center transition-all cursor-pointer" onclick="destVote('${d._id}')">${voted ? IC.heart : IC.heartO}</button>
         ${isAdmin() ? `<button class="text-[11px] px-2.5 py-[5px] rounded-full border border-green/35 bg-green/[.08] text-green cursor-pointer font-semibold transition-all whitespace-nowrap hover:bg-green/[.18]" onclick="destApprove('${d._id}')">${IC.check} Approve</button>` : ''}
+        ${(isAdmin() || d.by === me.username) ? `<button class="w-6 h-6 rounded-full border border-rim bg-transparent text-muted flex items-center justify-center cursor-pointer transition-all hover:border-accent/40 hover:text-accent hover:bg-accent/[.06]" onclick="confirmThen(this,()=>socket?.emit('dest:remove','${d._id}'))">${IC.x}</button>` : ''}
       </div>
     </div>`;
   }).join('');

@@ -1,39 +1,59 @@
 // ── Trip window (date range the trip can happen in) ──────
 
 function renderTripWindowSetter() {
-  const el = document.getElementById('trip-window-bar');
-  if (!el) return;
+  const bar = document.getElementById('trip-window-bar');
+  if (!bar) return;
   const g  = currentGroup;
   const ws = g.tripWindowStart || '';
   const we = g.tripWindowEnd   || '';
 
-  const rangeBadge = ws && we
-    ? `<span class="text-[15px] font-bold text-blue tracking-tight">${fmtWindowLabel(ws, we)}</span>`
-    : `<span class="text-sm text-muted italic">Not set yet</span>`;
-
   if (isAdmin() && !localPhaseOverride) {
-    el.innerHTML = `
-      <div class="flex items-center gap-2.5 px-4 py-2.5 bg-panel border-b border-rim flex-shrink-0 flex-wrap">
-        <span class="text-xs font-semibold text-muted uppercase tracking-[.04em] whitespace-nowrap flex items-center gap-1">${IC.calendar} Trip dates</span>
-        ${rangeBadge}
+    // admin always sees the month pickers so they can set or adjust
+    bar.innerHTML = `
+      <div class="flex items-center gap-2.5 px-4 py-2 bg-panel border-b border-rim flex-shrink-0 flex-wrap">
+        <span class="text-xs font-semibold text-muted uppercase tracking-[.04em] whitespace-nowrap flex items-center gap-1">${IC.calendar} Trip month</span>
+        ${ws && we ? `<span class="text-[14px] font-bold text-blue tracking-tight">${fmtMonthRange(ws, we)}</span>` : ''}
         <div class="flex items-center gap-1.5 ml-auto flex-wrap">
-          <input type="date" id="tw-start" style="width:auto;padding:5px 9px;font-size:13px;font-weight:500;border-radius:8px;cursor:pointer" value="${ws}" />
-          <span class="text-sm text-muted">–</span>
-          <input type="date" id="tw-end" style="width:auto;padding:5px 9px;font-size:13px;font-weight:500;border-radius:8px;cursor:pointer" value="${we}" />
-          <button class="px-[13px] py-[5px] bg-blue text-white border-none rounded-[7px] text-xs font-semibold cursor-pointer transition-all whitespace-nowrap hover:bg-[#3a7a8e] hover:-translate-y-px" onclick="setTripWindow()">${ws && we ? 'Update' : 'Set'}</button>
+          <select id="tw-start" style="padding:3px 6px;font-size:12px;border-radius:7px">${monthOpts(ws ? ws.slice(0,7) : '')}</select>
+          <span class="text-xs text-muted">–</span>
+          <select id="tw-end" style="padding:3px 6px;font-size:12px;border-radius:7px">${monthOpts(we ? we.slice(0,7) : '')}</select>
+          <button class="px-3 py-1 bg-blue text-white border-none text-xs font-semibold rounded-lg cursor-pointer hover:bg-[#3a7a8e] transition-colors" onclick="setTripWindow()">${ws && we ? 'Update' : 'Set'}</button>
         </div>
       </div>`;
-  } else {
-    el.innerHTML = `
-      <div class="flex items-center gap-2.5 px-4 py-2.5 bg-blue/[.05] border-b border-rim flex-shrink-0 flex-wrap">
-        <span class="text-xs font-semibold text-muted uppercase tracking-[.04em] whitespace-nowrap flex items-center gap-1">${IC.calendar} Trip dates</span>
-        ${rangeBadge}
+  } else if (ws && we) {
+    // member / override: just show the confirmed range
+    bar.innerHTML = `
+      <div class="flex items-center gap-2.5 px-4 py-2 bg-blue/[.04] border-b border-rim flex-shrink-0">
+        <span class="text-xs font-semibold text-muted uppercase tracking-[.04em] flex items-center gap-1">${IC.calendar} Trip month</span>
+        <span class="text-[14px] font-bold text-blue tracking-tight">${fmtMonthRange(ws, we)}</span>
       </div>`;
+  } else {
+    bar.innerHTML = '';
   }
 }
 
+// generates <option> elements for a month select, 18 months starting from now
+function monthOpts(selectedYM) {
+  const now = new Date();
+  return Array.from({ length: 18 }, (_, i) => {
+    const d   = new Date(now.getFullYear(), now.getMonth() + i, 1);
+    const val = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    return `<option value="${val}"${val === selectedYM ? ' selected' : ''}>${MONTHS[d.getMonth()]} ${d.getFullYear()}</option>`;
+  }).join('');
+}
+
+// "July – August 2025" or "July 2025"
+function fmtMonthRange(ws, we) {
+  const s  = new Date(ws + 'T12:00:00');
+  const e  = new Date(we + 'T12:00:00');
+  const sm = MONTHS[s.getMonth()], em = MONTHS[e.getMonth()];
+  const sy = s.getFullYear(),      ey = e.getFullYear();
+  if (sy === ey) return sm === em ? `${sm} ${sy}` : `${sm} – ${em} ${sy}`;
+  return `${sm} ${sy} – ${em} ${ey}`;
+}
+
+// kept for use in done banner (shows exact dates)
 function fmtWindowLabel(ws, we) {
-  // +12h to avoid timezone edge cases when parsing date-only strings
   const s  = new Date(ws + 'T12:00:00');
   const e  = new Date(we + 'T12:00:00');
   const sy = s.getFullYear(), ey = e.getFullYear();
@@ -43,10 +63,15 @@ function fmtWindowLabel(ws, we) {
 }
 
 function setTripWindow() {
-  const start = document.getElementById('tw-start')?.value;
-  const end   = document.getElementById('tw-end')?.value;
-  if (!start || !end || start >= end) return;
-  socket?.emit('trip:setWindow', { start, end });
+  const fromM = document.getElementById('tw-start')?.value; // "YYYY-MM"
+  const toM   = document.getElementById('tw-end')?.value;
+  if (!fromM) return;
+  const endMonth = (toM && toM >= fromM) ? toM : fromM;
+  const [ty, tm] = endMonth.split('-').map(Number);
+  socket?.emit('trip:setWindow', {
+    start: fromM + '-01',
+    end:   new Date(ty, tm, 0).toISOString().split('T')[0], // last day of end month
+  });
 }
 
 function jumpToWindow() {
@@ -137,27 +162,18 @@ function renderCalDayPanel() {
 
 function renderCalAdminBar() {
   const el = document.getElementById('cal-admin-bar');
-  const canGoBack        = PHASE_ORDER.indexOf(localPhaseOverride || currentGroup.phase) > 0;
-  const isActualCalendar = currentGroup.phase === 'calendar';
-  let html = '';
-  if (canGoBack) html += `<button class="bg-transparent text-muted border-[1.5px] border-rim rounded-[9px] px-[18px] py-[9px] text-[13px] font-semibold cursor-pointer transition-all hover:bg-bg hover:text-ink" onclick="goBack()">${IC.arrowL} Back</button>`;
-  if (isAdmin() && isActualCalendar) html += `<button class="bg-deep text-white border-none rounded-[9px] px-[18px] py-[9px] text-[13px] font-semibold cursor-pointer transition-all tracking-[.01em] hover:bg-[#27272A] hover:-translate-y-px" onclick="computeDates()">Calculate dates ${IC.arrowR}</button><span class="text-[11px] text-muted">Admin only</span>`;
+  if (!isAdmin() || currentGroup.phase !== 'calendar') {
+    el.innerHTML = '';
+    return;
+  }
   el.className = 'p-[11px_14px] border-t border-rim bg-panel flex-shrink-0 flex items-center gap-2.5';
-  el.innerHTML = html;
+  el.innerHTML = `<button class="bg-deep text-white border-none rounded-[9px] px-[18px] py-[9px] text-[13px] font-semibold cursor-pointer transition-all tracking-[.01em] hover:bg-[#27272A] hover:-translate-y-px" onclick="computeDates()">Calculate dates ${IC.arrowR}</button><span class="text-[11px] text-muted">Admin only</span>`;
 }
 
 function computeDates() { socket?.emit('avail:compute'); }
 
 // ── Date voting ───────────────────────────────────────
 
-function renderDateVoteBackBtn() {
-  const el = document.getElementById('datevote-back-bar');
-  if (!el) return;
-  const canGoBack = PHASE_ORDER.indexOf(localPhaseOverride || currentGroup.phase) > 0;
-  el.innerHTML = canGoBack
-    ? `<button class="bg-transparent border-[1.5px] border-rim rounded-lg px-3 py-[5px] text-xs font-medium text-muted cursor-pointer transition-all hover:border-ink hover:text-ink hover:bg-bg whitespace-nowrap flex-shrink-0" onclick="goBack()">${IC.arrowL} Back</button>`
-    : '';
-}
 
 function renderDurSetter() {
   const el = document.getElementById('dur-setter-bar');
@@ -286,9 +302,12 @@ function closeSubWindowPicker() {
 function renderDoneBanner() {
   const g = currentGroup;
   document.getElementById('done-dest-banner').innerHTML =
-    `<div class="px-[18px] py-3 bg-green/[.08] border-b border-green/[.18] flex-shrink-0 text-base font-semibold tracking-tight flex items-center justify-between gap-3">
-      <span class="flex items-center gap-2">${g.approvedDestEmoji ? `<span>${g.approvedDestEmoji}</span>` : IC.globe} ${esc(g.approvedDest || '')} <span class="opacity-30">·</span> ${IC.calendar} ${esc(g.finalDateLabel || g.finalDate || '')}</span>
-      <button class="bg-transparent border-[1.5px] border-rim rounded-lg px-3 py-[5px] text-xs font-medium text-muted cursor-pointer transition-all hover:border-ink hover:text-ink hover:bg-bg whitespace-nowrap flex-shrink-0" onclick="goBack()">${IC.arrowL} Back</button>
+    `<div class="px-[18px] py-3 bg-green/[.08] border-b border-green/[.18] flex-shrink-0 text-base font-semibold tracking-tight flex items-center gap-3">
+      ${g.approvedDestEmoji ? `<span>${g.approvedDestEmoji}</span>` : IC.globe}
+      <span>${esc(g.approvedDest || '')}</span>
+      <span class="text-rim">·</span>
+      ${IC.calendar}
+      <span>${esc(g.finalDateLabel || g.finalDate || '')}</span>
     </div>`;
 }
 
@@ -353,7 +372,10 @@ function renderDayPanel() {
   actsEl.innerHTML = acts.map(a => `
     <div class="bg-bg border border-rim rounded-[10px] p-[11px_13px] flex flex-col gap-1 text-sm animate-up">
       ${a.calTime ? `<span class="text-[11px] font-bold text-accent tracking-[.04em] uppercase">${esc(a.calTime)}</span>` : ''}
-      <span class="font-medium text-ink leading-snug">${esc(a.text)}</span>
+      <div class="flex items-start justify-between gap-2">
+        <span class="font-medium text-ink leading-snug">${esc(a.text)}</span>
+        ${(isAdmin() || a.addedBy === me?.username) ? `<button class="w-5 h-5 rounded border border-rim bg-transparent text-muted flex items-center justify-center cursor-pointer transition-all hover:border-accent/40 hover:text-accent flex-shrink-0 mt-0.5" onclick="confirmThen(this,()=>socket?.emit('activity:remove','${a._id}'))">${IC.x}</button>` : ''}
+      </div>
       <span class="text-[11px] text-muted">— ${esc(a.addedBy)}</span>
     </div>`).join('');
 }

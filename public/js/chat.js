@@ -53,6 +53,13 @@ function renderOnline(list) {
 function showInviteModal() {
   document.getElementById('modal-code').textContent = currentCode;
   document.getElementById('modal-link').textContent = `${location.origin}?code=${currentCode}`;
+  // reset double-confirm state when reopening
+  ['inv-modal-leave', 'inv-modal-delete'].forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) { btn.dataset.c = ''; btn.innerHTML = btn.id === 'inv-modal-leave' ? 'Leave group' : 'Delete group'; btn.classList.remove('!text-accent'); }
+  });
+  const del = document.getElementById('inv-modal-delete');
+  if (del) del.classList.toggle('hidden', !isAdmin());
   document.getElementById('inv-modal').classList.remove('hidden');
 }
 

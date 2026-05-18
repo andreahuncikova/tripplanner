@@ -33,9 +33,40 @@ router.get('/:code', async (req, res) => {
 // GET /api/groups  — my groups
 router.get('/', authMiddleware, async (req, res) => {
   const groups = await Group.find({ 'members.userId': req.user._id })
-    .select('name inviteCode phase members.length createdAt tripDuration')
+    .select('name inviteCode phase members createdAt tripDuration adminUsername')
     .sort('-createdAt').limit(20);
   res.json({ groups });
+});
+
+// POST /api/groups/:code/leave  — leave a group
+router.post('/:code/leave', authMiddleware, async (req, res) => {
+  try {
+    const g = await Group.findOne({ inviteCode: req.params.code.toUpperCase() });
+    if (!g) return res.json({ error: 'Group not found' });
+    const uid    = String(req.user._id);
+    const isAdm  = String(g.adminUserId) === uid;
+    g.members = g.members.filter(m => String(m.userId) !== uid);
+    if (isAdm && g.members.length > 0) {
+      g.adminUserId   = g.members[0].userId;
+      g.adminUsername = g.members[0].username;
+    } else if (isAdm) {
+      await g.deleteOne();
+      return res.json({ ok: true });
+    }
+    await g.save();
+    res.json({ ok: true });
+  } catch { res.json({ error: 'Server error' }); }
+});
+
+// DELETE /api/groups/:code  — delete a group (admin only)
+router.delete('/:code', authMiddleware, async (req, res) => {
+  try {
+    const g = await Group.findOne({ inviteCode: req.params.code.toUpperCase() });
+    if (!g) return res.json({ error: 'Group not found' });
+    if (String(g.adminUserId) !== String(req.user._id)) return res.json({ error: 'Not admin' });
+    await g.deleteOne();
+    res.json({ ok: true });
+  } catch { res.json({ error: 'Server error' }); }
 });
 
 module.exports = router;
