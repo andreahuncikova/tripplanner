@@ -173,7 +173,7 @@ function renderCalAdminBar() {
 }
 
 function computeDates() {
-  pendingClearOverride = true;
+  pendingOverrideTarget = 'date_vote';
   socket?.emit('avail:compute');
 }
 
@@ -249,7 +249,7 @@ function renderRanges() {
 }
 
 function rangeVote(i) {
-  if (localPhaseOverride) pendingClearOverride = true;
+  if (localPhaseOverride) pendingOverrideTarget = null;
   socket?.emit('range:vote', i);
 }
 
@@ -262,7 +262,7 @@ function rangeConfirm(origIdx) {
   if (dur && rangeDays(r) > dur) {
     showSubWindowPicker(origIdx, r, dur);
   } else {
-    if (localPhaseOverride) pendingClearOverride = true;
+    if (localPhaseOverride) pendingOverrideTarget = null;
     socket?.emit('range:confirm', { idx: origIdx, start: r.start });
   }
 }
@@ -298,7 +298,7 @@ function showSubWindowPicker(origIdx, r, dur) {
 }
 
 function confirmSubWindow(origIdx, start) {
-  if (localPhaseOverride) pendingClearOverride = true;
+  if (localPhaseOverride) pendingOverrideTarget = null;
   socket?.emit('range:confirm', { idx: origIdx, start });
   closeSubWindowPicker();
 }

@@ -83,9 +83,10 @@ function applyState(data) {
   const myA = (data.availability || []).find(a => a.username === me.username);
   myUnavail = new Set(myA?.unavailableDates || []);
 
-  if (pendingClearOverride) {
-    pendingClearOverride = false;
-    localPhaseOverride = null;
+  if (pendingOverrideTarget !== false) {
+    localPhaseOverride = pendingOverrideTarget;
+    pendingOverrideTarget = false;
+    if (localPhaseOverride === data.phase) localPhaseOverride = null;
   }
 
   // if the group phase moved past our local override, clear it
@@ -194,8 +195,8 @@ function renderDests() {
   const g  = currentGroup;
   const el = document.getElementById('dest-list');
 
-  // once approved, just show the winner
-  if (g.phase !== 'destinations') {
+  // once approved and not viewing in override, just show the winner
+  if (g.phase !== 'destinations' && localPhaseOverride !== 'destinations') {
     el.innerHTML = `
       <div class="bg-panel border border-green/45 bg-green/[.05] rounded-xl p-[13px_15px] flex items-center gap-[11px] shadow-soft">
         <div class="text-muted flex-shrink-0">${IC.globe}</div>
@@ -249,4 +250,7 @@ function destSuggest() {
 }
 
 function destVote(id)    { socket?.emit('dest:vote', id); }
-function destApprove(id) { socket?.emit('dest:approve', id); }
+function destApprove(id) {
+  if (localPhaseOverride) pendingOverrideTarget = null;
+  socket?.emit('dest:approve', id);
+}

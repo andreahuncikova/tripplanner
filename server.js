@@ -133,7 +133,7 @@ io.on('connection', socket => {
     const s = sessions[socket.id];
     if (!s || !name?.trim()) return;
     const g = await Group.findOne({ inviteCode: s.code });
-    if (!g || g.phase !== 'destinations') return;
+    if (!g) return;
     const dest = { name: name.trim(), by: username, votes: [] };
     g.destinations.push(dest);
     await g.save();
@@ -145,7 +145,7 @@ io.on('connection', socket => {
     const s = sessions[socket.id];
     if (!s) return;
     const g = await Group.findOne({ inviteCode: s.code });
-    if (!g || g.phase !== 'destinations') return;
+    if (!g) return;
     const d = g.destinations.id(destId);
     if (!d) return;
     const i = d.votes.indexOf(username);
@@ -159,12 +159,12 @@ io.on('connection', socket => {
     const s = sessions[socket.id];
     if (!s) return;
     const g = await Group.findOne({ inviteCode: s.code });
-    if (!g || String(g.adminUserId) !== String(userId) || g.phase !== 'destinations') return;
+    if (!g || String(g.adminUserId) !== String(userId)) return;
     const d = g.destinations.id(destId);
     if (!d) return;
     g.approvedDest = d.name;
-    g.phase = 'calendar';
-    g.messages.push({ username:'System', text:`Destination approved: ${d.name}. Mark the days you can't go.`, time:ts(), system:true });
+    if (g.phase === 'destinations') g.phase = 'calendar';
+    g.messages.push({ username:'System', text:`Destination approved: ${d.name}.`, time:ts(), system:true });
     await g.save();
     await broadcastState(s.code);
     io.to(s.code).emit('msg', g.messages.at(-1));
@@ -225,7 +225,7 @@ io.on('connection', socket => {
     const s = sessions[socket.id];
     if (!s) return;
     const g = await Group.findOne({ inviteCode: s.code });
-    if (!g || String(g.adminUserId) !== String(userId) || g.phase !== 'date_vote') return;
+    if (!g || String(g.adminUserId) !== String(userId) || !['date_vote', 'done'].includes(g.phase)) return;
     const d = Math.max(1, parseInt(dur) || 1);
     g.tripDuration = d;
     await g.save();
@@ -404,7 +404,7 @@ io.on('connection', socket => {
     const s = sessions[socket.id];
     if (!s) return;
     const g = await Group.findOne({ inviteCode: s.code });
-    if (!g || g.phase !== 'destinations') return;
+    if (!g) return;
     const dest = g.destinations.find(d => String(d._id) === String(destId));
     if (!dest) return;
     if (dest.by !== s.username && String(g.adminUserId) !== String(s.userId)) return;
