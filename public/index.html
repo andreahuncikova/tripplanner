@@ -6,7 +6,7 @@
 <title>TripPlanner</title>
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <meta name="description" content="Plan trips together, in real time">
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
   tailwind.config = {
@@ -25,13 +25,14 @@
           rim:    'rgba(24,24,27,.09)',
         },
         fontFamily: {
-          sans:  ['Plus Jakarta Sans', 'sans-serif'],
-          serif: ['Instrument Serif', 'serif'],
+          sans: ['Plus Jakarta Sans', 'sans-serif'],
         },
         boxShadow: {
           soft:  '0 1px 3px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.07)',
           modal: '0 8px 40px rgba(0,0,0,.22)',
         },
+        keyframes: { up: { from: { opacity:'0', transform:'translateY(6px)' }, to: { opacity:'1', transform:'none' } } },
+        animation: { up: 'up .25s ease both' },
       },
     },
   }
@@ -55,14 +56,12 @@
         <button class="ptab flex-1 py-2 border-none rounded-lg text-[13px] font-medium cursor-pointer bg-transparent text-muted transition-all" data-tab="register">Register</button>
       </div>
 
-      <!-- LOGIN -->
       <form class="auth-form active" id="f-login">
         <input type="email"    name="email"    placeholder="Email" required autocomplete="email"/>
         <input type="password" name="password" placeholder="Password" required autocomplete="current-password"/>
         <button type="submit" class="w-full py-[13px] border-none rounded-[10px] bg-accent text-white font-semibold text-sm cursor-pointer transition-all hover:bg-[#C44A22] hover:-translate-y-px active:scale-[.98]">Log in</button>
       </form>
 
-      <!-- REGISTER -->
       <form class="auth-form" id="f-register">
         <input type="text"     name="username" placeholder="Your name (visible to others)" required maxlength="30"/>
         <input type="email"    name="email"    placeholder="Email" required autocomplete="email"/>
@@ -89,12 +88,11 @@
       </div>
     </div>
 
-    <!-- Empty state -->
     <div class="hidden text-center py-12 px-4" id="dash-empty">
       <div class="mb-4 flex justify-center">
-        <i data-lucide="plane-takeoff" class="w-14 h-14 text-accent"></i>
+        <i data-lucide="plane-takeoff" class="w-14 h-14 text-muted"></i>
       </div>
-      <h2 class="font-serif text-[22px] font-semibold mb-2">Welcome, <span id="de-username"></span>!</h2>
+      <h2 class="text-[22px] font-semibold mb-2">Welcome, <span id="de-username"></span>!</h2>
       <p class="text-sm text-muted mb-8">Start planning a trip with your friends.</p>
       <div class="flex gap-4 justify-center flex-wrap">
         <button class="flex-1 min-w-[170px] max-w-[210px] py-6 px-[18px] bg-panel border border-rim rounded-[16px] cursor-pointer transition-all text-center flex flex-col items-center gap-2 hover:border-accent hover:shadow-soft hover:-translate-y-0.5" onclick="showCreateModal()">
@@ -114,10 +112,9 @@
       </div>
     </div>
 
-    <!-- Groups list -->
     <div class="hidden" id="dash-groups-wrap">
       <div class="flex items-center justify-between mb-3.5">
-        <h2 class="font-serif text-lg font-semibold">My groups</h2>
+        <h2 class="text-lg font-semibold">My groups</h2>
         <div class="flex gap-2 items-center">
           <button class="inline-flex items-center gap-1.5 border border-rim rounded-lg py-1.5 px-3.5 bg-transparent text-muted text-xs cursor-pointer transition-all hover:border-ink hover:text-ink" onclick="showJoinModal()">
             <i data-lucide="link-2" class="w-3.5 h-3.5"></i>Join
@@ -127,7 +124,7 @@
           </button>
         </div>
       </div>
-      <div id="my-groups-list" class="groups-list"></div>
+      <div id="my-groups-list" class="flex flex-col gap-2"></div>
     </div>
 
     <div class="text-xs text-accent min-h-[14px] mt-2" id="dash-error"></div>
@@ -135,15 +132,15 @@
 </div>
 
 <!-- ═══════════════════════════════════════════
-  INVITE SCREEN  (shown after creating group)
+  INVITE SCREEN
 ═══════════════════════════════════════════ -->
 <div id="s-invite" class="screen">
   <div class="auth-bg min-h-screen flex items-center justify-center">
     <div class="bg-panel rounded-2xl py-10 px-9 w-[400px] max-w-[96vw] shadow-modal text-center">
       <div class="mb-3 flex justify-center">
-        <i data-lucide="sparkles" class="w-10 h-10 text-accent"></i>
+        <i data-lucide="sparkles" class="w-10 h-10 text-muted"></i>
       </div>
-      <h2 id="inv-group-name" class="font-serif text-[26px] font-semibold mb-1.5 tracking-[-0.02em]"></h2>
+      <h2 id="inv-group-name" class="text-[26px] font-semibold mb-1.5 tracking-[-0.02em]"></h2>
       <p class="text-[13px] text-muted mb-[22px] leading-relaxed">Share this code with your friends</p>
       <div class="font-bold text-[30px] tracking-[.22em] bg-bg border-2 border-dashed border-rim rounded-xl p-4 mt-[14px] mb-2 text-ink" id="inv-code"></div>
       <div class="text-[11px] text-muted break-all mb-3" id="inv-link"></div>
@@ -168,8 +165,8 @@
       <button class="w-7 h-7 rounded-lg border border-white/[.12] bg-transparent text-white/50 cursor-pointer flex items-center justify-center transition-all flex-shrink-0 hover:bg-white/[.08] hover:text-white hover:border-white/25" onclick="goToDash()" title="Back">
         <i data-lucide="arrow-left" class="w-4 h-4"></i>
       </button>
-      <i data-lucide="plane" class="w-4 h-4 text-white/60 flex-shrink-0"></i>
-      <span class="font-serif text-[14px] font-semibold text-white/90 truncate max-w-[200px] tracking-[-0.01em]" id="tb-group-name">—</span>
+      <i data-lucide="plane" class="w-4 h-4 text-muted flex-shrink-0"></i>
+      <span class="text-[14px] font-semibold text-white/90 truncate max-w-[200px] tracking-[-0.01em]" id="tb-group-name">—</span>
       <span class="text-[10px] py-[3px] px-[9px] rounded-full whitespace-nowrap bg-accent/20 text-[#FF9F85] font-semibold flex-shrink-0 tracking-[.02em]" id="tb-phase">—</span>
     </div>
     <div class="flex items-center gap-2.5 flex-shrink-0">
@@ -185,24 +182,24 @@
   <div class="hint-bar py-2 px-5 text-[12px] text-blue bg-blue/[.06] border-b border-blue/[.12] flex-shrink-0 leading-relaxed font-medium" id="hint-bar"></div>
 
   <!-- RETURN TO CURRENT BANNER -->
-  <div class="return-banner hidden" id="return-banner"></div>
+  <div class="items-center justify-between px-5 py-2 text-xs flex-shrink-0 bg-accent/[.07] border-b border-accent/[.18] text-accent font-medium gap-3" style="display:none" id="return-banner"></div>
 
   <!-- MAIN -->
-  <div class="app-body">
+  <div class="flex-1 overflow-hidden flex min-h-0">
 
     <!-- ── LEFT ── -->
-    <div class="left-col" id="left-col">
+    <div class="flex-1 min-w-0 flex flex-col overflow-hidden border-r border-rim" id="left-col">
 
       <!-- ── PHASE: destinations ── -->
-      <div class="panel" id="p-destinations">
-        <div class="panel-title">
+      <div class="flex flex-col flex-1 min-h-0 overflow-hidden" id="p-destinations">
+        <div class="px-[18px] py-[13px] bg-panel border-b border-rim text-sm font-semibold flex-shrink-0 flex items-center justify-between gap-2 tracking-tight">
           <span class="flex items-center gap-2">
             <i data-lucide="map" class="w-4 h-4 text-muted"></i>Destinations
-            <span class="ptitle-hint">Suggest &amp; vote</span>
+            <span class="text-[11px] font-sans font-normal text-muted tracking-normal">Suggest &amp; vote</span>
           </span>
         </div>
         <div id="dest-back-bar"></div>
-        <div class="dest-scroll" id="dest-list"></div>
+        <div class="flex-1 overflow-y-auto p-3.5 flex flex-col gap-2 [scrollbar-width:thin]" id="dest-list"></div>
         <div class="flex gap-1.5 py-[11px] px-3 border-t border-rim bg-panel flex-shrink-0" id="dest-add-bar">
           <input id="dest-inp" type="text" placeholder="Suggest a destination (e.g. Paris, Vienna…)" maxlength="40"
             onkeydown="if(event.key==='Enter')destSuggest()" class="flex-1"/>
@@ -211,104 +208,92 @@
       </div>
 
       <!-- ── PHASE: calendar ── -->
-      <div class="panel hidden" id="p-calendar">
+      <div class="flex flex-col flex-1 min-h-0 overflow-hidden hidden" id="p-calendar">
         <div id="trip-window-bar"></div>
-        <div class="done-schedule-layout">
-          <!-- Left: big calendar -->
-          <div class="done-cal-col">
-            <div class="done-cal-header">
-              <button onclick="calShift(-1)"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
+        <div class="flex h-full overflow-hidden">
+          <div class="done-cal-col flex-1 flex flex-col overflow-hidden border-r border-rim">
+            <div class="flex items-center gap-2.5 px-4 py-4 border-b border-rim flex-shrink-0 bg-panel font-semibold text-[17px] tracking-tight justify-center">
+              <button class="w-7 h-7 rounded-lg border border-rim bg-transparent text-muted flex items-center justify-center transition-all hover:bg-deep hover:text-white hover:border-deep" onclick="calShift(-1)"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
               <span id="cal-label"></span>
-              <button onclick="calShift(1)"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
+              <button class="w-7 h-7 rounded-lg border border-rim bg-transparent text-muted flex items-center justify-center transition-all hover:bg-deep hover:text-white hover:border-deep" onclick="calShift(1)"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
             </div>
-            <div class="cal-grid" id="cal-grid"></div>
+            <div class="cal-grid p-3.5" id="cal-grid"></div>
           </div>
-          <!-- Right: day detail panel -->
-          <div class="done-day-panel avail-day-panel">
-            <div class="done-day-title" id="avail-day-title">Select a day</div>
-            <div id="avail-day-members" class="avail-day-members"></div>
-            <div class="avail-day-hint">Click a day to mark it as unavailable. Click again to undo.</div>
-            <div class="admin-bar" id="cal-admin-bar"></div>
+          <div class="w-[270px] flex-shrink-0 flex flex-col p-[22px_20px] gap-3.5 overflow-y-auto bg-panel">
+            <div class="text-[19px] font-bold text-ink leading-tight tracking-tight" id="avail-day-title">Select a day</div>
+            <div id="avail-day-members" class="flex flex-col gap-[7px] mt-0.5"></div>
+            <div class="text-xs text-muted mt-auto pt-3 leading-relaxed">Click a day to mark it as unavailable. Click again to undo.</div>
+            <div id="cal-admin-bar"></div>
           </div>
         </div>
       </div>
 
       <!-- ── PHASE: date_vote ── -->
-      <div class="panel hidden" id="p-datevote">
-        <div class="panel-title">
-          <span class="flex items-center gap-2">
-            <i data-lucide="calendar-check" class="w-4 h-4 text-muted"></i>Vote for a trip date
-            <div id="datevote-back-bar" class="inline-flex"></div>
-          </span>
+      <div class="flex flex-col flex-1 min-h-0 overflow-hidden hidden" id="p-datevote">
+        <div class="px-[18px] py-[13px] bg-panel border-b border-rim text-sm font-semibold flex-shrink-0 flex items-center gap-2 tracking-tight">
+          <i data-lucide="calendar-check" class="w-4 h-4 text-muted"></i>Vote for a trip date
+          <div id="datevote-back-bar" class="inline-flex ml-auto"></div>
         </div>
         <div id="dur-setter-bar"></div>
-        <div class="ranges-scroll" id="ranges-list"></div>
-        <!-- Sub-window picker -->
-        <div class="hidden subwindow-overlay" id="subwindow-picker">
-          <div class="subwindow-card">
-            <div class="subwindow-header">
+        <div class="flex-1 overflow-y-auto p-3.5 flex flex-col gap-2" id="ranges-list"></div>
+        <div class="hidden fixed inset-0 bg-[rgba(24,24,27,.45)] backdrop-blur-sm flex items-center justify-center z-50 p-5" id="subwindow-picker">
+          <div class="bg-panel rounded-2xl p-6 w-full max-w-[420px] shadow-modal flex flex-col gap-[18px]">
+            <div class="flex items-start justify-between gap-3">
               <div>
-                <div class="subwindow-title" id="subwindow-title">Choose your exact dates</div>
-                <div class="subwindow-sub" id="subwindow-sub"></div>
+                <div class="text-[17px] font-bold text-ink tracking-tight leading-tight" id="subwindow-title">Choose your exact dates</div>
+                <div class="text-xs text-muted mt-1" id="subwindow-sub"></div>
               </div>
-              <button class="subwindow-close" onclick="closeSubWindowPicker()">
+              <button class="w-7 h-7 rounded-lg border border-rim bg-transparent text-muted flex items-center justify-center transition-all hover:bg-bg hover:text-ink flex-shrink-0" onclick="closeSubWindowPicker()">
                 <i data-lucide="x" class="w-3.5 h-3.5"></i>
               </button>
             </div>
-            <div class="subwindow-options" id="subwindow-options"></div>
+            <div class="flex flex-col gap-[7px] max-h-[320px] overflow-y-auto" id="subwindow-options"></div>
           </div>
         </div>
       </div>
 
       <!-- ── PHASE: done ── -->
-      <div class="panel hidden" id="p-done">
-        <div class="done-dest-banner" id="done-dest-banner"></div>
+      <div class="flex flex-col flex-1 min-h-0 overflow-hidden hidden" id="p-done">
+        <div id="done-dest-banner"></div>
 
-        <!-- Tab navigation -->
-        <div class="done-tabs">
-          <button class="dtab active" id="dtab-schedule" onclick="switchDoneTab('schedule')">
+        <div class="flex border-b border-rim bg-panel flex-shrink-0">
+          <button class="dtab py-[11px] px-5 bg-transparent border-none border-b-2 text-accent font-semibold text-sm cursor-pointer transition-all -mb-px tracking-[.01em]" style="border-bottom-color:#E8572A" id="dtab-schedule" onclick="switchDoneTab('schedule')">
             <i data-lucide="calendar" class="w-3.5 h-3.5 inline-block align-middle -mt-0.5 mr-1.5"></i>Itinerary
           </button>
-          <button class="dtab" id="dtab-budget" onclick="switchDoneTab('budget')">
+          <button class="dtab py-[11px] px-5 bg-transparent border-none border-b-2 border-transparent text-muted font-medium text-sm cursor-pointer transition-all -mb-px tracking-[.01em]" id="dtab-budget" onclick="switchDoneTab('budget')">
             <i data-lucide="wallet" class="w-3.5 h-3.5 inline-block align-middle -mt-0.5 mr-1.5"></i>Budget
           </button>
         </div>
 
-        <!-- SCHEDULE TAB -->
-        <div id="done-tab-schedule" class="done-tab-pane">
-          <div class="done-schedule-layout">
-            <!-- Left: big calendar -->
-            <div class="done-cal-col">
-              <div class="done-cal-header">
-                <button onclick="calShift(-1)"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
+        <div id="done-tab-schedule" class="done-tab-pane flex-1 overflow-hidden min-h-0 flex flex-col">
+          <div class="flex h-full overflow-hidden">
+            <div class="done-cal-col flex-1 flex flex-col overflow-hidden border-r border-rim">
+              <div class="flex items-center gap-2.5 px-[18px] py-4 border-b border-rim flex-shrink-0 bg-panel font-semibold text-[17px] tracking-tight justify-center">
+                <button class="w-7 h-7 rounded-lg border border-rim bg-transparent text-muted flex items-center justify-center transition-all hover:bg-deep hover:text-white hover:border-deep" onclick="calShift(-1)"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
                 <span id="done-cal-label"></span>
-                <button onclick="calShift(1)"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
+                <button class="w-7 h-7 rounded-lg border border-rim bg-transparent text-muted flex items-center justify-center transition-all hover:bg-deep hover:text-white hover:border-deep" onclick="calShift(1)"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
               </div>
               <div class="done-cal-grid" id="done-cal-grid"></div>
             </div>
-            <!-- Right: day detail panel -->
-            <div class="done-day-panel" id="done-day-panel">
-              <div class="done-day-title" id="done-day-title">Select a day</div>
-              <div class="done-day-acts" id="done-day-acts"><p class="done-day-empty">—</p></div>
-              <button class="done-day-add-btn hidden" id="done-day-add-btn" onclick="showAddActForDay()">
+            <div class="w-[270px] flex-shrink-0 flex flex-col p-[22px_20px] gap-3.5 overflow-y-auto bg-panel" id="done-day-panel">
+              <div class="text-[19px] font-bold text-ink leading-tight tracking-tight" id="done-day-title">Select a day</div>
+              <div class="flex-1 flex flex-col gap-2" id="done-day-acts"><p class="text-muted text-sm py-1">—</p></div>
+              <button class="hidden w-full py-3 px-3.5 border-[1.5px] border-dashed border-ink/20 rounded-[10px] bg-transparent text-muted text-[13px] cursor-pointer transition-all text-center flex-shrink-0 hover:border-accent hover:text-accent hover:bg-accent/[.04]" id="done-day-add-btn" onclick="showAddActForDay()">
                 <i data-lucide="plus" class="w-4 h-4 inline-block align-middle -mt-0.5 mr-1"></i>Add activity
               </button>
             </div>
           </div>
         </div>
 
-        <!-- BUDGET TAB -->
-        <div id="done-tab-budget" class="done-tab-pane done-tab-hidden">
-          <div class="budget-wrap">
-            <div class="budget-header">
-              <span class="flex items-center gap-2">
-                <i data-lucide="wallet" class="w-4 h-4"></i>Expenses
-              </span>
-              <button class="btn-add-expense" onclick="showAddExpenseModal()">
-                <i data-lucide="plus" class="w-3.5 h-3.5 inline-block align-middle -mt-0.5 mr-1"></i>Add expense
+        <div id="done-tab-budget" class="done-tab-pane done-tab-hidden flex-1 overflow-hidden min-h-0 flex flex-col">
+          <div class="p-4 flex flex-col gap-[13px]">
+            <div class="flex items-center justify-between text-[15px] font-semibold tracking-tight">
+              <span class="flex items-center gap-2"><i data-lucide="wallet" class="w-4 h-4 text-muted"></i>Expenses</span>
+              <button class="inline-flex items-center gap-1.5 px-[15px] py-[7px] rounded-lg border-none bg-accent text-white text-xs font-semibold cursor-pointer transition-all hover:bg-[#C44A22] hover:-translate-y-px" onclick="showAddExpenseModal()">
+                <i data-lucide="plus" class="w-3.5 h-3.5"></i>Add expense
               </button>
             </div>
-            <div id="expense-list" class="expense-list"></div>
+            <div id="expense-list" class="flex flex-col gap-[7px]"></div>
             <div id="budget-summary"></div>
           </div>
         </div>
@@ -317,17 +302,18 @@
     </div><!-- /left-col -->
 
     <!-- ── RIGHT: CHAT ── -->
-    <div class="right-col">
-      <div class="chat-head">
+    <div class="w-[300px] flex flex-col min-h-0 bg-panel">
+      <div class="px-4 py-[14px] border-b border-rim text-sm font-semibold flex items-center gap-2 flex-shrink-0 tracking-tight">
         <i data-lucide="message-circle" class="w-4 h-4 text-muted"></i>Group chat
       </div>
-      <div class="chat-msgs" id="chat-msgs"></div>
-      <div class="typing-row" id="typing-row"></div>
-      <div class="chat-bar">
+      <div class="flex-1 overflow-y-auto min-h-0 py-1" id="chat-msgs"></div>
+      <div class="min-h-[22px] px-3 pb-1 text-[11px] text-muted flex items-center gap-[5px] flex-shrink-0" id="typing-row"></div>
+      <div class="p-2 px-2.5 border-t border-rim flex gap-2 items-center flex-shrink-0">
         <input id="chat-inp" type="text" placeholder="Type a message…" maxlength="300"
           onkeydown="if(event.key==='Enter')chatSend()"
-          oninput="chatTyping()"/>
-        <button onclick="chatSend()">
+          oninput="chatTyping()"
+          style="border-radius:20px;padding:9px 15px;font-size:13px;flex:1"/>
+        <button class="w-9 h-9 rounded-full bg-deep border-none text-white flex items-center justify-center cursor-pointer transition-all flex-shrink-0 hover:bg-accent hover:scale-[1.06]" onclick="chatSend()">
           <i data-lucide="arrow-up" class="w-4 h-4"></i>
         </button>
       </div>
@@ -339,7 +325,7 @@
 <!-- INVITE MODAL -->
 <div class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[100]" id="inv-modal" onclick="if(event.target===this)closeModal()">
   <div class="bg-panel rounded-2xl p-7 w-[360px] max-w-[95vw] text-center shadow-modal flex flex-col gap-3">
-    <h3 class="font-serif text-[18px] font-semibold tracking-[-0.02em]">Invite to group</h3>
+    <h3 class="text-[18px] font-semibold tracking-[-0.02em]">Invite to group</h3>
     <div class="font-bold text-[28px] tracking-[.2em] bg-bg border border-dashed border-rim rounded-xl p-4 text-ink" id="modal-code"></div>
     <div class="text-[11px] text-muted break-all leading-relaxed" id="modal-link"></div>
     <button class="inline-flex items-center justify-center gap-2 w-full py-[11px] border-[1.5px] border-rim rounded-xl bg-transparent text-ink font-medium text-[13px] cursor-pointer transition-all hover:bg-bg hover:border-ink/20" onclick="copyInvite()">
@@ -353,7 +339,7 @@
 <div class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[100]" id="create-modal" onclick="if(event.target===this)closeCreateModal()">
   <div class="bg-panel rounded-2xl p-7 w-[380px] max-w-[95vw] shadow-modal flex flex-col gap-3">
     <div>
-      <h3 class="font-serif text-[18px] font-semibold tracking-[-0.02em]">New trip group</h3>
+      <h3 class="text-[18px] font-semibold tracking-[-0.02em]">New trip group</h3>
       <p class="text-[13px] text-muted mt-1 leading-relaxed">Create a group and invite friends via link</p>
     </div>
     <input id="new-group-name" type="text" placeholder="Group name (e.g. Summer trip 🌊)" maxlength="40"
@@ -368,7 +354,7 @@
 <div class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[100]" id="join-modal" onclick="if(event.target===this)closeJoinModal()">
   <div class="bg-panel rounded-2xl p-7 w-[380px] max-w-[95vw] shadow-modal flex flex-col gap-3">
     <div>
-      <h3 class="font-serif text-[18px] font-semibold tracking-[-0.02em]">Join a group</h3>
+      <h3 class="text-[18px] font-semibold tracking-[-0.02em]">Join a group</h3>
       <p class="text-[13px] text-muted mt-1 leading-relaxed">Enter the invite code shared by the group admin</p>
     </div>
     <input id="join-code-input" type="text" placeholder="A1B2C3D4" maxlength="8"
@@ -384,18 +370,14 @@
 <div class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[100]" id="act-modal" onclick="if(event.target===this)closeActModal()">
   <div class="bg-panel rounded-2xl p-7 w-[380px] max-w-[95vw] shadow-modal flex flex-col gap-3">
     <div>
-      <h3 class="font-serif text-[18px] font-semibold tracking-[-0.02em]">Add Activity</h3>
+      <h3 class="text-[18px] font-semibold tracking-[-0.02em]">Add Activity</h3>
       <p class="text-[13px] text-muted mt-1 leading-relaxed">Assign an activity to a day and optional time</p>
     </div>
     <input id="act-modal-inp" type="text" placeholder="Describe the activity…" maxlength="120"
       onkeydown="if(event.key==='Enter')actModalSubmit()"/>
     <div class="flex gap-2">
-      <select id="act-modal-date" class="flex-1">
-        <option value="">No specific date</option>
-      </select>
-      <select id="act-modal-time" class="flex-1">
-        <option value="">Any time</option>
-      </select>
+      <select id="act-modal-date" class="flex-1"><option value="">No specific date</option></select>
+      <select id="act-modal-time" class="flex-1"><option value="">Any time</option></select>
     </div>
     <div class="text-xs text-accent min-h-[14px]" id="act-modal-error"></div>
     <button class="w-full py-[13px] border-none rounded-xl bg-accent text-white font-semibold text-sm cursor-pointer transition-all hover:bg-[#C44A22] tracking-[.01em]" onclick="actModalSubmit()">Add activity →</button>
@@ -407,7 +389,7 @@
 <div class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[100]" id="expense-modal" onclick="if(event.target===this)closeExpenseModal()">
   <div class="bg-panel rounded-2xl p-7 w-[380px] max-w-[95vw] shadow-modal flex flex-col gap-3">
     <div>
-      <h3 class="font-serif text-[18px] font-semibold tracking-[-0.02em]">Add Expense</h3>
+      <h3 class="text-[18px] font-semibold tracking-[-0.02em]">Add Expense</h3>
       <p class="text-[13px] text-muted mt-1 leading-relaxed">Track who paid and split the cost</p>
     </div>
     <input id="exp-desc" type="text" placeholder="What was it for? (e.g. Dinner, Hotel…)" maxlength="80"/>
@@ -426,7 +408,15 @@
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
+<script src="/js/icons.js"></script>
 <script src="/js/app.js"></script>
+<script src="/js/auth.js"></script>
+<script src="/js/dashboard.js"></script>
+<script src="/js/socket.js"></script>
+<script src="/js/phases.js"></script>
+<script src="/js/calendar.js"></script>
+<script src="/js/budget.js"></script>
+<script src="/js/chat.js"></script>
 <script>lucide.createIcons();</script>
 </body>
 </html>
