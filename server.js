@@ -409,6 +409,39 @@ io.on('connection', socket => {
     io.to(s.code).emit('group:deleted');
   });
 
+  // EDIT DESTINATION ─────────────────────────────────
+  socket.on('dest:edit', async ({ id, name }) => {
+    const s = sessions[socket.id];
+    if (!s || !name?.trim()) return;
+    const g = await Group.findOne({ inviteCode: s.code });
+    if (!g) return;
+    const dest = g.destinations.find(d => String(d._id) === String(id));
+    if (!dest) return;
+    if (dest.by !== username && String(g.adminUserId) !== String(userId)) return;
+    dest.name = name.trim();
+    await g.save();
+    io.to(s.code).emit('state', serialize(g, getOnline(s.code)));
+  });
+
+  // EDIT EXPENSE ─────────────────────────────────────
+  socket.on('expense:edit', async ({ id, description, amount, currency, paidBy, splitAmong }) => {
+    const s = sessions[socket.id];
+    if (!s) return;
+    const g = await Group.findOne({ inviteCode: s.code });
+    if (!g) return;
+    const exp = g.expenses.id(id);
+    if (!exp) return;
+    if (exp.addedBy !== username && g.adminUsername !== username) return;
+    exp.description = description;
+    exp.amount      = amount;
+    exp.currency    = currency;
+    exp.paidBy      = paidBy;
+    exp.paidByColor = (g.members.find(m => m.username === paidBy))?.color || exp.paidByColor;
+    exp.splitAmong  = splitAmong;
+    await g.save();
+    await broadcastState(s.code);
+  });
+
   // REMOVE DESTINATION ────────────────────────────────
   socket.on('dest:remove', async destId => {
     const s = sessions[socket.id];

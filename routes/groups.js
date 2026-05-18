@@ -58,6 +58,20 @@ router.post('/:code/leave', authMiddleware, async (req, res) => {
   } catch { res.json({ error: 'Server error' }); }
 });
 
+// PATCH /api/groups/:code  — rename a group (admin only)
+router.patch('/:code', authMiddleware, async (req, res) => {
+  try {
+    const { name } = req.body;
+    if (!name?.trim()) return res.status(400).json({ error: 'Name is required' });
+    const g = await Group.findOne({ inviteCode: req.params.code.toUpperCase() });
+    if (!g) return res.json({ error: 'Group not found' });
+    if (String(g.adminUserId) !== String(req.user._id)) return res.json({ error: 'Not admin' });
+    g.name = name.trim();
+    await g.save();
+    res.json({ ok: true });
+  } catch { res.json({ error: 'Server error' }); }
+});
+
 // DELETE /api/groups/:code  — delete a group (admin only)
 router.delete('/:code', authMiddleware, async (req, res) => {
   try {

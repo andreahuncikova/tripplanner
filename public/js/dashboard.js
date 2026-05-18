@@ -23,22 +23,22 @@ async function loadMyGroups() {
 
   document.getElementById('my-groups-list').innerHTML = r.groups.map(g => {
     const admin = g.adminUsername === me?.username;
-    const actionIcon = admin
-      ? `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>`
-      : `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>`;
+    const deleteIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>`;
+    const leaveIcon  = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>`;
     return `
-    <div class="bg-panel border border-rim rounded-xl px-4 py-3.5 cursor-pointer transition-all flex items-center justify-between shadow-soft animate-up hover:border-blue/25 hover:shadow-md hover:-translate-y-px" onclick="enterGroupFromDash('${g.inviteCode}')">
-      <div class="min-w-0 flex-1">
-        <div class="font-semibold text-sm tracking-tight">${esc(g.name)}</div>
+    <div class="bg-panel border border-rim rounded-xl px-4 py-3.5 transition-all flex items-center justify-between shadow-soft animate-up hover:border-blue/25 hover:shadow-md hover:-translate-y-px" id="dash-card-${g.inviteCode}">
+      <div class="min-w-0 flex-1 cursor-pointer" onclick="enterGroupFromDash('${g.inviteCode}')">
+        <div class="font-semibold text-sm tracking-tight" id="dash-name-${g.inviteCode}">${esc(g.name)}</div>
         <div class="text-[11px] text-muted mt-0.5">${g.tripDuration ? g.tripDuration + ' days · ' : ''}${g.inviteCode}</div>
       </div>
       <div class="flex items-center gap-2 flex-shrink-0 ml-3">
         <span class="text-[10px] px-[9px] py-[3px] rounded-full bg-blue/10 text-blue font-semibold tracking-[.01em] whitespace-nowrap">${PHASE_LABELS[g.phase] || g.phase}</span>
+        ${admin ? `<button class="w-7 h-7 rounded-lg border border-rim bg-transparent text-muted flex items-center justify-center transition-all hover:border-blue/40 hover:text-blue flex-shrink-0" title="Rename group" onclick="dashRenameStart('${g.inviteCode}','${esc(g.name)}')">${IC.pencil}</button>` : ''}
         <button
           class="w-7 h-7 rounded-lg border border-rim bg-transparent text-muted flex items-center justify-center transition-all hover:border-accent/40 hover:text-accent flex-shrink-0"
           title="${admin ? 'Delete group' : 'Leave group'}"
-          onclick="event.stopPropagation();dashGroupAction(this,'${g.inviteCode}',${admin})"
-        >${actionIcon}</button>
+          onclick="dashGroupAction(this,'${g.inviteCode}',${admin})"
+        >${admin ? deleteIcon : leaveIcon}</button>
       </div>
     </div>`;
   }).join('');
@@ -118,6 +118,32 @@ function enterGroupFromDash(code) {
 }
 
 function enterGroup() { initSocket(currentCode); }
+
+function dashRenameStart(code, currentName) {
+  const nameEl = document.getElementById(`dash-name-${code}`);
+  if (!nameEl) return;
+  nameEl.innerHTML = `
+    <div class="flex items-center gap-1.5" onclick="event.stopPropagation()">
+      <input id="dash-rename-inp-${code}" class="flex-1 text-sm font-semibold border border-blue/40 rounded-lg px-2 py-0.5 bg-bg min-w-0"
+        value="${esc(currentName)}"
+        onkeydown="if(event.key==='Enter')dashRenameSave('${code}');if(event.key==='Escape')loadMyGroups()"/>
+      <button class="text-[11px] px-2 py-0.5 rounded-lg bg-blue text-white border-none cursor-pointer font-semibold hover:bg-[#3a7a8e] whitespace-nowrap" onclick="dashRenameSave('${code}')">Save</button>
+      <button class="text-[11px] px-2 py-0.5 rounded-lg border border-rim text-muted cursor-pointer hover:text-ink whitespace-nowrap" onclick="loadMyGroups()">Cancel</button>
+    </div>`;
+  setTimeout(() => {
+    const inp = document.getElementById(`dash-rename-inp-${code}`);
+    if (inp) { inp.focus(); inp.select(); }
+  }, 30);
+}
+
+async function dashRenameSave(code) {
+  const inp = document.getElementById(`dash-rename-inp-${code}`);
+  const name = inp?.value.trim();
+  if (!name) return;
+  const r = await api(`/api/groups/${code}`, 'PATCH', { name });
+  if (r.error) { alert(r.error); return; }
+  loadMyGroups();
+}
 
 // dashboard group card: leave (member) or delete (admin)
 async function dashGroupAction(btn, code, isAdmin) {

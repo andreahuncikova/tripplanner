@@ -339,8 +339,8 @@ function renderDoneCal() {
   });
 
   buildGrid('done-cal-grid', (key, el) => {
-    if (key === g.finalDate)                                      el.classList.add('!bg-green/15', '!border-green', 'shadow-[0_0_0_2px_rgba(92,158,80,.18)]', 'font-bold');
-    else if (g.finalDate && inRange(key, g.finalDate, g.tripDuration)) el.classList.add('!bg-green/[.06]', '!border-green/[.18]');
+    if 
+     (g.finalDate && inRange(key, g.finalDate, g.tripDuration)) el.classList.add('!bg-green/[.15]', '!border-green/[.18]');
     if (key === selectedDoneDay)                                  el.classList.add('!bg-deep', '!text-white', '!border-deep', 'font-bold', 'shadow-[0_2px_10px_rgba(24,24,27,.25)]');
 
     const count = actsByDate[key]?.length || 0;

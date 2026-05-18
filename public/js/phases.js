@@ -221,13 +221,24 @@ function renderDests() {
   const sorted = [...g.destinations].sort((a, b) => b.votes.length - a.votes.length);
 
   el.innerHTML = sorted.map((d, i) => {
-    const voted = d.votes.includes(me.username);
-    const pct   = Math.round((d.votes.length / maxV) * 100);
-    const win   = i === 0 && d.votes.length > 0;
+    const voted    = d.votes.includes(me.username);
+    const pct      = Math.round((d.votes.length / maxV) * 100);
+    const win      = i === 0 && d.votes.length > 0;
+    const canEdit  = isAdmin() || d.by === me.username;
+    const editing  = destEditingId === String(d._id);
+
+    const nameHtml = editing
+      ? `<div class="flex items-center gap-1.5 mt-0.5">
+           <input id="dest-edit-inp" class="flex-1 text-[14px] font-semibold border border-blue/40 rounded-lg px-2 py-0.5 bg-bg" value="${esc(d.name)}" onkeydown="if(event.key==='Enter')destEditSave('${d._id}');if(event.key==='Escape')destEditCancel()"/>
+           <button class="text-[11px] px-2 py-0.5 rounded-lg bg-blue text-white border-none cursor-pointer font-semibold hover:bg-[#3a7a8e]" onclick="destEditSave('${d._id}')">Save</button>
+           <button class="text-[11px] px-2 py-0.5 rounded-lg border border-rim text-muted cursor-pointer hover:text-ink" onclick="destEditCancel()">Cancel</button>
+         </div>`
+      : `<div class="text-[15px] font-semibold tracking-tight">${esc(d.name)}${win ? `<span class="inline-flex items-center gap-1 text-[10px] bg-green/[.12] text-green border border-green/25 rounded-full px-2 py-0.5 ml-1.5 font-semibold">${IC.trophy} Winner</span>` : ''}</div>`;
+
     return `<div class="bg-panel border ${win ? 'border-green/40 bg-green/[.04]' : 'border-rim'} rounded-xl p-[13px_15px] flex items-center gap-[11px] transition-all shadow-soft animate-up hover:shadow-md hover:-translate-y-px hover:border-blue/20">
       <div class="text-muted flex-shrink-0">${IC.map}</div>
       <div class="flex-1 min-w-0">
-        <div class="text-[15px] font-semibold tracking-tight">${esc(d.name)}${win ? `<span class="inline-flex items-center gap-1 text-[10px] bg-green/[.12] text-green border border-green/25 rounded-full px-2 py-0.5 ml-1.5 font-semibold">${IC.trophy} Winner</span>` : ''}</div>
+        ${nameHtml}
         <div class="text-xs text-muted mt-0.5">Suggested by ${esc(d.by)}</div>
       </div>
       <div class="flex items-center gap-[7px] flex-shrink-0">
@@ -235,7 +246,8 @@ function renderDests() {
         <span class="text-sm font-semibold min-w-4 text-center">${d.votes.length}</span>
         <button class="w-8 h-8 rounded-full border-[1.5px] ${voted ? 'bg-accent border-accent text-white' : 'border-rim bg-transparent text-muted hover:bg-accent/[.08] hover:border-accent/35 hover:text-accent hover:scale-[1.08]'} flex items-center justify-center transition-all cursor-pointer" onclick="destVote('${d._id}')">${voted ? IC.heart : IC.heartO}</button>
         ${isAdmin() ? `<button class="text-[11px] px-2.5 py-[5px] rounded-full border border-green/35 bg-green/[.08] text-green cursor-pointer font-semibold transition-all whitespace-nowrap hover:bg-green/[.18]" onclick="destApprove('${d._id}')">${IC.check} Approve</button>` : ''}
-        ${(isAdmin() || d.by === me.username) ? `<button class="w-6 h-6 rounded-full border border-rim bg-transparent text-muted flex items-center justify-center cursor-pointer transition-all hover:border-accent/40 hover:text-accent hover:bg-accent/[.06]" onclick="confirmThen(this,()=>socket?.emit('dest:remove','${d._id}'))">${IC.x}</button>` : ''}
+        ${canEdit && !editing ? `<button class="w-6 h-6 rounded-full border border-rim bg-transparent text-muted flex items-center justify-center cursor-pointer transition-all hover:border-blue/40 hover:text-blue hover:bg-blue/[.06]" onclick="destEditStart('${d._id}')">${IC.pencil}</button>` : ''}
+        ${canEdit ? `<button class="w-6 h-6 rounded-full border border-rim bg-transparent text-muted flex items-center justify-center cursor-pointer transition-all hover:border-accent/40 hover:text-accent hover:bg-accent/[.06]" onclick="confirmThen(this,()=>socket?.emit('dest:remove','${d._id}'))">${IC.x}</button>` : ''}
       </div>
     </div>`;
   }).join('');
@@ -253,4 +265,22 @@ function destVote(id)    { socket?.emit('dest:vote', id); }
 function destApprove(id) {
   if (localPhaseOverride) pendingOverrideTarget = null;
   socket?.emit('dest:approve', id);
+}
+
+function destEditStart(id) {
+  destEditingId = String(id);
+  renderDests();
+  setTimeout(() => document.getElementById('dest-edit-inp')?.focus(), 30);
+}
+
+function destEditCancel() {
+  destEditingId = null;
+  renderDests();
+}
+
+function destEditSave(id) {
+  const val = document.getElementById('dest-edit-inp')?.value.trim();
+  if (!val) return;
+  destEditingId = null;
+  socket?.emit('dest:edit', { id, name: val });
 }

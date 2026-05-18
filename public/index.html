@@ -399,7 +399,7 @@
 <div class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[100]" id="expense-modal" onclick="if(event.target===this)closeExpenseModal()">
   <div class="bg-panel rounded-2xl w-[390px] max-w-[95vw] shadow-modal overflow-hidden">
     <div class="px-6 pt-6 pb-4 border-b border-rim">
-      <h3 class="text-[17px] font-semibold tracking-[-0.02em]">Add Expense</h3>
+      <h3 class="text-[17px] font-semibold tracking-[-0.02em]" id="expense-modal-title">Add Expense</h3>
     </div>
     <div class="px-6 py-5 flex flex-col gap-4">
       <input id="exp-desc" type="text" placeholder="What was it for? (e.g. Dinner, Hotel…)" maxlength="80"/>
@@ -416,7 +416,7 @@
         <div id="exp-split-checks" class="flex flex-wrap gap-1.5"></div>
       </div>
       <div class="text-xs text-accent min-h-[14px]" id="expense-modal-error"></div>
-      <button class="w-full py-[12px] border-none rounded-xl bg-accent text-white font-semibold text-sm cursor-pointer transition-all hover:bg-[#C44A22] tracking-[.01em]" onclick="expenseSubmit()">Add expense</button>
+      <button id="expense-modal-submit" class="w-full py-[12px] border-none rounded-xl bg-accent text-white font-semibold text-sm cursor-pointer transition-all hover:bg-[#C44A22] tracking-[.01em]" onclick="expenseSubmit()">Add expense</button>
       <button class="text-muted text-xs cursor-pointer transition-all hover:text-ink font-medium py-1 text-center -mt-2" onclick="closeExpenseModal()">Cancel</button>
     </div>
   </div>

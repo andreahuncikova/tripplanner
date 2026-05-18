@@ -58,27 +58,37 @@ function toDisplay(amount, fromCode) {
   return (amount / from) * to;
 }
 
-function showAddExpenseModal() {
+function openExpenseModal(expense = null) {
   const members  = currentGroup?.members || [];
-  const lastCurr = localStorage.getItem('tp_last_currency') || displayCurrency;
-  document.getElementById('exp-currency').innerHTML   = currencyOpts(lastCurr, true);
-  document.getElementById('exp-paidby').innerHTML = members.map(m =>
-    `<option value="${esc(m.username)}"${m.username === me.username ? ' selected' : ''}>${esc(m.username)}</option>`
+  editingExpenseId = expense?._id || null;
+
+  document.getElementById('expense-modal-title').textContent  = expense ? 'Edit Expense' : 'Add Expense';
+  document.getElementById('expense-modal-submit').textContent = expense ? 'Save changes' : 'Add expense';
+
+  const lastCurr = expense?.currency || localStorage.getItem('tp_last_currency') || displayCurrency;
+  document.getElementById('exp-currency').innerHTML = currencyOpts(lastCurr, true);
+  document.getElementById('exp-paidby').innerHTML   = members.map(m =>
+    `<option value="${esc(m.username)}"${m.username === (expense?.paidBy ?? me.username) ? ' selected' : ''}>${esc(m.username)}</option>`
   ).join('');
-  document.getElementById('exp-split-checks').innerHTML = members.map(m => `
-    <label class="exp-check flex items-center gap-[6px] px-3 py-[5px] border-[1.5px] border-rim rounded-full cursor-pointer text-sm transition-all select-none">
-      <input type="checkbox" value="${esc(m.username)}" checked/>
+  document.getElementById('exp-split-checks').innerHTML = members.map(m => {
+    const checked = expense ? expense.splitAmong?.includes(m.username) : true;
+    return `<label class="exp-check flex items-center gap-[6px] px-3 py-[5px] border-[1.5px] border-rim rounded-full cursor-pointer text-sm transition-all select-none">
+      <input type="checkbox" value="${esc(m.username)}"${checked ? ' checked' : ''}/>
       <span class="w-[10px] h-[10px] rounded-full flex-shrink-0" style="background:${m.color}"></span>
       ${esc(m.username)}
-    </label>`).join('');
-  document.getElementById('exp-desc').value = '';
-  document.getElementById('exp-amount').value = '';
+    </label>`;
+  }).join('');
+  document.getElementById('exp-desc').value   = expense?.description || '';
+  document.getElementById('exp-amount').value = expense?.amount || '';
   document.getElementById('expense-modal-error').textContent = '';
   document.getElementById('expense-modal').classList.remove('hidden');
   setTimeout(() => document.getElementById('exp-desc').focus(), 50);
 }
 
+function showAddExpenseModal() { openExpenseModal(null); }
+
 function closeExpenseModal() {
+  editingExpenseId = null;
   document.getElementById('expense-modal').classList.add('hidden');
 }
 
@@ -92,7 +102,11 @@ function expenseSubmit() {
   if (!amount || amount <= 0) { document.getElementById('expense-modal-error').textContent = 'Enter a valid amount'; return; }
   if (!splitAmong.length)     { document.getElementById('expense-modal-error').textContent = 'Select at least one person'; return; }
   localStorage.setItem('tp_last_currency', currency);
-  socket?.emit('expense:add', { description, amount, currency, paidBy, splitAmong });
+  if (editingExpenseId) {
+    socket?.emit('expense:edit', { id: editingExpenseId, description, amount, currency, paidBy, splitAmong });
+  } else {
+    socket?.emit('expense:add', { description, amount, currency, paidBy, splitAmong });
+  }
   closeExpenseModal();
 }
 
@@ -112,7 +126,7 @@ async function renderExpenses() {
   el.innerHTML = expenses.map(e => {
     const curr   = e.currency || 'EUR';
     const pp     = e.amount / (e.splitAmong?.length || 1);
-    const canDel = e.addedBy === me?.username || currentGroup?.adminUsername === me?.username;
+    const canEdit = e.addedBy === me?.username || currentGroup?.adminUsername === me?.username;
     return `<div class="bg-panel border border-rim rounded-[11px] px-[14px] py-[11px] flex items-center justify-between animate-up shadow-soft">
       <div class="flex items-center gap-[11px] flex-1 min-w-0">
         <div class="w-[33px] h-[33px] rounded-full flex-shrink-0 flex items-center justify-center text-[11px] font-bold text-white" style="background:${e.paidByColor || '#888'}">${initials(e.paidBy)}</div>
@@ -123,7 +137,8 @@ async function renderExpenses() {
       </div>
       <div class="flex items-center gap-2 flex-shrink-0">
         <div class="font-semibold text-[15px] tracking-tight">${fmtAmt(e.amount, curr)}</div>
-        ${canDel ? `<button class="w-[22px] h-[22px] rounded-full border border-rim bg-transparent text-muted flex items-center justify-center cursor-pointer transition-all hover:border-accent/40 hover:text-accent" onclick="confirmThen(this,()=>expenseRemove('${e._id}'))">${IC.x}</button>` : ''}
+        ${canEdit ? `<button class="w-[22px] h-[22px] rounded-full border border-rim bg-transparent text-muted flex items-center justify-center cursor-pointer transition-all hover:border-blue/40 hover:text-blue" onclick="openExpenseModal(currentGroup.expenses.find(x=>String(x._id)==='${e._id}'))">${IC.pencil}</button>` : ''}
+        ${canEdit ? `<button class="w-[22px] h-[22px] rounded-full border border-rim bg-transparent text-muted flex items-center justify-center cursor-pointer transition-all hover:border-accent/40 hover:text-accent" onclick="confirmThen(this,()=>expenseRemove('${e._id}'))">${IC.x}</button>` : ''}
       </div>
     </div>`;
   }).join('');

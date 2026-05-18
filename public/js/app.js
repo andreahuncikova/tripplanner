@@ -11,6 +11,8 @@ let selectedCalDay  = null;
 let localPhaseOverride  = null;
 let pendingTripWindow   = null; // set during group creation, emitted after socket joins
 let pendingOverrideTarget = false; // false = no action | null = clear | string = set to phase
+let destEditingId = null;
+let editingExpenseId = null;
 
 const PHASE_ORDER = ['destinations', 'calendar', 'date_vote', 'done'];
 
