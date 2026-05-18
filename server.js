@@ -21,6 +21,28 @@ app.use(cookieParser());
 app.use('/api/auth',   require('./routes/auth'));
 app.use('/api/groups', require('./routes/groups'));
 
+// ── FX rates proxy (caches 1 h, avoids browser CORS) ─────
+const FX_FALLBACK = {
+  EUR:1, USD:1.08, GBP:0.86, CHF:0.95, CZK:25.1,
+  PLN:4.28, HUF:390, NOK:11.7, SEK:11.4, DKK:7.46,
+  JPY:162, CAD:1.47, AUD:1.65,
+};
+let _fxCache = null, _fxCacheTime = 0;
+app.get('/api/fx-rates', async (req, res) => {
+  if (_fxCache && Date.now() - _fxCacheTime < 3_600_000) return res.json(_fxCache);
+  try {
+    const r    = await fetch('https://api.frankfurter.app/latest?from=EUR');
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const data = await r.json();
+    _fxCache     = { EUR: 1, ...data.rates };
+    _fxCacheTime = Date.now();
+    res.json(_fxCache);
+  } catch (e) {
+    console.warn('[fx-rates] fetch failed:', e.message, '— using fallback');
+    res.json(_fxCache || FX_FALLBACK);
+  }
+});
+
 // ── DB ────────────────────────────────────────────────
 mongoose.connect(MONGO_URI)
   .then(() => console.log('✅ MongoDB Atlas connected'))
@@ -58,7 +80,6 @@ function serialize(g, onlineList) {
     members:           g.members,
     destinations:      g.destinations,
     approvedDest:      g.approvedDest,
-    approvedDestEmoji: g.approvedDestEmoji,
     availability:      g.availability,
     dateRanges:        g.dateRanges,
     finalDate:         g.finalDate,
@@ -113,7 +134,7 @@ io.on('connection', socket => {
     if (!s || !name?.trim()) return;
     const g = await Group.findOne({ inviteCode: s.code });
     if (!g || g.phase !== 'destinations') return;
-    const dest = { name: name.trim(), emoji: DEST_EMOJIS[name.trim()] || '🌍', by: username, votes: [] };
+    const dest = { name: name.trim(), by: username, votes: [] };
     g.destinations.push(dest);
     await g.save();
     io.to(s.code).emit('dest:new', g.destinations.at(-1));
@@ -141,10 +162,9 @@ io.on('connection', socket => {
     if (!g || String(g.adminUserId) !== String(userId) || g.phase !== 'destinations') return;
     const d = g.destinations.id(destId);
     if (!d) return;
-    g.approvedDest      = d.name;
-    g.approvedDestEmoji = d.emoji;
+    g.approvedDest = d.name;
     g.phase = 'calendar';
-    g.messages.push({ username:'System', text:`✅ Destination approved: ${d.emoji} ${d.name}. Now mark the days you CAN'T go.`, time:ts(), system:true });
+    g.messages.push({ username:'System', text:`Destination approved: ${d.name}. Mark the days you can't go.`, time:ts(), system:true });
     await g.save();
     await broadcastState(s.code);
     io.to(s.code).emit('msg', g.messages.at(-1));
@@ -177,7 +197,7 @@ io.on('connection', socket => {
     const ranges = computeDateRanges(g.members.map(m=>m.username), unavailMap, g.tripWindowStart, g.tripWindowEnd);
     g.dateRanges = ranges;
     g.phase = 'date_vote';
-    g.messages.push({ username:'System', text:`📅 Available dates calculated. Time to vote!`, time:ts(), system:true });
+    g.messages.push({ username:'System', text:`Available dates calculated. Time to vote!`, time:ts(), system:true });
     await g.save();
     await broadcastState(s.code);
     io.to(s.code).emit('msg', g.messages.at(-1));
@@ -240,7 +260,7 @@ io.on('connection', socket => {
     g.finalDate      = chosenStart;
     g.finalDateLabel = label;
     g.phase = 'done';
-    g.messages.push({ username:'System', text:`🎉 Trip confirmed: ${label}! Start adding activities.`, time:ts(), system:true });
+    g.messages.push({ username:'System', text:`Trip confirmed: ${label}! Start adding activities.`, time:ts(), system:true });
     await g.save();
     await broadcastState(s.code);
     io.to(s.code).emit('msg', g.messages.at(-1));
@@ -259,15 +279,15 @@ io.on('connection', socket => {
       g.finalDateLabel = null;
       g.activities     = [];
       g.dateRanges.forEach(r => { r.selected = false; });
-      msg = '↩️ Trip unconfirmed — back to date voting.';
+      msg = 'Trip unconfirmed — back to date voting.';
     } else if (g.phase === 'date_vote') {
       g.phase      = 'calendar';
       g.dateRanges = [];
-      msg = '↩️ Back to availability calendar.';
+      msg = 'Back to availability calendar.';
     } else if (g.phase === 'calendar') {
       g.phase        = 'destinations';
       g.availability = [];
-      msg = '↩️ Back to destination selection.';
+      msg = 'Back to destination selection.';
     } else {
       return;
     }
@@ -290,7 +310,7 @@ io.on('connection', socket => {
   });
 
   // ADD EXPENSE ───────────────────────────────────────
-  socket.on('expense:add', async ({ description, amount, paidBy, splitAmong }) => {
+  socket.on('expense:add', async ({ description, amount, currency, paidBy, splitAmong }) => {
     const s = sessions[socket.id];
     if (!s || !description?.trim() || !amount || amount <= 0) return;
     const g = await Group.findOne({ inviteCode: s.code });
@@ -299,6 +319,7 @@ io.on('connection', socket => {
     g.expenses.push({
       description: description.trim(),
       amount:      parseFloat(amount),
+      currency:    currency || 'EUR',
       paidBy,
       paidByColor: member?.color || '#888',
       splitAmong:  splitAmong || g.members.map(m => m.username),
@@ -326,7 +347,7 @@ io.on('connection', socket => {
   socket.on('activity:share', async text => {
     const s = sessions[socket.id];
     if (!s) return;
-    const msg = { userId, username, color, text:`💡 Activity: ${text}`, time:ts() };
+    const msg = { userId, username, color, text, time:ts() };
     await Group.updateOne({ inviteCode: s.code }, { $push: { messages: msg } });
     io.to(s.code).emit('msg', msg);
   });

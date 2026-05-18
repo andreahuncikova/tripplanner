@@ -397,23 +397,28 @@
 
 <!-- ADD EXPENSE MODAL -->
 <div class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[100]" id="expense-modal" onclick="if(event.target===this)closeExpenseModal()">
-  <div class="bg-panel rounded-2xl p-7 w-[380px] max-w-[95vw] shadow-modal flex flex-col gap-3">
-    <div>
-      <h3 class="text-[18px] font-semibold tracking-[-0.02em]">Add Expense</h3>
-      <p class="text-[13px] text-muted mt-1 leading-relaxed">Track who paid and split the cost</p>
+  <div class="bg-panel rounded-2xl w-[390px] max-w-[95vw] shadow-modal overflow-hidden">
+    <div class="px-6 pt-6 pb-4 border-b border-rim">
+      <h3 class="text-[17px] font-semibold tracking-[-0.02em]">Add Expense</h3>
     </div>
-    <input id="exp-desc" type="text" placeholder="What was it for? (e.g. Dinner, Hotel…)" maxlength="80"/>
-    <div class="flex gap-2">
-      <input id="exp-amount" type="number" placeholder="Amount (€)" min="0.01" step="0.01" class="flex-1"/>
-      <select id="exp-paidby" class="flex-1"></select>
+    <div class="px-6 py-5 flex flex-col gap-4">
+      <input id="exp-desc" type="text" placeholder="What was it for? (e.g. Dinner, Hotel…)" maxlength="80"/>
+      <div class="flex gap-2 items-center">
+        <input id="exp-amount" type="number" placeholder="Amount" min="0.01" step="0.01" class="flex-1"/>
+        <select id="exp-currency" class="flex-shrink-0" style="width:110px"></select>
+      </div>
+      <div class="flex flex-col gap-1.5">
+        <span class="text-[11px] font-semibold text-muted uppercase tracking-[.04em]">Paid by</span>
+        <select id="exp-paidby" style="width:100%"></select>
+      </div>
+      <div class="flex flex-col gap-2">
+        <span class="text-[11px] font-semibold text-muted uppercase tracking-[.04em]">Split among</span>
+        <div id="exp-split-checks" class="flex flex-wrap gap-1.5"></div>
+      </div>
+      <div class="text-xs text-accent min-h-[14px]" id="expense-modal-error"></div>
+      <button class="w-full py-[12px] border-none rounded-xl bg-accent text-white font-semibold text-sm cursor-pointer transition-all hover:bg-[#C44A22] tracking-[.01em]" onclick="expenseSubmit()">Add expense</button>
+      <button class="text-muted text-xs cursor-pointer transition-all hover:text-ink font-medium py-1 text-center -mt-2" onclick="closeExpenseModal()">Cancel</button>
     </div>
-    <div class="text-left">
-      <div class="text-xs text-muted mb-2 font-medium">Split among:</div>
-      <div id="exp-split-checks" class="flex flex-wrap gap-1.5"></div>
-    </div>
-    <div class="text-xs text-accent min-h-[14px]" id="expense-modal-error"></div>
-    <button class="w-full py-[13px] border-none rounded-xl bg-accent text-white font-semibold text-sm cursor-pointer transition-all hover:bg-[#C44A22] tracking-[.01em]" onclick="expenseSubmit()">Add expense →</button>
-    <button class="text-muted text-xs cursor-pointer transition-all hover:text-ink font-medium py-1 text-center" onclick="closeExpenseModal()">Cancel</button>
   </div>
 </div>
 

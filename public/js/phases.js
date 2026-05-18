@@ -101,7 +101,7 @@ function renderPhase() {
 
   // group name + approved destination (if set)
   const dest = g.approvedDest
-    ? ` — ${g.approvedDestEmoji ? g.approvedDestEmoji + ' ' : ''}${g.approvedDest}`
+    ? ` — ${g.approvedDest}`
     : '';
   document.getElementById('tb-group-name').textContent = (g.name || '') + dest;
 
@@ -193,7 +193,7 @@ function renderDests() {
   if (g.phase !== 'destinations') {
     el.innerHTML = `
       <div class="bg-panel border border-green/45 bg-green/[.05] rounded-xl p-[13px_15px] flex items-center gap-[11px] shadow-soft">
-        <div class="text-muted flex-shrink-0">${g.approvedDestEmoji || IC.globe}</div>
+        <div class="text-muted flex-shrink-0">${IC.globe}</div>
         <div class="flex-1 min-w-0">
           <div class="text-[15px] font-semibold tracking-tight">${esc(g.approvedDest || '')} <span class="text-[10px] bg-green/[.12] text-green border border-green/25 rounded-full px-2 py-0.5 ml-1 font-semibold">${IC.check} Approved</span></div>
           <div class="text-xs text-muted mt-0.5">Group destination</div>
@@ -219,7 +219,7 @@ function renderDests() {
     const pct   = Math.round((d.votes.length / maxV) * 100);
     const win   = i === 0 && d.votes.length > 0;
     return `<div class="bg-panel border ${win ? 'border-green/40 bg-green/[.04]' : 'border-rim'} rounded-xl p-[13px_15px] flex items-center gap-[11px] transition-all shadow-soft animate-up hover:shadow-md hover:-translate-y-px hover:border-blue/20">
-      <div class="text-2xl flex-shrink-0">${d.emoji}</div>
+      <div class="text-muted flex-shrink-0">${IC.map}</div>
       <div class="flex-1 min-w-0">
         <div class="text-[15px] font-semibold tracking-tight">${esc(d.name)}${win ? `<span class="inline-flex items-center gap-1 text-[10px] bg-green/[.12] text-green border border-green/25 rounded-full px-2 py-0.5 ml-1.5 font-semibold">${IC.trophy} Winner</span>` : ''}</div>
         <div class="text-xs text-muted mt-0.5">Suggested by ${esc(d.by)}</div>

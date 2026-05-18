@@ -44,6 +44,7 @@ const ActivitySchema = new Schema({
 const ExpenseSchema = new Schema({
   description:  String,
   amount:       Number,
+  currency:     { type: String, default: 'EUR' },
   paidBy:       String,
   paidByColor:  String,
   splitAmong:   [String],

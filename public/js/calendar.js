@@ -303,7 +303,7 @@ function renderDoneBanner() {
   const g = currentGroup;
   document.getElementById('done-dest-banner').innerHTML =
     `<div class="px-[18px] py-3 bg-green/[.08] border-b border-green/[.18] flex-shrink-0 text-base font-semibold tracking-tight flex items-center gap-3">
-      ${g.approvedDestEmoji ? `<span>${g.approvedDestEmoji}</span>` : IC.globe}
+      ${IC.globe}
       <span>${esc(g.approvedDest || '')}</span>
       <span class="text-rim">·</span>
       ${IC.calendar}
