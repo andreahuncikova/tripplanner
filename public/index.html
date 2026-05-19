@@ -159,35 +159,38 @@
 ═══════════════════════════════════════════ -->
 <div id="s-app" class="screen">
 
-  <!-- NAV BAR — grid 1fr/auto/1fr keeps steps always truly centred -->
-  <div class="grid items-center px-4 py-2.5 bg-panel border-b border-rim flex-shrink-0" style="grid-template-columns:1fr auto 1fr">
-    <div class="flex items-center gap-2 min-w-0">
-      <button class="flex items-center gap-1.5 text-[12px] font-medium text-muted hover:text-ink transition-colors cursor-pointer border-none bg-transparent flex-shrink-0" onclick="goToDash()">
+  <!-- FULL-WIDTH NAVBAR — stepper always at 50vw -->
+  <div class="relative h-[52px] bg-panel border-b border-rim flex-shrink-0 flex items-center px-4">
+    <div class="flex items-center gap-2 min-w-0 z-10">
+      <button class="inline-flex items-center gap-1.5 border border-rim rounded-lg py-[5px] px-3 bg-transparent text-muted text-[11px] cursor-pointer transition-all hover:border-ink hover:text-ink font-medium flex-shrink-0" onclick="goToDash()">
         <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>Groups
       </button>
       <span class="text-[13px] font-semibold text-ink truncate tracking-[-0.01em]" id="tb-group-name">—</span>
     </div>
-    <div id="phase-stepper" class="flex items-center justify-center"></div>
-    <div class="flex items-center gap-2.5 justify-end">
+    <!-- Stepper absolutely centred across the full page -->
+    <div id="phase-stepper" class="absolute inset-0 flex items-center justify-center pointer-events-none"></div>
+    <div class="ml-auto flex items-center gap-2.5 z-10">
       <div class="flex" id="online-row"></div>
       <div class="ws-pill" id="ws-pill"><span class="live-dot"></span> Live</div>
-      <button class="inline-flex items-center gap-1.5 border border-rim rounded-lg py-[5px] px-3 bg-transparent text-muted text-[11px] cursor-pointer transition-all hover:border-ink hover:text-ink font-medium" onclick="showInviteModal()">
-        <i data-lucide="link-2" class="w-3.5 h-3.5"></i>Invite
+      <button class="inline-flex items-center gap-1 border border-rim rounded-lg py-[5px] px-2.5 bg-transparent text-muted text-[11px] cursor-pointer transition-all hover:border-ink hover:text-ink font-medium" onclick="showInviteModal()">
+        <i data-lucide="link-2" class="w-3 h-3"></i>Invite
+      </button>
+      <button class="text-muted hover:text-ink transition-colors cursor-pointer" onclick="toggleChat()" title="Toggle chat">
+        <i data-lucide="message-circle" class="w-4 h-4"></i>
+        <span id="chat-unread-badge" class="hidden absolute -mt-6 ml-2 min-w-[16px] h-4 rounded-full bg-accent text-white text-[10px] font-bold flex items-center justify-center px-1 leading-none"></span>
       </button>
     </div>
   </div>
 
-  <!-- BACK REQUEST BAR — admin approval notifications -->
-  <div id="back-request-bar" class="hidden flex-shrink-0 overflow-y-auto" style="max-height:160px"></div>
+  <!-- MAIN: phases left + chat right — chat starts right below navbar -->
+  <div class="flex-1 flex min-h-0 overflow-hidden">
+    <div class="flex-1 min-w-0 flex flex-col overflow-hidden bg-bg min-h-0" id="left-col">
 
-  <!-- HINT BAR — context-sensitive help for each phase -->
-  <div id="hint-bar" class="flex-shrink-0"></div>
+      <!-- BACK REQUEST BAR -->
+      <div id="back-request-bar" class="hidden flex-shrink-0 overflow-y-auto" style="max-height:160px"></div>
 
-  <!-- MAIN -->
-  <div class="flex-1 overflow-hidden flex min-h-0">
-
-    <!-- ── LEFT ── -->
-    <div class="flex-1 min-w-0 flex flex-col overflow-hidden bg-bg" id="left-col">
+      <!-- HINT BAR ghost — gives height; actual text is a fixed overlay at 50vw -->
+      <div id="hint-bar" class="flex-shrink-0 bg-panel border-b border-rim"></div>
 
       <!-- ── PHASE: destinations ── -->
       <div class="flex flex-col flex-1 min-h-0 overflow-hidden" id="p-destinations">
@@ -212,7 +215,7 @@
             </div>
             <div class="cal-grid p-3.5" id="cal-grid"></div>
           </div>
-          <div class="w-[270px] flex-shrink-0 flex flex-col p-[22px_20px] gap-3.5 overflow-y-auto bg-panel rounded-l-2xl shadow-soft">
+          <div class="w-[270px] flex-shrink-0 flex flex-col p-[22px_20px] gap-3.5 overflow-y-auto bg-panel">
             <div class="text-[19px] font-bold text-ink leading-tight tracking-tight" id="avail-day-title">Select a day</div>
             <div id="avail-day-members" class="flex flex-col gap-[7px] mt-0.5"></div>
             <div class="text-xs text-muted mt-auto pt-3 leading-relaxed">Click a day to mark it as unavailable. Click again to undo.</div>
@@ -268,7 +271,7 @@
               </div>
               <div class="done-cal-grid" id="done-cal-grid"></div>
             </div>
-            <div class="w-[270px] flex-shrink-0 flex flex-col p-[22px_20px] gap-3.5 overflow-y-auto bg-panel rounded-l-2xl shadow-soft" id="done-day-panel">
+            <div class="w-[270px] flex-shrink-0 flex flex-col p-[22px_20px] gap-3.5 overflow-y-auto bg-panel" id="done-day-panel">
               <div class="text-[19px] font-bold text-ink leading-tight tracking-tight" id="done-day-title">Select a day</div>
               <div class="flex-1 flex flex-col gap-2" id="done-day-acts"><p class="text-muted text-sm py-1">—</p></div>
               <button class="hidden w-full py-3 px-3.5 border-[1.5px] border-dashed border-ink/20 rounded-[10px] bg-transparent text-muted text-[13px] cursor-pointer transition-all text-center flex-shrink-0 hover:border-accent hover:text-accent hover:bg-accent/[.04]" id="done-day-add-btn" onclick="showAddActForDay()">
@@ -303,34 +306,23 @@
 
     </div><!-- /left-col -->
 
-    <!-- ── RIGHT: CHAT ── -->
-    <div id="chat-panel" class="flex-shrink-0 flex flex-col min-h-0 bg-panel overflow-hidden" style="width:340px;transition:width .22s ease">
-      <!-- header / toggle -->
-      <div class="px-4 py-[14px] bg-bg text-sm font-semibold flex items-center gap-2 flex-shrink-0 tracking-tight cursor-pointer select-none hover:bg-rim/20 transition-colors" onclick="toggleChat()">
-        <div class="relative flex-shrink-0">
-          <i data-lucide="message-circle" class="w-4 h-4 text-muted"></i>
-          <span id="chat-unread-badge" class="hidden absolute -top-2 -left-2.5 min-w-[16px] h-4 rounded-full bg-accent text-white text-[10px] font-bold flex items-center justify-center px-1 leading-none"></span>
-        </div>
-        <span class="flex-1 chat-label">Group chat</span>
-        <i data-lucide="chevron-right" class="w-4 h-4 text-muted transition-transform duration-200 chat-label" id="chat-chevron"></i>
-      </div>
-      <!-- body -->
-      <div id="chat-body" class="flex-1 flex flex-col min-h-0 overflow-hidden">
-        <div class="flex-1 overflow-y-auto min-h-0 py-1" id="chat-msgs"></div>
-        <div class="min-h-[22px] px-3 pb-1 text-[11px] text-muted flex items-center gap-[5px] flex-shrink-0" id="typing-row"></div>
-        <div class="p-2 px-2.5 bg-bg flex gap-2 items-center flex-shrink-0">
-          <input id="chat-inp" type="text" placeholder="Type a message…" maxlength="300"
-            onkeydown="if(event.key==='Enter')chatSend()"
-            oninput="chatTyping()"
-            style="border-radius:20px;padding:9px 15px;font-size:13px;flex:1"/>
-          <button class="w-9 h-9 rounded-full bg-deep border-none text-white flex items-center justify-center cursor-pointer transition-all flex-shrink-0 hover:bg-accent hover:scale-[1.06]" onclick="chatSend()">
-            <i data-lucide="arrow-up" class="w-4 h-4"></i>
-          </button>
-        </div>
+    <!-- CHAT PANEL: body only, no header -->
+    <div id="chat-panel" class="w-[360px] flex-shrink-0 flex flex-col bg-panel border-l border-rim overflow-hidden">
+      <div class="flex-1 overflow-y-auto min-h-0 py-1" id="chat-msgs"></div>
+      <div class="min-h-[22px] px-3 pb-1 text-[11px] text-muted flex items-center gap-[5px] flex-shrink-0" id="typing-row"></div>
+      <div class="p-2 px-2.5 flex gap-2 items-center flex-shrink-0 border-t border-rim">
+        <input id="chat-inp" type="text" placeholder="Type a message…" maxlength="300"
+          onkeydown="if(event.key==='Enter')chatSend()"
+          oninput="chatTyping()"
+          style="border-radius:20px;padding:9px 15px;font-size:13px;flex:1"/>
+        <button class="w-9 h-9 rounded-full bg-deep border-none text-white flex items-center justify-center cursor-pointer transition-all flex-shrink-0 hover:bg-accent hover:scale-[1.06]" onclick="chatSend()">
+          <i data-lucide="arrow-up" class="w-4 h-4"></i>
+        </button>
       </div>
     </div>
 
-  </div><!-- /app-body -->
+  </div><!-- /main -->
+
 </div><!-- /s-app -->
 
 <!-- BACK REQUEST MODAL -->

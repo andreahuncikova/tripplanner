@@ -3,23 +3,16 @@ let unreadCount = 0;
 
 function toggleChat() {
   chatOpen = !chatOpen;
-  const panel   = document.getElementById('chat-panel');
-  const body    = document.getElementById('chat-body');
-  const chevron = document.getElementById('chat-chevron');
-  const labels  = panel.querySelectorAll('.chat-label');
-
-  panel.style.width = chatOpen ? '340px' : '48px';
-  body.classList.toggle('hidden', !chatOpen);
-  labels.forEach(el => el.classList.toggle('hidden', !chatOpen));
-  chevron.style.transform = chatOpen ? 'rotate(180deg)' : '';
+  const panel = document.getElementById('chat-panel');
+  panel.classList.toggle('hidden', !chatOpen);
 
   if (chatOpen) {
     unreadCount = 0;
     updateChatBadge();
     setTimeout(() => {
       const msgs = document.getElementById('chat-msgs');
-      msgs.scrollTop = msgs.scrollHeight;
-    }, 230);
+      if (msgs) msgs.scrollTop = msgs.scrollHeight;
+    }, 50);
   }
 }
 

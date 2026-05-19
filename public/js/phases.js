@@ -56,7 +56,7 @@ function renderPhaseStepper() {
     ? `<button class="flex items-center gap-1 text-[11px] font-semibold text-accent cursor-pointer hover:opacity-70 transition-opacity flex-shrink-0 ml-2" onclick="returnToCurrent()">${IC.arrowR} Current</button>`
     : `<div class="w-10 ml-2 flex-shrink-0"></div>`;
 
-  el.innerHTML = `${backBtn}<div class="flex items-center gap-1.5 mx-3">${stepsHtml.join('')}</div>${returnBtn}`;
+  el.innerHTML = `<div class="flex items-center gap-1.5 pointer-events-auto">${backBtn}<div class="flex items-center gap-1.5 mx-3">${stepsHtml.join('')}</div>${returnBtn}</div>`;
 }
 
 // jump to a previous phase locally — admin only
@@ -331,6 +331,8 @@ function renderHint(phase) {
   const hintBar = document.getElementById('hint-bar');
   const g       = currentGroup;
   const h       = HINTS[phase];
+
+  document.getElementById('_hint_ov')?.remove();
   if (!h) { hintBar.innerHTML = ''; return; }
 
   const inOverride = !!localPhaseOverride;
@@ -340,11 +342,26 @@ function renderHint(phase) {
         ? (typeof h.adminDesc === 'function' ? h.adminDesc(g.tripDuration) : h.adminDesc)
         : h.desc);
 
+  // Ghost spacer gives the hint bar its height
   hintBar.innerHTML = `
-    <div class="px-4 pt-2.5 pb-3 text-center bg-panel border-b border-rim">
-      <div class="text-[13px] font-semibold text-ink">${h.title}</div>
-      <div class="text-[12px] text-muted mt-0.5 leading-relaxed">${desc}</div>
+    <div class="py-3 opacity-0 select-none pointer-events-none" aria-hidden="true">
+      <div class="text-[13px] leading-snug">x</div>
+      <div class="text-[12px] mt-[3px] leading-relaxed">x</div>
     </div>`;
+
+  // Fixed overlay: escapes overflow:hidden, always centred at 50vw
+  requestAnimationFrame(() => {
+    const rect = hintBar.getBoundingClientRect();
+    const ov = document.createElement('div');
+    ov.id = '_hint_ov';
+    ov.style.cssText = `position:fixed;left:50vw;top:${rect.top}px;height:${rect.height}px;transform:translateX(-50%);display:flex;align-items:center;justify-content:center;text-align:center;max-width:560px;width:90vw;pointer-events:none;z-index:5`;
+    ov.innerHTML = `
+      <div>
+        <div class="text-[13px] font-semibold text-ink leading-snug">${h.title}</div>
+        <div class="text-[12px] text-muted mt-[3px] leading-relaxed">${desc}</div>
+      </div>`;
+    document.body.appendChild(ov);
+  });
 }
 
 // ── Back-request modal (member clicks a previous phase step) ──
