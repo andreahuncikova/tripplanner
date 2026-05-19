@@ -331,15 +331,7 @@ function closeSubWindowPicker() {
 // ── Done phase – itinerary ────────────────────────────
 
 function renderDoneBanner() {
-  const g = currentGroup;
-  document.getElementById('done-dest-banner').innerHTML =
-    `<div class="px-[18px] py-3 border-b flex-shrink-0 text-base font-semibold tracking-tight flex items-center gap-3">
-      ${IC.globe}
-      <span>${esc(g.approvedDest || '')}</span>
-      <span class="text-rim">·</span>
-      ${IC.calendar}
-      <span>${esc(g.finalDateLabel || g.finalDate || '')}</span>
-    </div>`;
+  document.getElementById('done-dest-banner').innerHTML = '';
 }
 
 function renderDoneCal() {
@@ -398,11 +390,11 @@ function renderDayPanel() {
     .filter(a => a.calDate === selectedDoneDay)
     .sort((a, b) => (a.calTime || '').localeCompare(b.calTime || ''));
 
-  if (!acts.length) { actsEl.innerHTML = '<p class="text-muted text-sm py-1">Nothing scheduled</p>'; return; }
+  if (!acts.length) { actsEl.innerHTML = `<p class="text-muted text-sm py-1 flex items-center gap-1.5">${IC.calendar} Nothing scheduled</p>`; return; }
 
   actsEl.innerHTML = acts.map(a => `
     <div class="bg-bg border border-rim rounded-[10px] p-[11px_13px] flex flex-col gap-1 text-sm animate-up">
-      ${a.calTime ? `<span class="text-[11px] font-bold text-accent tracking-[.04em] uppercase">${esc(a.calTime)}</span>` : ''}
+      ${a.calTime ? `<span class="text-[11px] font-semibold text-accent flex items-center gap-1">${IC.clock} ${esc(a.calTime)}</span>` : ''}
       <div class="flex items-start justify-between gap-2">
         <span class="font-medium text-ink leading-snug">${esc(a.text)}</span>
         ${(isAdmin() || a.addedBy === me?.username) ? `<button class="w-5 h-5 rounded border border-rim bg-transparent text-muted flex items-center justify-center cursor-pointer transition-all hover:border-accent/40 hover:text-accent flex-shrink-0 mt-0.5" onclick="confirmThen(this,()=>socket?.emit('activity:remove','${a._id}'))">${IC.x}</button>` : ''}

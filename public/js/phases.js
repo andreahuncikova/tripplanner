@@ -110,11 +110,10 @@ function renderPhase() {
   const actualPhase = g.phase;
   const phase       = localPhaseOverride || actualPhase;
 
-  // group name + approved destination (if set)
-  const dest = g.approvedDest
-    ? ` — ${g.approvedDest}`
-    : '';
-  document.getElementById('tb-group-name').textContent = (g.name || '') + dest;
+  // group name — destination · date (when confirmed)
+  const dest = g.approvedDest ? ` — ${g.approvedDest}` : '';
+  const date = (actualPhase === 'done' && g.finalDateLabel) ? ` · ${g.finalDateLabel}` : '';
+  document.getElementById('tb-group-name').textContent = (g.name || '') + dest + date;
 
   ['destinations', 'calendar', 'datevote', 'done'].forEach(p => {
     document.getElementById(`p-${p}`).classList.add('hidden');
@@ -206,7 +205,7 @@ function renderDests() {
   document.getElementById('dest-add-bar').classList.remove('hidden');
 
   if (!g.destinations?.length) {
-    el.innerHTML = '<div class="text-center py-12 text-muted text-sm leading-relaxed">No destinations yet.<br>Be the first to suggest one!</div>';
+    el.innerHTML = `<div class="text-center py-12 text-muted text-sm leading-relaxed flex flex-col items-center gap-3"><span class="opacity-40">${IC.globe}</span>No destinations yet.<br>Be the first to suggest one!</div>`;
     return;
   }
 
@@ -234,9 +233,12 @@ function renderDests() {
          </div>`
       : `<div class="text-[15px] font-semibold tracking-tight">${esc(d.name)}${approvedBadge}${!approved && win ? `<span class="inline-flex items-center gap-1 text-[10px] bg-green/[.12] text-green border border-green/25 rounded-full px-2 py-0.5 ml-1.5 font-semibold">${IC.trophy} Winner</span>` : ''}</div>`;
 
+    const cardIcon = approved ? `<span class="text-green">${IC.globe}</span>`
+                   : win      ? `<span class="text-accent">${IC.trophy}</span>`
+                   :            `<span class="text-muted">${IC.mapPin}</span>`;
     const borderCls = approved ? 'border-green/50 bg-green/[.04]' : win ? 'border-green/40 bg-green/[.04]' : 'border-rim';
     return `<div class="bg-panel border ${borderCls} rounded-xl p-[13px_15px] flex items-center gap-[11px] transition-all shadow-soft animate-up hover:shadow-md hover:-translate-y-px hover:border-blue/20">
-      <div class="text-muted flex-shrink-0">${IC.map}</div>
+      <div class="flex-shrink-0">${cardIcon}</div>
       <div class="flex-1 min-w-0">
         ${nameHtml}
         <div class="text-xs text-muted mt-0.5">Suggested by ${esc(d.by)}</div>

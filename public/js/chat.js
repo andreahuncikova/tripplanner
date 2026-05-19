@@ -49,8 +49,13 @@ function appendMsg(m, animate = true) {
   const div = document.createElement('div');
 
   if (m.system) {
-    div.className = 'flex justify-center px-2.5 py-[5px]';
-    div.innerHTML = `<div class="bg-blue/[.07] border border-blue/15 rounded-xl px-3 py-2 text-xs text-blue flex items-center gap-1.5">${IC.info}<span>${esc(m.text)}</span></div>`;
+    const icon = m.text.startsWith('Destination approved') ? IC.map
+               : m.text.startsWith('Available dates')      ? IC.calCheck
+               : m.text.startsWith('Trip confirmed')        ? IC.sparkles
+               : (m.text.startsWith('Trip unconfirmed') || m.text.startsWith('Back to')) ? IC.arrowL
+               : IC.info;
+    div.className = 'px-2.5 py-[5px]';
+    div.innerHTML = `<div class="bg-blue/[.07] border border-blue/15 rounded-xl px-3 py-2 text-xs text-blue inline-flex items-center gap-1.5">${icon}<span>${esc(m.text)}</span></div>`;
   } else {
     const mine = m.username === me?.username;
     div.className = `flex gap-[7px] items-start ${mine ? 'flex-row-reverse' : ''} px-2.5 py-[5px]`;
