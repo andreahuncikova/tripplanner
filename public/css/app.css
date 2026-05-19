@@ -59,8 +59,12 @@ select:focus { border-color: #4A90A4; }
 
 /* ── Calendar 7-col grid ── */
 .cal-grid, .done-cal-grid    { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:6px; }
-.cal-main                    { max-width:520px; padding:0 4px; }
-.done-cal-col .done-cal-grid { flex:1; padding:14px 18px; gap:7px; }
+.cal-main                    { max-width:720px; }
+.done-cal-col .done-cal-grid { padding:14px 18px; gap:6px; max-width:380px; margin:0 auto; }
+
+/* ── Availability calendar: stretch cells to fill full height ── */
+#cal-grid                    { grid-auto-rows:1fr; align-content:stretch; }
+#cal-grid > div              { aspect-ratio:auto !important; }
 
 /* ── Done tab panes (flex layout needed here) ── */
 .done-tab-pane   { flex:1; overflow:hidden; min-height:0; display:flex; flex-direction:column; }
