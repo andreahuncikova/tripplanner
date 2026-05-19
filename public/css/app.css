@@ -1,6 +1,14 @@
 /* ── Animations  ── */
-@keyframes bounce   { 0%,60%,100%{transform:none} 30%{transform:translateY(-4px)} }
-@keyframes liveping { 0%,100%{box-shadow:0 0 0 0 rgba(92,158,80,.5)} 55%{box-shadow:0 0 0 5px rgba(92,158,80,0)} }
+@keyframes bounce      { 0%,60%,100%{transform:none} 30%{transform:translateY(-4px)} }
+@keyframes liveping    { 0%,100%{box-shadow:0 0 0 0 rgba(92,158,80,.5)} 55%{box-shadow:0 0 0 5px rgba(92,158,80,0)} }
+@keyframes chat-in     { from{opacity:0;transform:scale(0.88) translateY(16px);transform-origin:bottom right} to{opacity:1;transform:scale(1) translateY(0)} }
+@keyframes chat-out    { from{opacity:1;transform:scale(1) translateY(0)} to{opacity:0;transform:scale(0.88) translateY(16px);transform-origin:bottom right} }
+@keyframes bubble-pop  { from{opacity:0;transform:scale(0.4) translateY(12px)} to{opacity:1;transform:scale(1) translateY(0)} }
+
+/* ── Chat popup open/close animation ── */
+#chat-panel.chat-entering { animation: chat-in  .24s cubic-bezier(0.2,0,0,1) both; }
+#chat-panel.chat-leaving  { animation: chat-out .20s cubic-bezier(0.4,0,1,1) both; }
+#chat-bubble.bubble-pop   { animation: bubble-pop .32s cubic-bezier(0.34,1.56,0.64,1) both; }
 
 /* ── Scrollbar ─────────────────────────────── */
 ::-webkit-scrollbar       { width: 4px; }
@@ -49,10 +57,10 @@ select:focus { border-color: #4A90A4; }
 .ws-pill.off { color:#E57373; background:rgba(229,115,115,.1); border-color:rgba(229,115,115,.2); }
 .ws-pill.off .live-dot { background:#E57373; animation:none; }
 
-/* ── Calendar 7-col grid (repeat()  ── */
-.cal-grid, .done-cal-grid    { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:4px; max-width:380px; margin:0 auto; }
-.done-cal-col .cal-grid,
-.done-cal-col .done-cal-grid { flex:1; padding:14px 18px; max-width:none; gap:7px;}
+/* ── Calendar 7-col grid ── */
+.cal-grid, .done-cal-grid    { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:6px; }
+.cal-main                    { max-width:520px; padding:0 4px; }
+.done-cal-col .done-cal-grid { flex:1; padding:14px 18px; gap:7px; }
 
 /* ── Done tab panes (flex layout needed here) ── */
 .done-tab-pane   { flex:1; overflow:hidden; min-height:0; display:flex; flex-direction:column; }

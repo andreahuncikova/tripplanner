@@ -11,6 +11,7 @@ function renderPhaseStepper() {
   const actualIdx  = PHASE_ORDER.indexOf(currentGroup.phase);
   const viewIdx    = PHASE_ORDER.indexOf(localPhaseOverride || currentGroup.phase);
   const inOverride = !!localPhaseOverride;
+  const canGoBack  = viewIdx > 0 && isAdmin();
 
   // build the 4 step nodes separated by connectors
   const stepsHtml = [];
@@ -48,15 +49,14 @@ function renderPhaseStepper() {
     }
   });
 
-  const canGoBack = viewIdx > 0 && isAdmin();
   const backBtn = canGoBack
-    ? `<button class="flex items-center gap-1 text-[11px] font-medium text-muted cursor-pointer hover:text-ink transition-colors flex-shrink-0 mr-2" onclick="goBack()">${IC.arrowL} Back</button>`
-    : `<div class="w-10 mr-2 flex-shrink-0"></div>`;
+    ? `<button onclick="goBack()" class="w-7 h-7 rounded-full flex items-center justify-center text-muted border border-rim hover:border-ink hover:text-ink transition-all cursor-pointer flex-shrink-0 mr-2">${IC.arrowL}</button>`
+    : `<div class="w-7 mr-2 flex-shrink-0"></div>`;
   const returnBtn = inOverride
-    ? `<button class="flex items-center gap-1 text-[11px] font-semibold text-accent cursor-pointer hover:opacity-70 transition-opacity flex-shrink-0 ml-2" onclick="returnToCurrent()">${IC.arrowR} Current</button>`
-    : `<div class="w-10 ml-2 flex-shrink-0"></div>`;
+    ? `<button onclick="returnToCurrent()" class="w-7 h-7 rounded-full flex items-center justify-center text-accent border border-accent/40 hover:border-accent transition-all cursor-pointer flex-shrink-0 ml-2">${IC.arrowR}</button>`
+    : `<div class="w-7 ml-2 flex-shrink-0"></div>`;
 
-  el.innerHTML = `<div class="flex items-center gap-1.5 pointer-events-auto">${backBtn}<div class="flex items-center gap-1.5 mx-3">${stepsHtml.join('')}</div>${returnBtn}</div>`;
+  el.innerHTML = `<div class="flex items-center gap-1.5 pointer-events-auto">${backBtn}<div class="flex items-center gap-1.5">${stepsHtml.join('')}</div>${returnBtn}</div>`;
 }
 
 // jump to a previous phase locally — admin only
@@ -328,40 +328,24 @@ let pendingBackRequest = null;
 let backReqTargetPhase = null;
 
 function renderHint(phase) {
-  const hintBar = document.getElementById('hint-bar');
-  const g       = currentGroup;
-  const h       = HINTS[phase];
+  const hintContent = document.getElementById('hint-content');
+  const g           = currentGroup;
+  const h           = HINTS[phase];
 
-  document.getElementById('_hint_ov')?.remove();
-  if (!h) { hintBar.innerHTML = ''; return; }
+  if (!h) { hintContent.innerHTML = ''; return; }
 
   const inOverride = !!localPhaseOverride;
   const desc = inOverride
-    ? `You have temporary edit access. Make your changes, then click <strong>Current</strong> to return.`
+    ? `You have temporary edit access. Make your changes and then return to current.`
     : (isAdmin()
         ? (typeof h.adminDesc === 'function' ? h.adminDesc(g.tripDuration) : h.adminDesc)
         : h.desc);
 
-  // Ghost spacer gives the hint bar its height
-  hintBar.innerHTML = `
-    <div class="py-3 opacity-0 select-none pointer-events-none" aria-hidden="true">
-      <div class="text-[13px] leading-snug">x</div>
-      <div class="text-[12px] mt-[3px] leading-relaxed">x</div>
+  hintContent.innerHTML = `
+    <div class="text-center pointer-events-none" style="max-width:520px">
+      <div class="text-[13px] font-semibold text-ink leading-snug">${h.title}</div>
+      <div class="text-[12px] text-muted mt-[3px] leading-relaxed">${desc}</div>
     </div>`;
-
-  // Fixed overlay: escapes overflow:hidden, always centred at 50vw
-  requestAnimationFrame(() => {
-    const rect = hintBar.getBoundingClientRect();
-    const ov = document.createElement('div');
-    ov.id = '_hint_ov';
-    ov.style.cssText = `position:fixed;left:50vw;top:${rect.top}px;height:${rect.height}px;transform:translateX(-50%);display:flex;align-items:center;justify-content:center;text-align:center;max-width:560px;width:90vw;pointer-events:none;z-index:5`;
-    ov.innerHTML = `
-      <div>
-        <div class="text-[13px] font-semibold text-ink leading-snug">${h.title}</div>
-        <div class="text-[12px] text-muted mt-[3px] leading-relaxed">${desc}</div>
-      </div>`;
-    document.body.appendChild(ov);
-  });
 }
 
 // ── Back-request modal (member clicks a previous phase step) ──

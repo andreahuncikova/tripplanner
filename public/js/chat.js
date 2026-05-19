@@ -1,31 +1,53 @@
-let chatOpen    = true;
+let chatOpen    = false;
 let unreadCount = 0;
 
 function toggleChat() {
   chatOpen = !chatOpen;
-  const panel = document.getElementById('chat-panel');
-  panel.classList.toggle('hidden', !chatOpen);
+  const panel  = document.getElementById('chat-panel');
+  const bubble = document.getElementById('chat-bubble');
 
   if (chatOpen) {
+    // Show popup: animate in from bottom-right
+    panel.classList.remove('hidden');
+    panel.classList.remove('chat-leaving');
+    void panel.offsetWidth;
+    panel.classList.add('chat-entering');
+    panel.addEventListener('animationend', () => panel.classList.remove('chat-entering'), { once: true });
+
     unreadCount = 0;
     updateChatBadge();
     setTimeout(() => {
       const msgs = document.getElementById('chat-msgs');
       if (msgs) msgs.scrollTop = msgs.scrollHeight;
     }, 50);
+  } else {
+    // Animate popup out, then hide
+    panel.classList.add('chat-leaving');
+    panel.addEventListener('animationend', () => {
+      panel.classList.add('hidden');
+      panel.classList.remove('chat-leaving');
+
+      // Pop the bubble
+      if (bubble) {
+        bubble.classList.remove('bubble-pop');
+        void bubble.offsetWidth;
+        bubble.classList.add('bubble-pop');
+      }
+    }, { once: true });
   }
 }
 
 function updateChatBadge() {
-  const badge = document.getElementById('chat-unread-badge');
-  if (!badge) return;
+  const badge       = document.getElementById('chat-unread-badge');
+  const bubbleBadge = document.getElementById('chat-bubble-badge');
+
   if (unreadCount > 0) {
-    badge.textContent = unreadCount > 99 ? '99+' : unreadCount;
-    badge.classList.remove('hidden');
-    badge.classList.add('flex');
+    const txt = unreadCount > 99 ? '99+' : unreadCount;
+    if (badge)       { badge.textContent = txt;       badge.classList.remove('hidden'); badge.classList.add('flex'); }
+    if (bubbleBadge) { bubbleBadge.textContent = txt; bubbleBadge.classList.remove('hidden'); bubbleBadge.classList.add('flex'); }
   } else {
-    badge.classList.add('hidden');
-    badge.classList.remove('flex');
+    if (badge)       { badge.classList.add('hidden');       badge.classList.remove('flex'); }
+    if (bubbleBadge) { bubbleBadge.classList.add('hidden'); bubbleBadge.classList.remove('flex'); }
   }
 }
 

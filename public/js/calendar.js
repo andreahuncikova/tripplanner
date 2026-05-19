@@ -8,24 +8,19 @@ function renderTripWindowSetter() {
   const we = g.tripWindowEnd   || '';
 
   if (isAdmin()) {
-    // admin always sees the month pickers so they can set or adjust
     bar.innerHTML = `
-      <div class="flex items-center gap-2.5 px-4 py-2.5 flex-shrink-0 flex-wrap">
-        <span class="text-xs font-semibold text-muted uppercase tracking-[.04em] whitespace-nowrap flex items-center gap-1">${IC.calendar} Trip month</span>
-        ${ws && we ? `<span class="text-[14px] font-bold text-blue tracking-tight">${fmtMonthRange(ws, we)}</span>` : ''}
-        <div class="flex items-center gap-1.5 ml-auto flex-wrap">
-          <select id="tw-start" style="padding:3px 6px;font-size:12px;border-radius:7px">${monthOpts(ws ? ws.slice(0,7) : '')}</select>
-          <span class="text-xs text-muted">–</span>
-          <select id="tw-end" style="padding:3px 6px;font-size:12px;border-radius:7px">${monthOpts(we ? we.slice(0,7) : '')}</select>
-          <button class="px-3 py-1 bg-blue text-white border-none text-xs font-semibold rounded-lg cursor-pointer hover:bg-[#3a7a8e] transition-colors" onclick="setTripWindow()">${ws && we ? 'Update' : 'Set'}</button>
-        </div>
+      <div class="flex items-center gap-2 flex-wrap">
+        <span class="text-[11px] font-semibold text-muted uppercase tracking-[.05em] flex-shrink-0">Trip window</span>
+        <select id="tw-start" style="font-size:12px;padding:4px 7px">${monthOpts(ws ? ws.slice(0,7) : '')}</select>
+        <span class="text-xs text-muted">–</span>
+        <select id="tw-end" style="font-size:12px;padding:4px 7px">${monthOpts(we ? we.slice(0,7) : '')}</select>
+        <button class="inline-flex items-center border-none rounded-lg px-3 py-[5px] bg-accent text-white text-[11px] font-semibold cursor-pointer transition-all hover:bg-[#C44A22] flex-shrink-0" onclick="setTripWindow()">${ws && we ? 'Update' : 'Set'}</button>
+        ${ws && we ? `<span class="text-[12px] font-semibold text-blue">${fmtMonthRange(ws, we)}</span>` : ''}
       </div>`;
   } else if (ws && we) {
-    // member / override: just show the confirmed range
     bar.innerHTML = `
-      <div class="flex items-center gap-2.5 px-4 py-2.5 flex-shrink-0">
-        <span class="text-xs font-semibold text-muted uppercase tracking-[.04em] flex items-center gap-1">${IC.calendar} Trip month</span>
-        <span class="text-[14px] font-bold text-blue tracking-tight">${fmtMonthRange(ws, we)}</span>
+      <div class="inline-flex items-center gap-1.5 bg-blue/[.08] border border-blue/20 text-blue text-[12px] font-semibold rounded-full px-3 py-1">
+        ${IC.calendar}<span>${fmtMonthRange(ws, we)}</span>
       </div>`;
   } else {
     bar.innerHTML = '';
@@ -146,7 +141,7 @@ function renderCalDayPanel() {
   if (!titleEl || !membersEl) return;
 
   if (!selectedCalDay) {
-    titleEl.textContent = 'Select a day';
+    titleEl.textContent = '—';
     membersEl.innerHTML = '';
     return;
   }
@@ -156,15 +151,15 @@ function renderCalDayPanel() {
   titleEl.textContent = `${dayNames[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}`;
 
   const avl = currentGroup.availability || [];
-  if (!avl.length) { membersEl.innerHTML = '<p class="text-muted text-sm py-1">No members yet</p>'; return; }
+  if (!avl.length) { membersEl.innerHTML = '<p class="text-muted text-sm">No members yet</p>'; return; }
 
   membersEl.innerHTML = avl.map(a => {
     const unavail = a.unavailableDates.includes(selectedCalDay);
     const isMe    = a.username === me.username;
-    return `<div class="flex items-center gap-[9px] px-[13px] py-[10px] rounded-[10px] border text-sm transition-all ${unavail ? 'border-accent/25 bg-accent/[.05]' : 'border-green/25 bg-green/[.05]'}">
-      <span class="w-[9px] h-[9px] rounded-full flex-shrink-0" style="background:${a.color || '#888'}"></span>
-      <span class="flex-1 font-medium text-ink">${esc(a.username)}${isMe ? ' (you)' : ''}</span>
-      <span class="text-[11px] font-semibold whitespace-nowrap ${unavail ? 'text-accent' : 'text-green'}">${unavail ? `${IC.x} unavailable` : `${IC.check} available`}</span>
+    return `<div class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-sm transition-all ${unavail ? 'border-accent/25 bg-accent/[.05]' : 'border-green/25 bg-green/[.05]'}">
+      <span class="w-2 h-2 rounded-full flex-shrink-0" style="background:${a.color || '#888'}"></span>
+      <span class="flex-1 font-medium text-ink text-[13px]">${esc(a.username)}${isMe ? ' <span class="text-muted font-normal">(you)</span>' : ''}</span>
+      <span class="text-[11px] font-semibold ${unavail ? 'text-accent' : 'text-green'}">${unavail ? IC.x : IC.check}</span>
     </div>`;
   }).join('');
 }
@@ -177,8 +172,8 @@ function renderCalAdminBar() {
     return;
   }
   const label = inOverride ? 'Recalculate dates' : 'Calculate dates';
-  el.className = 'p-[11px_14px] flex-shrink-0 flex items-center gap-2.5';
-  el.innerHTML = `<button class="bg-deep text-white border-none rounded-[9px] px-[18px] py-[9px] text-[13px] font-semibold cursor-pointer transition-all tracking-[.01em] hover:bg-[#27272A] hover:-translate-y-px" onclick="computeDates()">${label} ${IC.arrowR}</button><span class="text-[11px] text-muted">Admin only</span>`;
+  el.className = 'px-4 py-3 flex-shrink-0 flex items-center gap-2.5';
+  el.innerHTML = `<button class="inline-flex items-center gap-1.5 bg-accent text-white border-none rounded-lg px-4 py-2 text-[13px] font-semibold cursor-pointer transition-all hover:bg-[#C44A22] hover:-translate-y-px" onclick="computeDates()">${label} ${IC.arrowR}</button><span class="text-[11px] text-muted">Admin only</span>`;
 }
 
 function computeDates() {
@@ -198,14 +193,14 @@ function renderDurSetter() {
   if (isAdmin()) {
     el.innerHTML = `
       <div class="${rowCls} bg-panel">
-        <span class="text-sm font-semibold text-ink whitespace-nowrap tracking-tight flex items-center gap-1">${IC.pencil} Trip duration:</span>
+        <span class="text-[11px] font-semibold text-muted uppercase tracking-[.05em] whitespace-nowrap flex items-center gap-1">${IC.ruler} Trip duration</span>
         <input id="dur-inp" type="number" min="1" max="60" value="${dur || ''}" placeholder="days"
-          style="width:80px;padding:7px 10px;border-radius:8px;font-size:14px;font-weight:600;text-align:center"
+          style="width:72px;text-align:center"
           onkeydown="if(event.key==='Enter')setTripDuration()"/>
-        <button class="px-4 py-[7px] bg-accent text-white border-none rounded-lg text-sm font-semibold cursor-pointer transition-all hover:bg-[#C44A22] hover:-translate-y-px" onclick="setTripDuration()">
-          ${dur ? 'Change' : 'Set'}
+        <button class="inline-flex items-center gap-1 border-none rounded-lg px-3 py-[5px] bg-accent text-white text-[11px] font-semibold cursor-pointer transition-all hover:bg-[#C44A22]" onclick="setTripDuration()">
+          ${dur ? 'Update' : 'Set'}
         </button>
-        ${dur ? `<span class="text-[15px] font-semibold text-green">${dur} days</span>` : ''}
+        ${dur ? `<span class="text-[13px] font-semibold text-green ml-1">${IC.check} ${dur} days</span>` : ''}
       </div>`;
   } else if (dur) {
     el.innerHTML = `<div class="${rowCls} bg-blue/[.04]"><span class="text-sm font-semibold text-ink flex items-center gap-1">${IC.ruler} Trip duration:</span><span class="text-[15px] font-semibold text-green">${dur} days</span></div>`;
@@ -236,15 +231,15 @@ function renderRanges() {
   let durCard = '';
   if (isAdmin() && !localPhaseOverride) {
     durCard = `
-      <div class="bg-panel border ${dur ? 'border-green/30 bg-green/[.03]' : 'border-accent/30 bg-accent/[.03]'} rounded-xl p-[13px_15px] flex items-center gap-3 flex-wrap">
-        <span class="text-sm font-semibold text-ink flex items-center gap-1.5 flex-shrink-0">${IC.ruler} Trip duration</span>
+      <div class="bg-panel border border-rim rounded-xl p-[13px_15px] flex items-center gap-3 flex-wrap">
+        <span class="text-[11px] font-semibold text-muted uppercase tracking-[.05em] flex-shrink-0">${IC.ruler} Trip duration</span>
         <input id="dur-inp" type="number" min="1" max="60" value="${dur || ''}" placeholder="days"
-          style="width:70px;padding:7px 10px;border-radius:8px;font-size:14px;font-weight:600;text-align:center"
+          style="width:72px;text-align:center"
           onkeydown="if(event.key==='Enter')setTripDuration()"/>
-        <button class="px-4 py-[7px] bg-accent text-white border-none rounded-lg text-sm font-semibold cursor-pointer hover:bg-[#C44A22] transition-colors" onclick="setTripDuration()">
+        <button class="inline-flex items-center gap-1 border-none rounded-lg px-3 py-[5px] bg-accent text-white text-[11px] font-semibold cursor-pointer hover:bg-[#C44A22] transition-colors" onclick="setTripDuration()">
           ${dur ? 'Update' : 'Set'}
         </button>
-        <span class="text-sm ${dur ? 'text-green font-semibold' : 'text-muted'} ml-auto">
+        <span class="text-[12px] ${dur ? 'text-green font-semibold' : 'text-muted'} ml-auto">
           ${dur ? `${IC.check} ${dur} days` : 'Set to filter &amp; confirm dates'}
         </span>
       </div>`;
@@ -278,7 +273,7 @@ function renderRanges() {
       <div class="text-[11px] text-muted mb-[9px]">${r.votes.length ? r.votes.map(esc).join(', ') : 'Nobody yet'}</div>
       <div class="h-1 bg-rim rounded-full overflow-hidden mb-[5px]"><div class="h-full bg-blue rounded-full transition-[width_.5s]" style="width:${pct}%"></div></div>
       <div class="text-[11px] text-muted font-medium">${r.votes.length} votes</div>
-      ${isAdmin() && top && dur ? `<button class="mt-[11px] bg-green text-white border-none rounded-lg px-[18px] py-2 text-xs font-semibold cursor-pointer transition-all hover:bg-[#4a8040] hover:-translate-y-px" onclick="event.stopPropagation();rangeConfirm(${origIdx})">${IC.check} Confirm this date</button>` : ''}
+      ${isAdmin() && top && dur ? `<button class="mt-[11px] inline-flex items-center gap-1.5 bg-accent text-white border-none rounded-lg px-4 py-2 text-[13px] font-semibold cursor-pointer transition-all hover:bg-[#C44A22] hover:-translate-y-px" onclick="event.stopPropagation();rangeConfirm(${origIdx})">${IC.check} Confirm this date</button>` : ''}
     </div>`;
   }).join('');
 }
