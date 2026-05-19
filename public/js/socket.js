@@ -4,6 +4,8 @@ function initSocket(code) {
   document.getElementById('chat-msgs').innerHTML = '';
   document.getElementById('typing-row').innerHTML = '';
   currentGroup = null;
+  pendingBackRequest = null;
+  pendingRequests = [];
 
   if (socket) socket.disconnect();
   socket = io({ auth: { token } });
@@ -69,4 +71,35 @@ function initSocket(code) {
   socket.on('typing',          uname  => showTyping(uname));
   socket.on('group:left',    () => goToDash());
   socket.on('group:deleted', () => goToDash());
+
+  socket.on('back:pending', ({ username, targetPhase }) => {
+    if (!isAdmin()) return;
+    if (!pendingRequests.find(r => r.username === username)) {
+      pendingRequests.push({ username, targetPhase });
+    }
+    renderBackRequestBar();
+  });
+
+  socket.on('back:resolved', ({ username }) => {
+    pendingRequests = pendingRequests.filter(r => r.username !== username);
+    renderBackRequestBar();
+  });
+
+  socket.on('back:approved', ({ targetPhase }) => {
+    pendingBackRequest = null;
+    closeBackReqModal();
+    localPhaseOverride = targetPhase;
+    renderPhase();
+  });
+
+  socket.on('back:denied', () => {
+    pendingBackRequest = null;
+    // show denied state in modal if it's still open
+    document.getElementById('brm-state-pending').innerHTML =
+      `<div class="w-full py-3 rounded-xl bg-accent/[.08] text-accent font-semibold text-sm text-center">❌ Admin denied your request.</div>
+       <button onclick="closeBackReqModal()" class="text-muted text-xs cursor-pointer hover:text-ink font-medium py-1 text-center">Close</button>`;
+    document.getElementById('brm-state-idle').classList.add('hidden');
+    document.getElementById('brm-state-pending').classList.remove('hidden');
+    setTimeout(() => closeBackReqModal(), 4000);
+  });
 }

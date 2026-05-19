@@ -470,6 +470,35 @@ io.on('connection', socket => {
     io.to(s.code).emit('state', serialize(g, getOnline(s.code)));
   });
 
+  // BACK REQUEST (member → admin) ────────────────────
+  socket.on('back:request', ({ targetPhase }) => {
+    const s = sessions[socket.id];
+    if (!s) return;
+    // forward to everyone in the room so admin sees it
+    io.to(s.code).emit('back:pending', { username, targetPhase });
+  });
+
+  socket.on('back:approve', ({ targetUsername, targetPhase }) => {
+    const s = sessions[socket.id];
+    if (!s) return;
+    const targetSid = Object.keys(sessions).find(sid =>
+      sessions[sid].code === s.code && sessions[sid].username === targetUsername
+    );
+    if (targetSid) io.to(targetSid).emit('back:approved', { targetPhase });
+    // dismiss the pending request for everyone
+    io.to(s.code).emit('back:resolved', { username: targetUsername });
+  });
+
+  socket.on('back:deny', ({ targetUsername }) => {
+    const s = sessions[socket.id];
+    if (!s) return;
+    const targetSid = Object.keys(sessions).find(sid =>
+      sessions[sid].code === s.code && sessions[sid].username === targetUsername
+    );
+    if (targetSid) io.to(targetSid).emit('back:denied');
+    io.to(s.code).emit('back:resolved', { username: targetUsername });
+  });
+
   // TYPING ────────────────────────────────────────────
   socket.on('typing', () => {
     const s = sessions[socket.id];

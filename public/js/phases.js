@@ -31,11 +31,12 @@ function renderPhaseStepper() {
       labelCls = 'text-muted/40';
     }
 
-    // completed steps are clickable only for admin
-    const clickable = done && isAdmin();
+    const clickable       = done && isAdmin();
+    const memberClickable = done && !isAdmin();
     const btn = `<button
-      class="flex items-center gap-1.5 ${clickable ? 'cursor-pointer hover:opacity-70' : 'cursor-default'} transition-opacity"
-      ${clickable ? `onclick="jumpToPhase(${i})"` : ''}>
+      class="flex items-center gap-1.5 ${clickable || memberClickable ? 'cursor-pointer hover:opacity-70' : 'cursor-default'} transition-opacity"
+      ${clickable       ? `onclick="jumpToPhase(${i})"` : ''}
+      ${memberClickable ? `onclick="showBackRequestModal(${i})"` : ''}>
       ${circle}
       <span class="text-[11px] ${labelCls} hidden md:inline">${STEP_LABELS[i]}</span>
     </button>`;
@@ -120,21 +121,16 @@ function renderPhase() {
   });
 
   renderPhaseStepper();
-  const hintBar = document.getElementById('hint-bar');
 
   if (phase === 'destinations') {
     document.getElementById('p-destinations').classList.remove('hidden');
-    hintBar.innerHTML = localPhaseOverride
-      ? `${IC.map} Viewing destination votes.`
-      : `${IC.info} Suggest destinations and vote for your favourite. The admin approves the winner.`;
+    renderHint(phase);
     renderDests();
   }
 
   if (phase === 'calendar') {
     document.getElementById('p-calendar').classList.remove('hidden');
-    hintBar.innerHTML = localPhaseOverride
-      ? `${IC.calendar} You can still update your unavailable days here.`
-      : `${IC.calendar} Click days you <strong>can't</strong> go. ${isAdmin() ? 'When everyone is done, click "Calculate dates".' : 'Waiting for everyone to mark their days.'}`;
+    renderHint(phase);
     renderTripWindowSetter();
     jumpToWindow();
     renderCal();
@@ -144,25 +140,14 @@ function renderPhase() {
 
   if (phase === 'date_vote') {
     document.getElementById('p-datevote').classList.remove('hidden');
-    const dur = g.tripDuration;
-    if (!localPhaseOverride) {
-      hintBar.innerHTML = isAdmin()
-        ? (dur
-            ? `${IC.calCheck} Duration set to ${dur} days. Vote below, then confirm when ready.`
-            : `${IC.calCheck} First set the trip duration, then everyone votes on a date.`)
-        : (dur
-            ? `${IC.calCheck} Trip duration: ${dur} days. Vote for your preferred window.`
-            : `${IC.calCheck} Waiting for the admin to set the trip duration.`);
-    } else {
-      hintBar.innerHTML = `${IC.calCheck} Viewing date voting.`;
-    }
+    renderHint(phase);
     renderDurSetter();
     renderRanges();
   }
 
   if (phase === 'done') {
     document.getElementById('p-done').classList.remove('hidden');
-    hintBar.innerHTML = `${IC.sparkles} Trip confirmed: <strong>${esc(g.finalDateLabel || g.finalDate || '')}</strong>. Add activities and track expenses.`;
+    renderHint(phase);
     if (g.finalDate) {
       const fd = new Date(g.finalDate + 'T12:00:00');
       calY = fd.getFullYear();
@@ -298,4 +283,148 @@ function destEditSave(id) {
   if (!val) return;
   destEditingId = null;
   socket?.emit('dest:edit', { id, name: val });
+}
+
+// ── Hint bar ──────────────────────────────────────────
+
+const HINTS = {
+  destinations: {
+    icon: '🗺️',
+    title: 'Vote for a destination',
+    desc: 'Suggest a place or heart your favourites. The admin picks the winner.',
+    adminDesc: 'Everyone votes, then approve the winning destination to move forward.',
+  },
+  calendar: {
+    icon: '📅',
+    title: 'Mark your unavailable days',
+    desc: 'Tap any day you <strong>cannot</strong> travel. Leave the days you\'re free blank.',
+    adminDesc: 'Once everyone has marked their days, click <strong>"Calculate dates"</strong> to find free windows.',
+  },
+  date_vote: {
+    icon: '🗓️',
+    title: 'Vote for a date window',
+    desc: 'Pick the window that works best for you. The most popular one wins.',
+    adminDesc: (dur) => dur
+      ? `Set the trip duration above, then confirm the winning window.`
+      : `First set how many days the trip will be, then everyone votes.`,
+  },
+  done: {
+    icon: '🎉',
+    title: 'Trip is confirmed!',
+    desc: 'Add activities to the itinerary and track shared expenses in the Budget tab.',
+    adminDesc: 'Add activities to the itinerary and track shared expenses in the Budget tab.',
+  },
+};
+
+let pendingBackRequest = null;
+let backReqTargetPhase = null;
+
+function renderHint(phase) {
+  const hintBar = document.getElementById('hint-bar');
+  const g       = currentGroup;
+  const h       = HINTS[phase];
+  if (!h) { hintBar.innerHTML = ''; return; }
+
+  const inOverride = !!localPhaseOverride;
+  const desc = inOverride
+    ? `You have temporary edit access. Make your changes, then click <strong>Current</strong> to return.`
+    : (isAdmin()
+        ? (typeof h.adminDesc === 'function' ? h.adminDesc(g.tripDuration) : h.adminDesc)
+        : h.desc);
+
+  hintBar.innerHTML = `
+    <div class="px-5 py-3 flex items-start gap-3 bg-blue/[.04] border-b border-blue/[.12]">
+      <span class="text-[22px] leading-none flex-shrink-0 mt-0.5">${h.icon}</span>
+      <div class="flex-1 min-w-0">
+        <div class="text-[13px] font-semibold text-ink">${h.title}</div>
+        <div class="text-[12px] text-muted mt-0.5 leading-relaxed">${desc}</div>
+      </div>
+    </div>`;
+}
+
+// ── Back-request modal (member clicks a previous phase step) ──
+
+const BACK_REQ_INFO = {
+  destinations: {
+    icon: '🗺️',
+    desc: 'You can change your destination vote or suggest a new destination. Your request will be sent to the admin for approval.',
+  },
+  calendar: {
+    icon: '📅',
+    desc: 'You can update the days when you\'re unavailable for travel. Your request will be sent to the admin for approval.',
+  },
+  date_vote: {
+    icon: '🗓️',
+    desc: 'You can change your vote for the preferred date window. Your request will be sent to the admin for approval.',
+  },
+};
+
+function showBackRequestModal(phaseIdx) {
+  const targetPhase = PHASE_ORDER[phaseIdx];
+  const info = BACK_REQ_INFO[targetPhase];
+  if (!info) return;
+
+  backReqTargetPhase = targetPhase;
+
+  document.getElementById('brm-icon').textContent  = info.icon;
+  document.getElementById('brm-title').textContent = `Request access to ${STEP_LABELS[phaseIdx]}`;
+  document.getElementById('brm-phase').textContent = STEP_LABELS[phaseIdx];
+  document.getElementById('brm-desc').textContent  = info.desc;
+
+  const isPending = pendingBackRequest === targetPhase;
+  document.getElementById('brm-state-idle').classList.toggle('hidden', isPending);
+  document.getElementById('brm-state-pending').classList.toggle('hidden', !isPending);
+
+  document.getElementById('back-req-modal').classList.remove('hidden');
+}
+
+function closeBackReqModal() {
+  document.getElementById('back-req-modal').classList.add('hidden');
+}
+
+function submitBackRequest() {
+  if (!backReqTargetPhase) return;
+  pendingBackRequest = backReqTargetPhase;
+  socket?.emit('back:request', { targetPhase: backReqTargetPhase });
+  document.getElementById('brm-state-idle').classList.add('hidden');
+  document.getElementById('brm-state-pending').classList.remove('hidden');
+}
+
+// ── Admin back-request approval bar ──────────────────
+
+const PHASE_NAMES = {
+  destinations: 'Destinations',
+  calendar:     'Availability',
+  date_vote:    'Date voting',
+  done:         'Trip!',
+};
+
+let pendingRequests = []; // [{ username, targetPhase }]
+
+function renderBackRequestBar() {
+  const bar = document.getElementById('back-request-bar');
+  if (!pendingRequests.length) {
+    bar.classList.add('hidden');
+    bar.innerHTML = '';
+    return;
+  }
+  bar.classList.remove('hidden');
+  bar.innerHTML = pendingRequests.map(req => `
+    <div class="flex items-center gap-3 px-5 py-2.5 bg-accent/[.06] border-b border-accent/20 flex-wrap">
+      <span class="text-[13px] font-semibold text-ink flex-1 min-w-0">
+        ${IC.warn} <strong>${esc(req.username)}</strong> wants to go back to <strong>${PHASE_NAMES[req.targetPhase] || req.targetPhase}</strong>
+      </span>
+      <div class="flex gap-2 flex-shrink-0">
+        <button onclick="approveBack('${esc(req.username)}','${req.targetPhase}')" class="px-3 py-1.5 rounded-lg bg-green text-white border-none text-[11px] font-semibold cursor-pointer hover:bg-[#4a8040] transition-colors">${IC.check} Approve</button>
+        <button onclick="denyBack('${esc(req.username)}')" class="px-3 py-1.5 rounded-lg border border-rim bg-transparent text-muted text-[11px] font-semibold cursor-pointer hover:text-ink transition-colors">${IC.x} Deny</button>
+      </div>
+    </div>`).join('');
+}
+
+function approveBack(username, targetPhase) {
+  socket?.emit('back:approve', { targetUsername: username, targetPhase });
+}
+
+function denyBack(username) {
+  socket?.emit('back:deny', { targetUsername: username });
 }
