@@ -333,9 +333,10 @@ function renderHint(phase) {
         : h.desc);
 
   hintBar.innerHTML = `
-    <div class="px-5 py-3 flex items-start gap-3 bg-blue/[.04] border-b border-blue/[.12]">
+    <div class="px-5 py-3 flex items-start gap-3 border-b border-rim" style="background:rgba(234, 106, 8, 0.07);border-left:4px solid #E8572A">
       <span class="text-[22px] leading-none flex-shrink-0 mt-0.5">${h.icon}</span>
       <div class="flex-1 min-w-0">
+        <div class="text-[10px] font-bold uppercase tracking-[.08em] text-orange-600 mb-0.5">How it works</div>
         <div class="text-[13px] font-semibold text-ink">${h.title}</div>
         <div class="text-[12px] text-muted mt-0.5 leading-relaxed">${desc}</div>
       </div>
