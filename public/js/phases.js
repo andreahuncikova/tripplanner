@@ -21,14 +21,14 @@ function renderPhaseStepper() {
 
     let circle, labelCls;
     if (current) {
-      circle   = `<span class="w-6 h-6 rounded-full bg-accent text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0">${done || i < actualIdx ? IC.check : i + 1}</span>`;
+      circle   = `<span class="w-6 h-6 rounded-full bg-accent text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0 shadow-sm">${i + 1}</span>`;
       labelCls = 'text-ink font-semibold';
     } else if (done) {
-      circle   = `<span class="w-6 h-6 rounded-full bg-green/15 text-green flex items-center justify-center flex-shrink-0">${IC.check}</span>`;
+      circle   = `<span class="w-6 h-6 rounded-full bg-green text-white flex items-center justify-center flex-shrink-0">${IC.check}</span>`;
       labelCls = 'text-muted';
     } else {
-      circle   = `<span class="w-6 h-6 rounded-full border border-rim text-muted/40 text-[10px] flex items-center justify-center flex-shrink-0">${i + 1}</span>`;
-      labelCls = 'text-muted/40';
+      circle   = `<span class="w-5 h-5 rounded-full border border-rim/60 text-muted/30 text-[10px] flex items-center justify-center flex-shrink-0">${i + 1}</span>`;
+      labelCls = 'text-muted/30';
     }
 
     const clickable       = done && isAdmin();
@@ -43,28 +43,20 @@ function renderPhaseStepper() {
     stepsHtml.push(btn);
 
     if (i < PHASE_ORDER.length - 1) {
-      const connectorColor = i < actualIdx ? 'bg-green/30' : 'bg-rim';
-      stepsHtml.push(`<div class="h-px ${connectorColor} flex-1 max-w-10 min-w-3"></div>`);
+      const connectorColor = i < actualIdx ? 'bg-green/40' : 'bg-rim';
+      stepsHtml.push(`<div class="h-[2px] rounded-full ${connectorColor} flex-1 max-w-10 min-w-3"></div>`);
     }
   });
 
-  // left side: back button — only admin can navigate back
   const canGoBack = viewIdx > 0 && isAdmin();
-  const backLabel = isAdmin() && !inOverride ? `${IC.arrowL} Back` : `${IC.arrowL} Back`;
   const backBtn = canGoBack
-    ? `<button class="flex items-center gap-1 text-[11px] font-medium text-muted cursor-pointer hover:text-ink transition-colors flex-shrink-0 mr-2" onclick="goBack()">${backLabel}</button>`
+    ? `<button class="flex items-center gap-1 text-[11px] font-medium text-muted cursor-pointer hover:text-ink transition-colors flex-shrink-0 mr-2" onclick="goBack()">${IC.arrowL} Back</button>`
     : `<div class="w-10 mr-2 flex-shrink-0"></div>`;
-
-  // right side: "return to current" only when viewing an older phase
   const returnBtn = inOverride
     ? `<button class="flex items-center gap-1 text-[11px] font-semibold text-accent cursor-pointer hover:opacity-70 transition-opacity flex-shrink-0 ml-2" onclick="returnToCurrent()">${IC.arrowR} Current</button>`
     : `<div class="w-10 ml-2 flex-shrink-0"></div>`;
 
-  el.innerHTML = `<div class="flex items-center px-4 py-2.5">
-    ${backBtn}
-    <div class="flex items-center gap-1.5 flex-1 justify-center">${stepsHtml.join('')}</div>
-    ${returnBtn}
-  </div>`;
+  el.innerHTML = `${backBtn}<div class="flex items-center gap-1.5 mx-3">${stepsHtml.join('')}</div>${returnBtn}`;
 }
 
 // jump to a previous phase locally — admin only
@@ -140,7 +132,7 @@ function renderPhase() {
   if (phase === 'date_vote') {
     document.getElementById('p-datevote').classList.remove('hidden');
     renderHint(phase);
-    renderDurSetter();
+    // duration input is now merged inside renderRanges()
     renderRanges();
   }
 
@@ -290,9 +282,9 @@ function destEditSave(id) {
 
 // ── Hint bar ──────────────────────────────────────────
 
-// Orange Lucide icon at 20×20 for hint bar & modals
+// Accent Lucide icon at 18×18 for the hint bar
 function accentIcon(pathData) {
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#E8572A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;flex-shrink:0;margin-top:1px">${pathData}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#E8572A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;flex-shrink:0;margin-top:1px">${pathData}</svg>`;
 }
 
 const HI = {
@@ -321,8 +313,8 @@ const HINTS = {
     title: 'Vote for a date window',
     desc: 'Pick the window that works best for you. The most popular one wins.',
     adminDesc: (dur) => dur
-      ? `Set the trip duration above, then confirm the winning window.`
-      : `First set how many days the trip will be, then everyone votes.`,
+      ? `Everyone is voting. Confirm the winning window when ready.`
+      : `Set the trip duration at the top of the list, then confirm the winning window.`,
   },
   done: {
     icon: HI.sparkles,
@@ -349,13 +341,9 @@ function renderHint(phase) {
         : h.desc);
 
   hintBar.innerHTML = `
-    <div class="px-5 py-3 flex items-start gap-3 border-b border-rim" style="background:rgba(232,87,42,.05);border-left:3px solid #E8572A">
-      ${h.icon}
-      <div class="flex-1 min-w-0">
-        <div class="text-[10px] font-bold uppercase tracking-[.08em] mb-0.5" style="color:#E8572A">How it works</div>
-        <div class="text-[13px] font-semibold text-ink">${h.title}</div>
-        <div class="text-[12px] text-muted mt-0.5 leading-relaxed">${desc}</div>
-      </div>
+    <div class="px-4 pt-2.5 pb-3 text-center bg-panel border-b border-rim">
+      <div class="text-[13px] font-semibold text-ink">${h.title}</div>
+      <div class="text-[12px] text-muted mt-0.5 leading-relaxed">${desc}</div>
     </div>`;
 }
 

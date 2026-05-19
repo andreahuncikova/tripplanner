@@ -10,7 +10,7 @@ function renderTripWindowSetter() {
   if (isAdmin()) {
     // admin always sees the month pickers so they can set or adjust
     bar.innerHTML = `
-      <div class="flex items-center gap-2.5 px-4 py-2 bg-panel border-b border-rim flex-shrink-0 flex-wrap">
+      <div class="flex items-center gap-2.5 px-4 py-2.5 flex-shrink-0 flex-wrap">
         <span class="text-xs font-semibold text-muted uppercase tracking-[.04em] whitespace-nowrap flex items-center gap-1">${IC.calendar} Trip month</span>
         ${ws && we ? `<span class="text-[14px] font-bold text-blue tracking-tight">${fmtMonthRange(ws, we)}</span>` : ''}
         <div class="flex items-center gap-1.5 ml-auto flex-wrap">
@@ -23,7 +23,7 @@ function renderTripWindowSetter() {
   } else if (ws && we) {
     // member / override: just show the confirmed range
     bar.innerHTML = `
-      <div class="flex items-center gap-2.5 px-4 py-2 bg-blue/[.04] border-b border-rim flex-shrink-0">
+      <div class="flex items-center gap-2.5 px-4 py-2.5 flex-shrink-0">
         <span class="text-xs font-semibold text-muted uppercase tracking-[.04em] flex items-center gap-1">${IC.calendar} Trip month</span>
         <span class="text-[14px] font-bold text-blue tracking-tight">${fmtMonthRange(ws, we)}</span>
       </div>`;
@@ -177,7 +177,7 @@ function renderCalAdminBar() {
     return;
   }
   const label = inOverride ? 'Recalculate dates' : 'Calculate dates';
-  el.className = 'p-[11px_14px] border-t border-rim bg-panel flex-shrink-0 flex items-center gap-2.5';
+  el.className = 'p-[11px_14px] flex-shrink-0 flex items-center gap-2.5';
   el.innerHTML = `<button class="bg-deep text-white border-none rounded-[9px] px-[18px] py-[9px] text-[13px] font-semibold cursor-pointer transition-all tracking-[.01em] hover:bg-[#27272A] hover:-translate-y-px" onclick="computeDates()">${label} ${IC.arrowR}</button><span class="text-[11px] text-muted">Admin only</span>`;
 }
 
@@ -232,30 +232,45 @@ function renderRanges() {
   const dur    = g.tripDuration;
   const ranges = (g.dateRanges || []).filter(r => !dur || rangeDays(r) >= dur);
 
+  // Duration card — merged as first item, admin only
+  let durCard = '';
+  if (isAdmin() && !localPhaseOverride) {
+    durCard = `
+      <div class="bg-panel border ${dur ? 'border-green/30 bg-green/[.03]' : 'border-accent/30 bg-accent/[.03]'} rounded-xl p-[13px_15px] flex items-center gap-3 flex-wrap">
+        <span class="text-sm font-semibold text-ink flex items-center gap-1.5 flex-shrink-0">${IC.ruler} Trip duration</span>
+        <input id="dur-inp" type="number" min="1" max="60" value="${dur || ''}" placeholder="days"
+          style="width:70px;padding:7px 10px;border-radius:8px;font-size:14px;font-weight:600;text-align:center"
+          onkeydown="if(event.key==='Enter')setTripDuration()"/>
+        <button class="px-4 py-[7px] bg-accent text-white border-none rounded-lg text-sm font-semibold cursor-pointer hover:bg-[#C44A22] transition-colors" onclick="setTripDuration()">
+          ${dur ? 'Update' : 'Set'}
+        </button>
+        <span class="text-sm ${dur ? 'text-green font-semibold' : 'text-muted'} ml-auto">
+          ${dur ? `${IC.check} ${dur} days` : 'Set to filter &amp; confirm dates'}
+        </span>
+      </div>`;
+  } else if (!dur) {
+    durCard = `<p class="text-center text-[12px] text-muted py-2">Waiting for the admin to set trip duration…</p>`;
+  }
+
   if (!ranges.length) {
-    el.innerHTML = dur
-      ? `<div class="text-center py-12 text-muted text-sm leading-relaxed">No date windows long enough for ${dur} days.<br>Try changing your unavailable days.</div>`
-      : '<div class="text-center py-12 text-muted text-sm leading-relaxed">No common dates.<br>Try changing your unavailable days.</div>';
+    el.innerHTML = durCard + (dur
+      ? `<div class="text-center py-10 text-muted text-sm leading-relaxed">No windows long enough for ${dur} days.<br>Try adjusting your unavailable days.</div>`
+      : `<div class="text-center py-10 text-muted text-sm leading-relaxed">No common dates yet.</div>`);
     return;
   }
 
   const maxVotes = Math.max(...ranges.map(r => r.votes.length), 1);
 
-  el.innerHTML = ranges.map(r => {
-    const origIdx  = g.dateRanges.indexOf(r);
-    const voted    = r.votes.includes(me.username);
-    const top      = r.votes.length === Math.max(...ranges.map(x => x.votes.length)) && r.votes.length > 0;
-    const pct      = Math.round((r.votes.length / maxVotes) * 100);
-    const winDays  = rangeDays(r);
-
-    // title: just the date range without day count
+  el.innerHTML = durCard + ranges.map(r => {
+    const origIdx = g.dateRanges.indexOf(r);
+    const voted   = r.votes.includes(me.username);
+    const top     = r.votes.length === Math.max(...ranges.map(x => x.votes.length)) && r.votes.length > 0;
+    const pct     = Math.round((r.votes.length / maxVotes) * 100);
+    const winDays = rangeDays(r);
     const [datesPart] = r.label.split(' (');
 
-    // sub-info line: free window size + trip duration context
-    const windowPill = `<span class="inline-flex items-center gap-1 bg-blue/[.08] text-blue text-[10px] font-semibold px-2 py-0.5 rounded-full">${IC.calendar} ${winDays} available days</span>`;
-    const tripPill   = dur
-      ? `<span class="inline-flex items-center gap-1 bg-accent/[.08] text-accent text-[10px] font-semibold px-2 py-0.5 rounded-full">${IC.ruler} your trip: ${dur} days</span>`
-      : '';
+    const windowPill = `<span class="inline-flex items-center gap-1 bg-blue/[.08] text-blue text-[10px] font-semibold px-2 py-0.5 rounded-full">${IC.calendar} ${winDays} days free</span>`;
+    const tripPill   = dur ? `<span class="inline-flex items-center gap-1 bg-accent/[.08] text-accent text-[10px] font-semibold px-2 py-0.5 rounded-full">${IC.ruler} trip: ${dur} days</span>` : '';
 
     return `<div class="bg-panel border-[1.5px] ${voted ? 'border-blue/40 bg-blue/[.05]' : top ? 'border-green/40 bg-green/[.05]' : 'border-rim'} rounded-xl p-[15px_16px] cursor-pointer transition-all animate-up shadow-soft hover:border-blue/30 hover:-translate-y-px hover:shadow-md" onclick="rangeVote(${origIdx})">
       <div class="text-base font-semibold tracking-tight">${esc(datesPart)}</div>
@@ -263,8 +278,7 @@ function renderRanges() {
       <div class="text-[11px] text-muted mb-[9px]">${r.votes.length ? r.votes.map(esc).join(', ') : 'Nobody yet'}</div>
       <div class="h-1 bg-rim rounded-full overflow-hidden mb-[5px]"><div class="h-full bg-blue rounded-full transition-[width_.5s]" style="width:${pct}%"></div></div>
       <div class="text-[11px] text-muted font-medium">${r.votes.length} votes</div>
-      ${isAdmin() && top && g.tripDuration  ? `<button class="mt-[11px] bg-green text-white border-none rounded-lg px-[18px] py-2 text-xs font-semibold cursor-pointer transition-all hover:bg-[#4a8040] hover:-translate-y-px" onclick="event.stopPropagation();rangeConfirm(${origIdx})">${IC.check} Confirm this date</button>` : ''}
-      ${isAdmin() && top && !g.tripDuration ? `<div class="mt-[9px] text-[11px] text-accent font-semibold">${IC.warn} Set the trip duration first</div>` : ''}
+      ${isAdmin() && top && dur ? `<button class="mt-[11px] bg-green text-white border-none rounded-lg px-[18px] py-2 text-xs font-semibold cursor-pointer transition-all hover:bg-[#4a8040] hover:-translate-y-px" onclick="event.stopPropagation();rangeConfirm(${origIdx})">${IC.check} Confirm this date</button>` : ''}
     </div>`;
   }).join('');
 }

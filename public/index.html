@@ -17,12 +17,12 @@
           deep:   '#18181B',
           ink:    '#27272A',
           muted:  '#71717A',
-          panel:  '#FFFFFF',
+          panel:  '#FAFAF8',
           accent: '#E8572A',
           blue:   '#4A90A4',
           green:  '#5C9E50',
           purple: '#9B59B6',
-          rim:    'rgba(24,24,27,.09)',
+          rim:    'rgba(24,24,27,.10)',
         },
         fontFamily: {
           sans: ['Plus Jakarta Sans', 'sans-serif'],
@@ -159,44 +159,41 @@
 ═══════════════════════════════════════════ -->
 <div id="s-app" class="screen">
 
-  <!-- TOPBAR -->
-  <header class="h-[52px] bg-deep flex items-center justify-between px-5 flex-shrink-0 gap-3 border-b border-white/[.07]" id="topbar">
-    <div class="flex items-center gap-2.5 min-w-0">
-      <button class="w-7 h-7 rounded-lg border border-white/[.12] bg-transparent text-white/50 cursor-pointer flex items-center justify-center transition-all flex-shrink-0 hover:bg-white/[.08] hover:text-white hover:border-white/25" onclick="goToDash()" title="Back">
-        <i data-lucide="arrow-left" class="w-4 h-4"></i>
+  <!-- NAV BAR — grid 1fr/auto/1fr keeps steps always truly centred -->
+  <div class="grid items-center px-4 py-2.5 bg-panel border-b border-rim flex-shrink-0" style="grid-template-columns:1fr auto 1fr">
+    <div class="flex items-center gap-2 min-w-0">
+      <button class="flex items-center gap-1.5 text-[12px] font-medium text-muted hover:text-ink transition-colors cursor-pointer border-none bg-transparent flex-shrink-0" onclick="goToDash()">
+        <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>Groups
       </button>
-      <i data-lucide="plane" class="w-4 h-4 text-muted flex-shrink-0"></i>
-      <span class="text-[14px] font-semibold text-white/90 truncate max-w-[200px] tracking-[-0.01em]" id="tb-group-name">—</span>
+      <span class="text-[13px] font-semibold text-ink truncate tracking-[-0.01em]" id="tb-group-name">—</span>
     </div>
-    <div class="flex items-center gap-2.5 flex-shrink-0">
+    <div id="phase-stepper" class="flex items-center justify-center"></div>
+    <div class="flex items-center gap-2.5 justify-end">
       <div class="flex" id="online-row"></div>
       <div class="ws-pill" id="ws-pill"><span class="live-dot"></span> Live</div>
-      <button class="inline-flex items-center gap-1.5 border border-white/[.12] rounded-lg py-[5px] px-3 bg-transparent text-white/50 text-[11px] cursor-pointer transition-all hover:border-white/25 hover:text-white/80 font-medium" onclick="showInviteModal()">
+      <button class="inline-flex items-center gap-1.5 border border-rim rounded-lg py-[5px] px-3 bg-transparent text-muted text-[11px] cursor-pointer transition-all hover:border-ink hover:text-ink font-medium" onclick="showInviteModal()">
         <i data-lucide="link-2" class="w-3.5 h-3.5"></i>Invite
       </button>
     </div>
-  </header>
-
-  <!-- PHASE STEPPER — single source of truth for navigation -->
-  <div id="phase-stepper" class="bg-panel border-b border-rim flex-shrink-0"></div>
+  </div>
 
   <!-- BACK REQUEST BAR — admin approval notifications -->
   <div id="back-request-bar" class="hidden flex-shrink-0 overflow-y-auto" style="max-height:160px"></div>
 
   <!-- HINT BAR — context-sensitive help for each phase -->
-  <div id="hint-bar" class="flex-shrink-0 border-b border-rim"></div>
+  <div id="hint-bar" class="flex-shrink-0"></div>
 
   <!-- MAIN -->
   <div class="flex-1 overflow-hidden flex min-h-0">
 
     <!-- ── LEFT ── -->
-    <div class="flex-1 min-w-0 flex flex-col overflow-hidden border-r border-rim" id="left-col">
+    <div class="flex-1 min-w-0 flex flex-col overflow-hidden bg-bg" id="left-col">
 
       <!-- ── PHASE: destinations ── -->
       <div class="flex flex-col flex-1 min-h-0 overflow-hidden" id="p-destinations">
 
         <div class="flex-1 overflow-y-auto p-3.5 flex flex-col gap-2 [scrollbar-width:thin]" id="dest-list"></div>
-        <div class="flex gap-1.5 py-[11px] px-3 border-t border-rim bg-panel flex-shrink-0" id="dest-add-bar">
+        <div class="flex gap-1.5 py-3 px-3 flex-shrink-0" id="dest-add-bar">
           <input id="dest-inp" type="text" placeholder="Suggest a destination (e.g. Paris, Vienna…)" maxlength="40"
             onkeydown="if(event.key==='Enter')destSuggest()" class="flex-1"/>
           <button class="bg-accent text-white border-none rounded-lg py-2 px-4 font-medium text-[13px] cursor-pointer whitespace-nowrap transition-all hover:bg-[#C44A22]" onclick="destSuggest()">Suggest</button>
@@ -207,15 +204,15 @@
       <div class="flex flex-col flex-1 min-h-0 overflow-hidden hidden" id="p-calendar">
         <div id="trip-window-bar"></div>
         <div class="flex h-full overflow-hidden">
-          <div class="done-cal-col flex-1 flex flex-col overflow-hidden border-r border-rim">
-            <div class="flex items-center gap-2.5 px-4 py-4 border-b border-rim flex-shrink-0 bg-panel font-semibold text-[17px] tracking-tight justify-center">
-              <button class="w-7 h-7 rounded-lg border border-rim bg-transparent text-muted flex items-center justify-center transition-all hover:bg-deep hover:text-white hover:border-deep" onclick="calShift(-1)"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
+          <div class="done-cal-col flex-1 flex flex-col overflow-hidden">
+            <div class="flex items-center gap-2.5 px-4 py-4 flex-shrink-0 font-semibold text-[17px] tracking-tight justify-center">
+              <button class="w-7 h-7 rounded-lg border border-rim bg-panel text-muted flex items-center justify-center transition-all hover:bg-deep hover:text-white hover:border-deep" onclick="calShift(-1)"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
               <span id="cal-label"></span>
-              <button class="w-7 h-7 rounded-lg border border-rim bg-transparent text-muted flex items-center justify-center transition-all hover:bg-deep hover:text-white hover:border-deep" onclick="calShift(1)"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
+              <button class="w-7 h-7 rounded-lg border border-rim bg-panel text-muted flex items-center justify-center transition-all hover:bg-deep hover:text-white hover:border-deep" onclick="calShift(1)"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
             </div>
             <div class="cal-grid p-3.5" id="cal-grid"></div>
           </div>
-          <div class="w-[270px] flex-shrink-0 flex flex-col p-[22px_20px] gap-3.5 overflow-y-auto bg-panel">
+          <div class="w-[270px] flex-shrink-0 flex flex-col p-[22px_20px] gap-3.5 overflow-y-auto bg-panel rounded-l-2xl shadow-soft">
             <div class="text-[19px] font-bold text-ink leading-tight tracking-tight" id="avail-day-title">Select a day</div>
             <div id="avail-day-members" class="flex flex-col gap-[7px] mt-0.5"></div>
             <div class="text-xs text-muted mt-auto pt-3 leading-relaxed">Click a day to mark it as unavailable. Click again to undo.</div>
@@ -226,10 +223,6 @@
 
       <!-- ── PHASE: date_vote ── -->
       <div class="flex flex-col flex-1 min-h-0 overflow-hidden hidden" id="p-datevote">
-        <div class="px-[18px] py-[13px] bg-panel border-b border-rim text-sm font-semibold flex-shrink-0 flex items-center gap-2 tracking-tight">
-          <i data-lucide="calendar-check" class="w-4 h-4 text-muted"></i>Vote for a trip date
-        </div>
-        <div id="dur-setter-bar"></div>
         <div class="flex-1 overflow-y-auto p-3.5 flex flex-col gap-2" id="ranges-list"></div>
         <div class="hidden fixed inset-0 bg-[rgba(24,24,27,.45)] backdrop-blur-sm flex items-center justify-center z-50 p-5" id="subwindow-picker">
           <div class="bg-panel rounded-2xl p-6 w-full max-w-[420px] shadow-modal flex flex-col gap-[18px]">
@@ -267,15 +260,15 @@
 
         <div id="done-tab-schedule" class="done-tab-pane flex-1 overflow-hidden min-h-0 flex flex-col">
           <div class="flex h-full overflow-hidden">
-            <div class="done-cal-col flex-1 flex flex-col overflow-hidden border-r border-rim">
-              <div class="flex items-center gap-2.5 px-[18px] py-4 border-b border-rim flex-shrink-0 bg-panel font-semibold text-[17px] tracking-tight justify-center">
-                <button class="w-7 h-7 rounded-lg border border-rim bg-transparent text-muted flex items-center justify-center transition-all hover:bg-deep hover:text-white hover:border-deep" onclick="calShift(-1)"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
+            <div class="done-cal-col flex-1 flex flex-col overflow-hidden">
+              <div class="flex items-center gap-2.5 px-[18px] py-4 flex-shrink-0 font-semibold text-[17px] tracking-tight justify-center">
+                <button class="w-7 h-7 rounded-lg border border-rim bg-panel text-muted flex items-center justify-center transition-all hover:bg-deep hover:text-white hover:border-deep" onclick="calShift(-1)"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
                 <span id="done-cal-label"></span>
-                <button class="w-7 h-7 rounded-lg border border-rim bg-transparent text-muted flex items-center justify-center transition-all hover:bg-deep hover:text-white hover:border-deep" onclick="calShift(1)"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
+                <button class="w-7 h-7 rounded-lg border border-rim bg-panel text-muted flex items-center justify-center transition-all hover:bg-deep hover:text-white hover:border-deep" onclick="calShift(1)"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
               </div>
               <div class="done-cal-grid" id="done-cal-grid"></div>
             </div>
-            <div class="w-[270px] flex-shrink-0 flex flex-col p-[22px_20px] gap-3.5 overflow-y-auto bg-panel" id="done-day-panel">
+            <div class="w-[270px] flex-shrink-0 flex flex-col p-[22px_20px] gap-3.5 overflow-y-auto bg-panel rounded-l-2xl shadow-soft" id="done-day-panel">
               <div class="text-[19px] font-bold text-ink leading-tight tracking-tight" id="done-day-title">Select a day</div>
               <div class="flex-1 flex flex-col gap-2" id="done-day-acts"><p class="text-muted text-sm py-1">—</p></div>
               <button class="hidden w-full py-3 px-3.5 border-[1.5px] border-dashed border-ink/20 rounded-[10px] bg-transparent text-muted text-[13px] cursor-pointer transition-all text-center flex-shrink-0 hover:border-accent hover:text-accent hover:bg-accent/[.04]" id="done-day-add-btn" onclick="showAddActForDay()">
@@ -286,7 +279,7 @@
         </div>
 
         <div id="done-tab-budget" class="done-tab-pane done-tab-hidden flex-1 overflow-hidden min-h-0 flex flex-col">
-          <div class="flex items-center justify-end px-5 py-3 border-b border-rim flex-shrink-0">
+          <div class="flex items-center justify-end px-5 py-3 flex-shrink-0">
             <button class="inline-flex items-center gap-1.5 px-[15px] py-[7px] rounded-lg border-none bg-accent text-white text-xs font-semibold cursor-pointer transition-all hover:bg-[#C44A22] hover:-translate-y-px" onclick="showAddExpenseModal()">
               <i data-lucide="plus" class="w-3.5 h-3.5"></i>Add expense
             </button>
@@ -313,7 +306,7 @@
     <!-- ── RIGHT: CHAT ── -->
     <div id="chat-panel" class="flex-shrink-0 flex flex-col min-h-0 bg-panel overflow-hidden" style="width:340px;transition:width .22s ease">
       <!-- header / toggle -->
-      <div class="px-4 py-[14px] border-b border-rim text-sm font-semibold flex items-center gap-2 flex-shrink-0 tracking-tight cursor-pointer select-none hover:bg-rim/30 transition-colors" onclick="toggleChat()">
+      <div class="px-4 py-[14px] bg-bg text-sm font-semibold flex items-center gap-2 flex-shrink-0 tracking-tight cursor-pointer select-none hover:bg-rim/20 transition-colors" onclick="toggleChat()">
         <div class="relative flex-shrink-0">
           <i data-lucide="message-circle" class="w-4 h-4 text-muted"></i>
           <span id="chat-unread-badge" class="hidden absolute -top-2 -left-2.5 min-w-[16px] h-4 rounded-full bg-accent text-white text-[10px] font-bold flex items-center justify-center px-1 leading-none"></span>
@@ -325,7 +318,7 @@
       <div id="chat-body" class="flex-1 flex flex-col min-h-0 overflow-hidden">
         <div class="flex-1 overflow-y-auto min-h-0 py-1" id="chat-msgs"></div>
         <div class="min-h-[22px] px-3 pb-1 text-[11px] text-muted flex items-center gap-[5px] flex-shrink-0" id="typing-row"></div>
-        <div class="p-2 px-2.5 border-t border-rim flex gap-2 items-center flex-shrink-0">
+        <div class="p-2 px-2.5 bg-bg flex gap-2 items-center flex-shrink-0">
           <input id="chat-inp" type="text" placeholder="Type a message…" maxlength="300"
             onkeydown="if(event.key==='Enter')chatSend()"
             oninput="chatTyping()"
