@@ -287,21 +287,34 @@ function destEditSave(id) {
 
 // ── Hint bar ──────────────────────────────────────────
 
+// Orange Lucide icon at 20×20 for hint bar & modals
+function accentIcon(pathData) {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#E8572A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;flex-shrink:0;margin-top:1px">${pathData}</svg>`;
+}
+
+const HI = {
+  map:      accentIcon('<polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" x2="9" y1="3" y2="18"/><line x1="15" x2="15" y1="6" y2="21"/>'),
+  calendar: accentIcon('<rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/>'),
+  calCheck: accentIcon('<rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/><path d="m9 16 2 2 4-4"/>'),
+  sparkles: accentIcon('<path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/>'),
+  bulb:     accentIcon('<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/>'),
+};
+
 const HINTS = {
   destinations: {
-    icon: '🗺️',
+    icon: HI.map,
     title: 'Vote for a destination',
     desc: 'Suggest a place or heart your favourites. The admin picks the winner.',
     adminDesc: 'Everyone votes, then approve the winning destination to move forward.',
   },
   calendar: {
-    icon: '📅',
+    icon: HI.calendar,
     title: 'Mark your unavailable days',
     desc: 'Tap any day you <strong>cannot</strong> travel. Leave the days you\'re free blank.',
     adminDesc: 'Once everyone has marked their days, click <strong>"Calculate dates"</strong> to find free windows.',
   },
   date_vote: {
-    icon: '🗓️',
+    icon: HI.calCheck,
     title: 'Vote for a date window',
     desc: 'Pick the window that works best for you. The most popular one wins.',
     adminDesc: (dur) => dur
@@ -309,7 +322,7 @@ const HINTS = {
       : `First set how many days the trip will be, then everyone votes.`,
   },
   done: {
-    icon: '🎉',
+    icon: HI.sparkles,
     title: 'Trip is confirmed!',
     desc: 'Add activities to the itinerary and track shared expenses in the Budget tab.',
     adminDesc: 'Add activities to the itinerary and track shared expenses in the Budget tab.',
@@ -333,10 +346,10 @@ function renderHint(phase) {
         : h.desc);
 
   hintBar.innerHTML = `
-    <div class="px-5 py-3 flex items-start gap-3 border-b border-rim" style="background:rgba(234, 106, 8, 0.07);border-left:4px solid #E8572A">
-      <span class="text-[22px] leading-none flex-shrink-0 mt-0.5">${h.icon}</span>
+    <div class="px-5 py-3 flex items-start gap-3 border-b border-rim" style="background:rgba(232,87,42,.05);border-left:3px solid #E8572A">
+      ${h.icon}
       <div class="flex-1 min-w-0">
-        <div class="text-[10px] font-bold uppercase tracking-[.08em] text-orange-600 mb-0.5">How it works</div>
+        <div class="text-[10px] font-bold uppercase tracking-[.08em] mb-0.5" style="color:#E8572A">How it works</div>
         <div class="text-[13px] font-semibold text-ink">${h.title}</div>
         <div class="text-[12px] text-muted mt-0.5 leading-relaxed">${desc}</div>
       </div>
@@ -347,15 +360,15 @@ function renderHint(phase) {
 
 const BACK_REQ_INFO = {
   destinations: {
-    icon: '🗺️',
+    icon: HI.map,
     desc: 'You can change your destination vote or suggest a new destination. Your request will be sent to the admin for approval.',
   },
   calendar: {
-    icon: '📅',
+    icon: HI.calendar,
     desc: 'You can update the days when you\'re unavailable for travel. Your request will be sent to the admin for approval.',
   },
   date_vote: {
-    icon: '🗓️',
+    icon: HI.calCheck,
     desc: 'You can change your vote for the preferred date window. Your request will be sent to the admin for approval.',
   },
 };
@@ -367,7 +380,7 @@ function showBackRequestModal(phaseIdx) {
 
   backReqTargetPhase = targetPhase;
 
-  document.getElementById('brm-icon').textContent  = info.icon;
+  document.getElementById('brm-icon').innerHTML = info.icon;
   document.getElementById('brm-title').textContent = `Request access to ${STEP_LABELS[phaseIdx]}`;
   document.getElementById('brm-phase').textContent = STEP_LABELS[phaseIdx];
   document.getElementById('brm-desc').textContent  = info.desc;
