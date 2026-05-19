@@ -242,12 +242,24 @@ function renderRanges() {
   const maxVotes = Math.max(...ranges.map(r => r.votes.length), 1);
 
   el.innerHTML = ranges.map(r => {
-    const origIdx = g.dateRanges.indexOf(r);
-    const voted   = r.votes.includes(me.username);
-    const top     = r.votes.length === Math.max(...ranges.map(x => x.votes.length)) && r.votes.length > 0;
-    const pct     = Math.round((r.votes.length / maxVotes) * 100);
+    const origIdx  = g.dateRanges.indexOf(r);
+    const voted    = r.votes.includes(me.username);
+    const top      = r.votes.length === Math.max(...ranges.map(x => x.votes.length)) && r.votes.length > 0;
+    const pct      = Math.round((r.votes.length / maxVotes) * 100);
+    const winDays  = rangeDays(r);
+
+    // title: just the date range without day count
+    const [datesPart] = r.label.split(' (');
+
+    // sub-info line: free window size + trip duration context
+    const windowPill = `<span class="inline-flex items-center gap-1 bg-blue/[.08] text-blue text-[10px] font-semibold px-2 py-0.5 rounded-full">${IC.calendar} ${winDays} available days</span>`;
+    const tripPill   = dur
+      ? `<span class="inline-flex items-center gap-1 bg-accent/[.08] text-accent text-[10px] font-semibold px-2 py-0.5 rounded-full">${IC.ruler} your trip: ${dur} days</span>`
+      : '';
+
     return `<div class="bg-panel border-[1.5px] ${voted ? 'border-blue/40 bg-blue/[.05]' : top ? 'border-green/40 bg-green/[.05]' : 'border-rim'} rounded-xl p-[15px_16px] cursor-pointer transition-all animate-up shadow-soft hover:border-blue/30 hover:-translate-y-px hover:shadow-md" onclick="rangeVote(${origIdx})">
-      <div class="text-base font-semibold mb-1.5 tracking-tight">${esc(r.label)}</div>
+      <div class="text-base font-semibold tracking-tight">${esc(datesPart)}</div>
+      <div class="flex items-center gap-1.5 flex-wrap mt-1.5 mb-[10px]">${windowPill}${tripPill}</div>
       <div class="text-[11px] text-muted mb-[9px]">${r.votes.length ? r.votes.map(esc).join(', ') : 'Nobody yet'}</div>
       <div class="h-1 bg-rim rounded-full overflow-hidden mb-[5px]"><div class="h-full bg-blue rounded-full transition-[width_.5s]" style="width:${pct}%"></div></div>
       <div class="text-[11px] text-muted font-medium">${r.votes.length} votes</div>
