@@ -31,8 +31,8 @@ function renderPhaseStepper() {
       labelCls = 'text-muted/40';
     }
 
-    // completed steps are clickable (jump to them locally without affecting the group)
-    const clickable = done;
+    // completed steps are clickable only for admin
+    const clickable = done && isAdmin();
     const btn = `<button
       class="flex items-center gap-1.5 ${clickable ? 'cursor-pointer hover:opacity-70' : 'cursor-default'} transition-opacity"
       ${clickable ? `onclick="jumpToPhase(${i})"` : ''}>
@@ -47,8 +47,8 @@ function renderPhaseStepper() {
     }
   });
 
-  // left side: back button (always the same spot)
-  const canGoBack = viewIdx > 0;
+  // left side: back button — only admin can navigate back
+  const canGoBack = viewIdx > 0 && isAdmin();
   const backLabel = isAdmin() && !inOverride ? `${IC.arrowL} Back` : `${IC.arrowL} Back`;
   const backBtn = canGoBack
     ? `<button class="flex items-center gap-1 text-[11px] font-medium text-muted cursor-pointer hover:text-ink transition-colors flex-shrink-0 mr-2" onclick="goBack()">${backLabel}</button>`
@@ -66,8 +66,9 @@ function renderPhaseStepper() {
   </div>`;
 }
 
-// jump to a previous phase locally (doesn't affect other users)
+// jump to a previous phase locally — admin only
 function jumpToPhase(idx) {
+  if (!isAdmin()) return;
   if (idx < PHASE_ORDER.indexOf(currentGroup.phase)) {
     localPhaseOverride = PHASE_ORDER[idx];
     renderPhase();
@@ -88,6 +89,9 @@ function applyState(data) {
     pendingOverrideTarget = false;
     if (localPhaseOverride === data.phase) localPhaseOverride = null;
   }
+
+  // non-admin members always follow the group phase
+  if (localPhaseOverride && !isAdmin()) localPhaseOverride = null;
 
   // if the group phase moved past our local override, clear it
   if (localPhaseOverride) {
@@ -159,6 +163,11 @@ function renderPhase() {
   if (phase === 'done') {
     document.getElementById('p-done').classList.remove('hidden');
     hintBar.innerHTML = `${IC.sparkles} Trip confirmed: <strong>${esc(g.finalDateLabel || g.finalDate || '')}</strong>. Add activities and track expenses.`;
+    if (g.finalDate) {
+      const fd = new Date(g.finalDate + 'T12:00:00');
+      calY = fd.getFullYear();
+      calM = fd.getMonth();
+    }
     renderDoneBanner();
     renderDoneCal();
     renderExpenses();

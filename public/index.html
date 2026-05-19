@@ -302,9 +302,9 @@
     <div id="chat-panel" class="flex-shrink-0 flex flex-col min-h-0 bg-panel overflow-hidden" style="width:340px;transition:width .22s ease">
       <!-- header / toggle -->
       <div class="px-4 py-[14px] border-b border-rim text-sm font-semibold flex items-center gap-2 flex-shrink-0 tracking-tight cursor-pointer select-none hover:bg-rim/30 transition-colors" onclick="toggleChat()">
+        <span id="chat-unread-badge" class="hidden min-w-[20px] h-5 rounded-full bg-accent text-white text-[11px] font-bold items-center justify-center px-1.5"></span>
         <i data-lucide="message-circle" class="w-4 h-4 text-muted flex-shrink-0"></i>
         <span class="flex-1 chat-label">Group chat</span>
-        <span id="chat-unread-badge" class="hidden min-w-[20px] h-5 rounded-full bg-accent text-white text-[11px] font-bold items-center justify-center px-1.5"></span>
         <i data-lucide="chevron-right" class="w-4 h-4 text-muted transition-transform duration-200 chat-label" id="chat-chevron"></i>
       </div>
       <!-- body -->
