@@ -86,6 +86,7 @@ function serialize(g, onlineList) {
     finalDateLabel:    g.finalDateLabel,
     activities:        g.activities,
     expenses:          g.expenses,
+    packingList:       g.packingList,
     online:            (onlineList||[]).map(s => ({ username: s.username, color: s.color })),
   };
 }
@@ -351,6 +352,42 @@ io.on('connection', socket => {
     exp.deleteOne();
     await g.save();
     io.to(s.code).emit('expense:removed', expenseId);
+  });
+
+  // PACKING LIST ──────────────────────────────────────
+  socket.on('pack:add', async text => {
+    const s = sessions[socket.id];
+    if (!s || !text?.trim()) return;
+    const g = await Group.findOne({ inviteCode: s.code });
+    if (!g || g.phase !== 'done') return;
+    g.packingList.push({ text: text.trim(), addedBy: username });
+    await g.save();
+    io.to(s.code).emit('pack:new', g.packingList.at(-1));
+  });
+
+  socket.on('pack:toggle', async itemId => {
+    const s = sessions[socket.id];
+    if (!s) return;
+    const g = await Group.findOne({ inviteCode: s.code });
+    if (!g) return;
+    const item = g.packingList.id(itemId);
+    if (!item) return;
+    item.packed   = !item.packed;
+    item.packedBy = item.packed ? username : null;
+    await g.save();
+    io.to(s.code).emit('pack:toggled', { id: itemId, packed: item.packed, packedBy: item.packedBy });
+  });
+
+  socket.on('pack:remove', async itemId => {
+    const s = sessions[socket.id];
+    if (!s) return;
+    const g = await Group.findOne({ inviteCode: s.code });
+    if (!g) return;
+    const item = g.packingList.id(itemId);
+    if (!item || (item.addedBy !== username && g.adminUsername !== username)) return;
+    item.deleteOne();
+    await g.save();
+    io.to(s.code).emit('pack:removed', itemId);
   });
 
   // SHARE ACTIVITY TO CHAT ────────────────────────────

@@ -155,6 +155,7 @@ function renderPhase() {
     renderDoneBanner();
     renderDoneCal();
     renderExpenses();
+    renderPackingList();
   }
 }
 

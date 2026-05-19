@@ -41,6 +41,14 @@ const ActivitySchema = new Schema({
   createdAt: { type: Date, default: Date.now },
 });
 
+const PackItemSchema = new Schema({
+  text:     { type: String, required: true },
+  addedBy:  String,
+  packed:   { type: Boolean, default: false },
+  packedBy: { type: String, default: null },
+  createdAt:{ type: Date, default: Date.now },
+});
+
 const ExpenseSchema = new Schema({
   description:  String,
   amount:       Number,
@@ -81,8 +89,9 @@ const GroupSchema = new Schema({
   finalDate:           { type: String, default: null },
   finalDateLabel:      { type: String, default: null },
 
-  activities:          { type: [ActivitySchema], default: [] },
-  expenses:            { type: [ExpenseSchema],  default: [] },
+  activities:          { type: [ActivitySchema],  default: [] },
+  expenses:            { type: [ExpenseSchema],   default: [] },
+  packingList:         { type: [PackItemSchema],  default: [] },
   messages:            { type: [MsgSchema],      default: [] },
   createdAt:           { type: Date, default: Date.now },
 });
