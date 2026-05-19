@@ -56,13 +56,13 @@
         <button class="ptab flex-1 py-2 border-none rounded-lg text-[13px] font-medium cursor-pointer bg-transparent text-muted transition-all" data-tab="register">Register</button>
       </div>
 
-      <form class="auth-form active" id="f-login">
+      <form class="auth-form active" id="f-login" onsubmit="event.preventDefault();authLogin(this)">
         <input type="email"    name="email"    placeholder="Email" required autocomplete="email"/>
         <input type="password" name="password" placeholder="Password" required autocomplete="current-password"/>
         <button type="submit" class="w-full py-[13px] border-none rounded-[10px] bg-accent text-white font-semibold text-sm cursor-pointer transition-all hover:bg-[#C44A22] hover:-translate-y-px active:scale-[.98]">Log in</button>
       </form>
 
-      <form class="auth-form" id="f-register">
+      <form class="auth-form" id="f-register" onsubmit="event.preventDefault();authRegister(this)">
         <input type="text"     name="username" placeholder="Your name (visible to others)" required maxlength="30"/>
         <input type="email"    name="email"    placeholder="Email" required autocomplete="email"/>
         <input type="password" name="password" placeholder="Password (min. 6 characters)" required minlength="6" autocomplete="new-password"/>
@@ -305,8 +305,10 @@
     <div id="chat-panel" class="flex-shrink-0 flex flex-col min-h-0 bg-panel overflow-hidden" style="width:340px;transition:width .22s ease">
       <!-- header / toggle -->
       <div class="px-4 py-[14px] border-b border-rim text-sm font-semibold flex items-center gap-2 flex-shrink-0 tracking-tight cursor-pointer select-none hover:bg-rim/30 transition-colors" onclick="toggleChat()">
-        <span id="chat-unread-badge" class="hidden min-w-[20px] h-5 rounded-full bg-accent text-white text-[11px] font-bold items-center justify-center px-1.5"></span>
-        <i data-lucide="message-circle" class="w-4 h-4 text-muted flex-shrink-0"></i>
+        <div class="relative flex-shrink-0">
+          <i data-lucide="message-circle" class="w-4 h-4 text-muted"></i>
+          <span id="chat-unread-badge" class="hidden absolute -top-2 -left-2.5 min-w-[16px] h-4 rounded-full bg-accent text-white text-[10px] font-bold flex items-center justify-center px-1 leading-none"></span>
+        </div>
         <span class="flex-1 chat-label">Group chat</span>
         <i data-lucide="chevron-right" class="w-4 h-4 text-muted transition-transform duration-200 chat-label" id="chat-chevron"></i>
       </div>
