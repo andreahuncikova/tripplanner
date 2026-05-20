@@ -14,30 +14,40 @@ function issueToken(user, res) {
 
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
-  const { email, password, username } = req.body;
-  if (!email || !password || !username)
-    return res.status(400).json({ error: 'Please fill in all fields' });
-  if (password.length < 6)
-    return res.status(400).json({ error: 'Password must be at least 6 characters' });
-  if (await User.findOne({ email }))
-    return res.status(409).json({ error: 'Email already in use' });
+  try {
+    const { email, password, username } = req.body;
+    if (!email || !password || !username)
+      return res.status(400).json({ error: 'Please fill in all fields' });
+    if (password.length < 6)
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    if (await User.findOne({ email }))
+      return res.status(409).json({ error: 'Email already in use' });
 
-  const color = COLORS[Math.floor(Math.random() * COLORS.length)];
-  const user  = await User.create({ email, password, username, color });
-  const token = issueToken(user, res);
-  res.status(201).json({ token, user: user.toSafe() });
+    const color = COLORS[Math.floor(Math.random() * COLORS.length)];
+    const user  = await User.create({ email, password, username, color });
+    const token = issueToken(user, res);
+    res.status(201).json({ token, user: user.toSafe() });
+  } catch (e) {
+    console.error('[register]', e.message);
+    res.status(500).json({ error: 'Server error — please try again' });
+  }
 });
 
 // POST /api/auth/login
 router.post('/login', async (req, res) => {
-  const { email, password } = req.body;
-  if (!email || !password)
-    return res.status(400).json({ error: 'Please enter your email and password' });
-  const user = await User.findOne({ email }).select('+password');
-  if (!user || !(await user.comparePassword(password)))
-    return res.status(401).json({ error: 'Incorrect email or password' });
-  const token = issueToken(user, res);
-  res.json({ token, user: user.toSafe() });
+  try {
+    const { email, password } = req.body;
+    if (!email || !password)
+      return res.status(400).json({ error: 'Please enter your email and password' });
+    const user = await User.findOne({ email }).select('+password');
+    if (!user || !(await user.comparePassword(password)))
+      return res.status(401).json({ error: 'Incorrect email or password' });
+    const token = issueToken(user, res);
+    res.json({ token, user: user.toSafe() });
+  } catch (e) {
+    console.error('[login]', e.message);
+    res.status(500).json({ error: 'Server error — please try again' });
+  }
 });
 
 // POST /api/auth/logout
@@ -51,8 +61,7 @@ router.get('/me', async (req, res) => {
   const token = req.cookies?.token || req.headers.authorization?.replace('Bearer ', '');
   if (!token) return res.status(401).json({ error: 'no token' });
   try {
-    const jwt2 = require('jsonwebtoken');
-    const decoded = jwt2.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET);
     const user = await User.findById(decoded._id);
     if (!user) return res.status(404).json({ error: 'not found' });
     res.json({ user: user.toSafe() });

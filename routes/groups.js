@@ -10,32 +10,47 @@ function ts() {
 
 // POST /api/groups  — create
 router.post('/', authMiddleware, async (req, res) => {
-  const { name } = req.body;
-  if (!name?.trim()) return res.status(400).json({ error: 'Group name is required' });
-  const { _id: userId, username, color } = req.user;
-  const inviteCode = uuidv4().slice(0,8).toUpperCase();
-  const group = await Group.create({
-    inviteCode, name: name.trim(),
-    adminUserId: userId, adminUsername: username,
-    members: [{ userId, username, color }],
-    messages: [{ username:'System', text:`Group "${name.trim()}" created! Code: ${inviteCode}`, time: ts(), system: true }]
-  });
-  res.status(201).json({ inviteCode, groupId: group._id });
+  try {
+    const { name } = req.body;
+    if (!name?.trim()) return res.status(400).json({ error: 'Group name is required' });
+    const { _id: userId, username, color } = req.user;
+    const inviteCode = uuidv4().slice(0,8).toUpperCase();
+    const group = await Group.create({
+      inviteCode, name: name.trim(),
+      adminUserId: userId, adminUsername: username,
+      members: [{ userId, username, color }],
+      messages: [{ username:'System', text:`Group "${name.trim()}" created! Code: ${inviteCode}`, time: ts(), system: true }]
+    });
+    res.status(201).json({ inviteCode, groupId: group._id });
+  } catch (e) {
+    console.error('[groups:create]', e.message);
+    res.status(500).json({ error: 'Server error — please try again' });
+  }
 });
 
 // GET /api/groups/:code  — info (public, for invite link preview)
 router.get('/:code', async (req, res) => {
-  const g = await Group.findOne({ inviteCode: req.params.code.toUpperCase() });
-  if (!g) return res.status(404).json({ error: 'Group not found' });
-  res.json({ name: g.name, inviteCode: g.inviteCode, phase: g.phase, memberCount: g.members.length });
+  try {
+    const g = await Group.findOne({ inviteCode: req.params.code.toUpperCase() });
+    if (!g) return res.status(404).json({ error: 'Group not found' });
+    res.json({ name: g.name, inviteCode: g.inviteCode, phase: g.phase, memberCount: g.members.length });
+  } catch (e) {
+    console.error('[groups:get]', e.message);
+    res.status(500).json({ error: 'Server error' });
+  }
 });
 
 // GET /api/groups  — my groups
 router.get('/', authMiddleware, async (req, res) => {
-  const groups = await Group.find({ 'members.userId': req.user._id })
-    .select('name inviteCode phase members createdAt tripDuration adminUsername tripWindowStart tripWindowEnd')
-    .sort('-createdAt').limit(20);
-  res.json({ groups });
+  try {
+    const groups = await Group.find({ 'members.userId': req.user._id })
+      .select('name inviteCode phase members createdAt tripDuration adminUsername tripWindowStart tripWindowEnd')
+      .sort('-createdAt').limit(20);
+    res.json({ groups });
+  } catch (e) {
+    console.error('[groups:list]', e.message);
+    res.status(500).json({ error: 'Server error' });
+  }
 });
 
 // POST /api/groups/:code/leave  — leave a group

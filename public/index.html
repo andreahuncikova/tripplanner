@@ -177,9 +177,6 @@
     </div>
   </div>
 
-  <!-- BACK REQUEST BAR -->
-  <div id="back-request-bar" class="hidden flex-shrink-0 overflow-y-auto" style="max-height:160px"></div>
-
   <!-- HINT BAR — full-width, text always at true page centre -->
   <div id="hint-bar" class="flex-shrink-0 relative bg-panel border-b border-rim pt-3 pb-2">
     <div id="hint-content" class="flex items-center justify-center pointer-events-none"></div>
@@ -414,30 +411,6 @@
   </button>
 
 </div><!-- /s-app -->
-
-<!-- BACK REQUEST MODAL -->
-<div class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[100]" id="back-req-modal" onclick="if(event.target===this)closeBackReqModal()">
-  <div class="bg-panel rounded-2xl w-[380px] max-w-[95vw] shadow-modal overflow-hidden">
-    <div class="px-6 pt-6 pb-4 border-b border-rim flex items-center gap-3">
-      <div id="brm-icon" class="flex-shrink-0"></div>
-      <div>
-        <h3 class="text-[17px] font-semibold tracking-[-0.02em]" id="brm-title"></h3>
-        <p class="text-xs text-muted mt-0.5" id="brm-phase"></p>
-      </div>
-    </div>
-    <div class="px-6 py-5 flex flex-col gap-4">
-      <p class="text-sm text-muted leading-relaxed" id="brm-desc"></p>
-      <div id="brm-state-idle" class="flex flex-col gap-2">
-        <button onclick="submitBackRequest()" class="w-full py-[12px] border-none rounded-xl bg-accent text-white font-semibold text-sm cursor-pointer transition-all hover:bg-[#C44A22]">Make change</button>
-        <button onclick="closeBackReqModal()" class="text-muted text-xs cursor-pointer hover:text-ink font-medium py-1 text-center">Cancel</button>
-      </div>
-      <div id="brm-state-pending" class="hidden flex flex-col gap-2">
-        <div class="w-full py-[12px] rounded-xl bg-muted/10 text-muted font-semibold text-sm text-center">⏳ Waiting for admin approval…</div>
-        <button onclick="closeBackReqModal()" class="text-muted text-xs cursor-pointer hover:text-ink font-medium py-1 text-center">Close</button>
-      </div>
-    </div>
-  </div>
-</div>
 
 <!-- INVITE MODAL -->
 <div class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[100]" id="inv-modal" onclick="if(event.target===this)closeModal()">

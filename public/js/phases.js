@@ -32,12 +32,10 @@ function renderPhaseStepper() {
       labelCls = 'text-muted/30';
     }
 
-    const clickable       = done && isAdmin();
-    const memberClickable = done && !isAdmin();
+    const clickable = done && isAdmin();
     const btn = `<button
-      class="flex items-center gap-1.5 ${clickable || memberClickable ? 'cursor-pointer hover:opacity-70' : 'cursor-default'} transition-opacity"
-      ${clickable       ? `onclick="jumpToPhase(${i})"` : ''}
-      ${memberClickable ? `onclick="showBackRequestModal(${i})"` : ''}>
+      class="flex items-center gap-1.5 ${clickable ? 'cursor-pointer hover:opacity-70' : 'cursor-default'} transition-opacity"
+      ${clickable ? `onclick="jumpToPhase(${i})"` : ''}>
       ${circle}
       <span class="text-[11px] ${labelCls} hidden md:inline">${STEP_LABELS[i]}</span>
     </button>`;
@@ -327,9 +325,6 @@ const HINTS = {
   },
 };
 
-let pendingBackRequest = null;
-let backReqTargetPhase = null;
-
 function renderReadiness() {
   const panel = document.getElementById('readiness-panel');
   if (!panel) return;
@@ -392,87 +387,3 @@ function renderHint(phase) {
 
 // ── Back-request modal (member clicks a previous phase step) ──
 
-const BACK_REQ_INFO = {
-  destinations: {
-    icon: HI.map,
-    desc: 'You can change your destination vote or suggest a new destination. Your request will be sent to the admin for approval.',
-  },
-  calendar: {
-    icon: HI.calendar,
-    desc: 'You can update the days when you\'re unavailable for travel. Your request will be sent to the admin for approval.',
-  },
-  date_vote: {
-    icon: HI.calCheck,
-    desc: 'You can change your vote for the preferred date window. Your request will be sent to the admin for approval.',
-  },
-};
-
-function showBackRequestModal(phaseIdx) {
-  const targetPhase = PHASE_ORDER[phaseIdx];
-  const info = BACK_REQ_INFO[targetPhase];
-  if (!info) return;
-
-  backReqTargetPhase = targetPhase;
-
-  document.getElementById('brm-icon').innerHTML = info.icon;
-  document.getElementById('brm-title').textContent = `Request access to ${STEP_LABELS[phaseIdx]}`;
-  document.getElementById('brm-phase').textContent = STEP_LABELS[phaseIdx];
-  document.getElementById('brm-desc').textContent  = info.desc;
-
-  const isPending = pendingBackRequest === targetPhase;
-  document.getElementById('brm-state-idle').classList.toggle('hidden', isPending);
-  document.getElementById('brm-state-pending').classList.toggle('hidden', !isPending);
-
-  document.getElementById('back-req-modal').classList.remove('hidden');
-}
-
-function closeBackReqModal() {
-  document.getElementById('back-req-modal').classList.add('hidden');
-}
-
-function submitBackRequest() {
-  if (!backReqTargetPhase) return;
-  pendingBackRequest = backReqTargetPhase;
-  socket?.emit('back:request', { targetPhase: backReqTargetPhase });
-  document.getElementById('brm-state-idle').classList.add('hidden');
-  document.getElementById('brm-state-pending').classList.remove('hidden');
-}
-
-// ── Admin back-request approval bar ──────────────────
-
-const PHASE_NAMES = {
-  destinations: 'Destinations',
-  calendar:     'Availability',
-  date_vote:    'Date voting',
-  done:         'Trip!',
-};
-
-let pendingRequests = []; // [{ username, targetPhase }]
-
-function renderBackRequestBar() {
-  const bar = document.getElementById('back-request-bar');
-  if (!pendingRequests.length) {
-    bar.classList.add('hidden');
-    bar.innerHTML = '';
-    return;
-  }
-  bar.classList.remove('hidden');
-  bar.innerHTML = pendingRequests.map(req => `
-    <div class="flex items-center gap-3 px-5 py-2.5 bg-accent/[.06] border-b border-accent/20 flex-wrap">
-      <span class="text-[13px] font-semibold text-ink flex-1 min-w-0">
-        ${IC.warn} <strong>${esc(req.username)}</strong> wants to go back to <strong>${PHASE_NAMES[req.targetPhase] || req.targetPhase}</strong>
-      </span>
-      <div class="flex gap-2 flex-shrink-0">
-        <button onclick="approveBack('${esc(req.username)}','${req.targetPhase}')" class="px-3 py-1.5 rounded-lg bg-green text-white border-none text-[11px] font-semibold cursor-pointer hover:bg-[#4a8040] transition-colors">${IC.check} Approve</button>
-        <button onclick="denyBack('${esc(req.username)}')" class="px-3 py-1.5 rounded-lg border border-rim bg-transparent text-muted text-[11px] font-semibold cursor-pointer hover:text-ink transition-colors">${IC.x} Deny</button>
-      </div>
-    </div>`).join('');
-}
-
-function approveBack(username, targetPhase) {
-  socket?.emit('back:approve', { targetUsername: username, targetPhase });
-}
-
-function denyBack(username) {
-  socket?.emit('back:deny', { targetUsername: username });
-}
