@@ -149,9 +149,9 @@ io.on('connection', socket => {
     if (!g) return;
     const d = g.destinations.id(destId);
     if (!d) return;
-    const wasVoted = d.votes.includes(username);
+    if (d.votes.includes(username)) return;
     g.destinations.forEach(x => { x.votes = x.votes.filter(u => u !== username); });
-    if (!wasVoted) d.votes.push(username);
+    d.votes.push(username);
     await g.save();
     io.to(s.code).emit('state', serialize(g, getOnline(s.code)));
   });
@@ -250,9 +250,9 @@ io.on('connection', socket => {
     if (!s) return;
     const g = await Group.findOne({ inviteCode: s.code });
     if (!g || !['date_vote', 'done'].includes(g.phase)) return;
-    const wasVoted = g.dateRanges[idx]?.votes.includes(username);
+    if (g.dateRanges[idx]?.votes.includes(username)) return; // already liked, no-op
     g.dateRanges.forEach(r => { r.votes = r.votes.filter(u => u !== username); });
-    if (!wasVoted && g.dateRanges[idx]) g.dateRanges[idx].votes.push(username);
+    if (g.dateRanges[idx]) g.dateRanges[idx].votes.push(username);
     await g.save();
     io.to(s.code).emit('range:votes', g.dateRanges);
   });

@@ -49,11 +49,7 @@ function initSocket(code) {
   socket.on('online',  list  => renderOnline(list));
   socket.on('msg',     m     => appendMsg(m));
 
-  socket.on('dest:new',   dest => { currentGroup.destinations.push(dest); renderDests(); });
-  socket.on('dest:votes', ({ destId, votes }) => {
-    const d = currentGroup.destinations.find(x => String(x._id) === String(destId));
-    if (d) { d.votes = votes; renderDests(); }
-  });
+  socket.on('dest:new', dest => { currentGroup.destinations.push(dest); renderDests(); });
 
   socket.on('avail:update', ({ username, color, unavailableDates }) => {
     let a = currentGroup.availability.find(x => x.username === username);

@@ -292,10 +292,6 @@
           <button class="dtab flex-1 py-3 bg-transparent border-none border-b-2 border-transparent text-muted font-medium text-sm cursor-pointer transition-all -mb-[2px] tracking-[.01em] flex items-center justify-center gap-1.5" id="dtab-budget" onclick="switchDoneTab('budget')">
             <i data-lucide="wallet" class="w-3.5 h-3.5"></i>Budget
           </button>
-          <div class="w-px bg-rim my-2 flex-shrink-0"></div>
-          <button class="dtab flex-1 py-3 bg-transparent border-none border-b-2 border-transparent text-muted font-medium text-sm cursor-pointer transition-all -mb-[2px] tracking-[.01em] flex items-center justify-center gap-1.5" id="dtab-packing" onclick="switchDoneTab('packing')">
-            <i data-lucide="backpack" class="w-3.5 h-3.5"></i>Packing
-          </button>
         </div>
 
         <div id="done-tab-schedule" class="done-tab-pane flex-1 overflow-hidden min-h-0 flex flex-col">
@@ -373,14 +369,6 @@
 
         </div>
 
-        <div id="done-tab-packing" class="done-tab-pane done-tab-hidden flex-1 overflow-hidden min-h-0 flex flex-col">
-          <div class="flex-1 overflow-y-auto p-5 flex flex-col gap-2.5" id="pack-list"></div>
-          <div class="flex gap-1.5 p-3 border-t border-rim flex-shrink-0 bg-panel">
-            <input id="pack-inp" type="text" placeholder="Add item (e.g. Passport, Sunscreen…)" maxlength="60"
-              onkeydown="if(event.key==='Enter')packSuggest()" class="flex-1"/>
-            <button class="bg-accent text-white border-none rounded-lg py-2 px-4 font-semibold text-[13px] cursor-pointer whitespace-nowrap transition-all hover:bg-[#C44A22]" onclick="packSuggest()">Add</button>
-          </div>
-        </div>
       </div>
 
     </div><!-- /left-col -->
@@ -489,9 +477,9 @@
       <div class="flex flex-col gap-1.5">
         <label class="text-[11px] font-semibold text-muted uppercase tracking-[.06em]">Trip window</label>
         <div class="flex items-center gap-3 bg-bg rounded-xl px-4 py-3 border border-rim">
-          <select id="new-group-month-from" class="flex-1 border-none bg-transparent outline-none text-[13px] font-medium text-ink cursor-pointer"></select>
+          <select id="new-group-month-from" class="select-ghost flex-1 text-[13px] font-medium text-ink cursor-pointer"></select>
           <span class="text-muted/60 text-sm flex-shrink-0">→</span>
-          <select id="new-group-month-to" class="flex-1 border-none bg-transparent outline-none text-[13px] font-medium text-ink cursor-pointer"></select>
+          <select id="new-group-month-to" class="select-ghost flex-1 text-[13px] font-medium text-ink cursor-pointer"></select>
         </div>
         <div class="text-[11px] text-muted">The months you're considering for the trip — you can change this later.</div>
       </div>

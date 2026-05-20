@@ -12,9 +12,9 @@ function renderTripWindowSetter() {
     bar.innerHTML = label + `
       <div class="flex flex-col gap-2">
         <div class="flex items-center gap-1.5 flex-wrap">
-          <select id="tw-start" style="font-size:12px;padding:5px 8px;flex:1">${monthOpts(ws ? ws.slice(0,7) : '')}</select>
+          <select id="tw-start" class="select-ghost" style="font-size:12px;flex:1">${monthOpts(ws ? ws.slice(0,7) : '')}</select>
           <span class="text-xs text-muted flex-shrink-0">–</span>
-          <select id="tw-end" style="font-size:12px;padding:5px 8px;flex:1">${monthOpts(we ? we.slice(0,7) : '')}</select>
+          <select id="tw-end" class="select-ghost" style="font-size:12px;flex:1">${monthOpts(we ? we.slice(0,7) : '')}</select>
         </div>
         <button class="inline-flex items-center justify-center border-none rounded-lg px-3 py-2 bg-accent text-white text-[12px] font-semibold cursor-pointer transition-all hover:bg-[#C44A22] w-full" onclick="setTripWindow()">${ws && we ? 'Update window' : 'Set window'}</button>
         ${ws && we ? `<div class="text-[13px] font-semibold text-blue">${fmtMonthRange(ws, we)}</div>` : ''}
