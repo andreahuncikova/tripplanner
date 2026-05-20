@@ -204,21 +204,45 @@ function renderRanges() {
   // Duration card — merged as first item, admin only
   let durCard = '';
   if (isAdmin() && !localPhaseOverride) {
+    if (!dur) {
+      durCard = `
+        <div class="bg-accent/[.06] border border-accent/30 rounded-xl p-4 flex gap-3 items-start">
+          <div class="w-9 h-9 rounded-xl bg-accent/10 flex items-center justify-center text-accent flex-shrink-0 mt-0.5">${IC.ruler}</div>
+          <div class="flex-1 min-w-0">
+            <div class="text-[14px] font-bold text-ink mb-0.5">Set trip duration first</div>
+            <div class="text-[12px] text-muted mb-3">How many days do you plan to travel? This filters the available date windows.</div>
+            <div class="flex items-center gap-2">
+              <input id="dur-inp" type="number" min="1" max="60" placeholder="e.g. 7"
+                style="width:90px;text-align:center"
+                onkeydown="if(event.key==='Enter')setTripDuration()"/>
+              <button class="inline-flex items-center gap-1 border-none rounded-lg px-4 py-2 bg-accent text-white text-[13px] font-semibold cursor-pointer hover:bg-[#C44A22] transition-colors" onclick="setTripDuration()">
+                Set duration
+              </button>
+            </div>
+          </div>
+        </div>`;
+    } else {
+      durCard = `
+        <div class="bg-panel border border-rim rounded-xl p-[13px_15px] flex items-center gap-3">
+          <div class="text-[11px] font-semibold text-muted uppercase tracking-[.05em] flex-shrink-0">${IC.ruler} Trip duration</div>
+          <span class="text-[13px] font-semibold text-green flex items-center gap-1">${IC.check} ${dur} days</span>
+          <div class="flex items-center gap-2 ml-auto">
+            <input id="dur-inp" type="number" min="1" max="60" value="${dur}"
+              style="width:72px;text-align:center"
+              onkeydown="if(event.key==='Enter')setTripDuration()"/>
+            <button class="inline-flex items-center gap-1 border-none rounded-lg px-3 py-[5px] bg-transparent border border-rim text-[11px] font-semibold cursor-pointer hover:bg-bg transition-colors text-muted hover:text-ink" style="border:1.5px solid rgba(24,24,27,.12)" onclick="setTripDuration()">Update</button>
+          </div>
+        </div>`;
+    }
+  } else if (!dur) {
     durCard = `
-      <div class="bg-panel border border-rim rounded-xl p-[13px_15px]">
-        <div class="text-[11px] font-semibold text-muted uppercase tracking-[.05em] mb-2">${IC.ruler} Trip duration</div>
-        <div class="flex items-center gap-2">
-          <input id="dur-inp" type="number" min="1" max="60" value="${dur || ''}" placeholder="days"
-            style="width:80px;text-align:center"
-            onkeydown="if(event.key==='Enter')setTripDuration()"/>
-          <button class="inline-flex items-center gap-1 border-none rounded-lg px-3 py-[5px] bg-accent text-white text-[11px] font-semibold cursor-pointer hover:bg-[#C44A22] transition-colors flex-shrink-0" onclick="setTripDuration()">
-            ${dur ? 'Update' : 'Set'}
-          </button>
-          ${dur ? `<span class="text-[12px] text-green font-semibold flex items-center gap-1 flex-shrink-0">${IC.check} ${dur} days</span>` : `<span class="text-[12px] text-muted">Set to filter dates</span>`}
+      <div class="bg-blue/[.05] border border-blue/20 rounded-xl p-4 flex gap-3 items-center">
+        <div class="w-8 h-8 rounded-lg bg-blue/10 flex items-center justify-center text-blue flex-shrink-0">${IC.clock}</div>
+        <div>
+          <div class="text-[13px] font-semibold text-ink">Waiting for trip duration</div>
+          <div class="text-[12px] text-muted mt-0.5">The admin hasn't set how many days the trip will be yet.</div>
         </div>
       </div>`;
-  } else if (!dur) {
-    durCard = `<p class="text-center text-[12px] text-muted py-2">Waiting for the admin to set trip duration…</p>`;
   }
 
   if (!ranges.length) {
