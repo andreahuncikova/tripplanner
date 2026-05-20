@@ -275,36 +275,51 @@ function renderRanges() {
   const maxVotes = Math.max(...ranges.map(r => r.votes.length), 1);
 
   el.innerHTML = durCard + ranges.map(r => {
-    const origIdx = g.dateRanges.indexOf(r);
-    const voted   = r.votes.includes(me.username);
-    const top     = r.votes.length === Math.max(...ranges.map(x => x.votes.length)) && r.votes.length > 0;
-    const pct     = Math.round((r.votes.length / maxVotes) * 100);
-    const winDays = rangeDays(r);
+    const origIdx  = g.dateRanges.indexOf(r);
+    const voted    = r.votes.includes(me.username);
+    const topVotes = Math.max(...ranges.map(x => x.votes.length));
+    const top      = r.votes.length === topVotes && r.votes.length > 0;
+    const pct      = Math.round((r.votes.length / maxVotes) * 100);
+    const winDays  = rangeDays(r);
     const [datesPart] = r.label.split(' (');
 
     const windowPill = `<span class="inline-flex items-center gap-1 bg-blue/[.08] text-blue text-[10px] font-semibold px-2 py-0.5 rounded-full">${IC.calendar} ${winDays} days free</span>`;
     const tripPill   = dur ? `<span class="inline-flex items-center gap-1 bg-accent/[.08] text-accent text-[10px] font-semibold px-2 py-0.5 rounded-full">${IC.ruler} ${dur} days trip</span>` : '';
-    const borderCls  = top ? 'border-green/35' : 'border-rim';
+    const adminSel  = isAdmin() && _adminSelectedRange === origIdx;
+    const borderCls = adminSel ? 'border-blue/50 border-[1.5px]' : top ? 'border-green/35' : 'border-rim';
 
-    return `<div class="bg-panel border ${borderCls} rounded-xl p-[13px_15px] flex items-center gap-[11px] transition-all shadow-soft animate-up hover:shadow-md hover:-translate-y-px hover:border-blue/20">
+    const memberDots = (g.members || []).map(m => {
+      const hasVoted = r.votes.includes(m.username);
+      return `<div title="${esc(m.username)}" class="w-[22px] h-[22px] rounded-full flex items-center justify-center text-white text-[9px] font-bold flex-shrink-0 ${hasVoted ? '' : 'opacity-20'}" style="background:${m.color}">${esc(m.username[0].toUpperCase())}</div>`;
+    }).join('');
+
+    const cardClick = isAdmin() ? `onclick="selectRange(${origIdx})"` : '';
+
+    return `<div class="bg-panel border ${borderCls} rounded-xl p-[13px_15px] flex items-center gap-[11px] transition-colors shadow-soft animate-up hover:shadow-md hover:-translate-y-px ${isAdmin() ? 'cursor-pointer' : ''}" ${cardClick}>
       <div class="flex-shrink-0 text-muted">${IC.calendar}</div>
       <div class="flex-1 min-w-0">
         <div class="text-[15px] font-semibold tracking-tight">${esc(datesPart)}
           ${top ? `<span class="inline-flex items-center gap-1 text-[10px] bg-accent/[.10] text-accent border border-accent/25 rounded-full px-2 py-0.5 ml-1.5 font-semibold">${IC.trophy} Top</span>` : ''}
         </div>
         <div class="flex items-center gap-1.5 flex-wrap mt-1">${windowPill}${tripPill}</div>
-        <div class="text-[11px] text-muted mt-1.5">${r.votes.length ? r.votes.map(esc).join(', ') : 'Nobody yet'}</div>
         <div class="flex items-center gap-2 mt-2">
-          <div class="flex-1 h-1 bg-rim rounded-full overflow-hidden"><div class="h-full bg-blue rounded-full transition-[width_.5s]" style="width:${pct}%"></div></div>
-          <span class="text-[11px] font-semibold text-muted min-w-4 text-right">${r.votes.length}</span>
+          <div class="flex items-center gap-1">${memberDots}</div>
+          <div class="flex-1 h-1 bg-rim rounded-full overflow-hidden ml-1"><div class="h-full bg-blue rounded-full" style="width:${pct}%"></div></div>
+          <span class="text-[11px] font-semibold text-muted w-5 text-right flex-shrink-0">${r.votes.length}</span>
         </div>
-        ${isAdmin() && top && dur ? `<button class="mt-2.5 inline-flex items-center gap-1.5 bg-accent text-white border-none rounded-lg px-4 py-2 text-[13px] font-semibold cursor-pointer transition-all hover:bg-[#C44A22] hover:-translate-y-px" onclick="rangeConfirm(${origIdx})">${IC.check} Confirm this date</button>` : ''}
+        ${adminSel && dur ? `<button class="mt-2.5 inline-flex items-center gap-1.5 border-none rounded-lg px-4 py-[9px] bg-green/[.12] text-green text-[13px] font-semibold cursor-pointer transition-all hover:bg-green/[.20] hover:-translate-y-px" onclick="event.stopPropagation();rangeConfirm(${origIdx})">${IC.calendar} Pick exact dates →</button>` : ''}
       </div>
       <div class="flex items-center gap-[7px] flex-shrink-0">
-        <button class="w-8 h-8 rounded-full border-[1.5px] ${voted ? 'bg-accent border-accent text-white' : 'border-rim bg-transparent text-muted hover:bg-accent/[.08] hover:border-accent/35 hover:text-accent hover:scale-[1.08]'} flex items-center justify-center transition-all cursor-pointer" onclick="rangeVote(${origIdx})">${voted ? IC.heart : IC.heartO}</button>
+        <button class="w-8 h-8 rounded-full border-[1.5px] ${voted ? 'bg-accent border-accent text-white' : 'border-rim bg-transparent text-muted hover:bg-accent/[.08] hover:border-accent/35 hover:text-accent hover:scale-[1.08]'} flex items-center justify-center transition-all cursor-pointer" onclick="event.stopPropagation();rangeVote(${origIdx})">${voted ? IC.heart : IC.heartO}</button>
       </div>
     </div>`;
   }).join('');
+}
+
+function selectRange(i) {
+  if (!isAdmin()) return;
+  _adminSelectedRange = _adminSelectedRange === i ? null : i;
+  renderRanges();
 }
 
 function rangeVote(i) {
@@ -460,7 +475,8 @@ function inRange(key, start, dur) {
   return new Date(key) >= s && new Date(key) <= e;
 }
 
-let _editingActId = null;
+let _editingActId      = null;
+let _adminSelectedRange = null;
 
 function showAddActModal(preDate, editData = null) {
   _editingActId = editData?.id || null;

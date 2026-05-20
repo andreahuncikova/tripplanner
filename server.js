@@ -154,9 +154,9 @@ io.on('connection', socket => {
       if (!g) return;
       const d = g.destinations.id(destId);
       if (!d) return;
-      if (d.votes.includes(username)) return;
+      const alreadyVoted = d.votes.includes(username);
       g.destinations.forEach(x => { x.votes = x.votes.filter(u => u !== username); });
-      d.votes.push(username);
+      if (!alreadyVoted) d.votes.push(username);
       await g.save();
       io.to(s.code).emit('state', serialize(g, getOnline(s.code)));
     } catch (e) { console.error('[dest:vote]', e.message); }
@@ -290,9 +290,9 @@ io.on('connection', socket => {
       if (!s) return;
       const g = await Group.findOne({ inviteCode: s.code });
       if (!g || !['date_vote', 'done'].includes(g.phase)) return;
-      if (g.dateRanges[idx]?.votes.includes(username)) return;
+      const alreadyVoted = g.dateRanges[idx]?.votes.includes(username);
       g.dateRanges.forEach(r => { r.votes = r.votes.filter(u => u !== username); });
-      if (g.dateRanges[idx]) g.dateRanges[idx].votes.push(username);
+      if (!alreadyVoted && g.dateRanges[idx]) g.dateRanges[idx].votes.push(username);
       await g.save();
       io.to(s.code).emit('range:votes', g.dateRanges);
     } catch (e) { console.error('[range:vote]', e.message); }

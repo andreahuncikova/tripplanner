@@ -57,7 +57,7 @@ function initSocket(code) {
     renderCalDayPanel();
   });
 
-  socket.on('range:votes',     ranges => { currentGroup.dateRanges = ranges; renderRanges(); });
+  socket.on('range:votes',     ranges => { currentGroup.dateRanges = ranges; renderRanges(); renderReadiness(); });
   socket.on('activity:new',    act    => { currentGroup.activities.push(act); renderDoneCal(); });
   socket.on('expense:new',     exp    => { if (!currentGroup.expenses) currentGroup.expenses = []; currentGroup.expenses.push(exp); renderExpenses(); });
   socket.on('expense:removed', id     => { currentGroup.expenses = (currentGroup.expenses || []).filter(e => String(e._id) !== String(id)); renderExpenses(); });
