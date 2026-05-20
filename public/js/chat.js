@@ -103,11 +103,11 @@ function showTyping(uname) {
   typingTimers[uname] = setTimeout(() => { el.innerHTML = ''; }, 2500);
 }
 
-let myTypingT;
+let myTypingT = null;
 function chatTyping() {
-  clearTimeout(myTypingT);
+  if (myTypingT) return;
   socket?.emit('typing');
-  myTypingT = setTimeout(() => {}, 2000);
+  myTypingT = setTimeout(() => { myTypingT = null; }, 2000);
 }
 
 function renderOnline(list) {

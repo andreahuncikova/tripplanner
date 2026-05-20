@@ -6,7 +6,7 @@ const mongoose     = require('mongoose');
 const cookieParser = require('cookie-parser');
 const path         = require('path');
 
-const { MONGO_URI, PORT, DEST_EMOJIS, ACTIVITY_SUGGESTIONS } = require('./config');
+const { MONGO_URI, PORT, ACTIVITY_SUGGESTIONS } = require('./config');
 const { socketAuth } = require('./middleware/auth');
 const { computeDateRanges, formatTripLabel } = require('./utils');
 const Group = require('./models/Group');
@@ -200,7 +200,7 @@ io.on('connection', socket => {
       if (existing) { existing.unavailableDates = filtered; existing.color = color; }
       else g.availability.push({ userId, username, color, unavailableDates: filtered });
       await g.save();
-      io.to(s.code).emit('avail:update', { username, color, unavailableDates: dates });
+      io.to(s.code).emit('avail:update', { username, color, unavailableDates: filtered });
     } catch (e) { console.error('[avail:set]', e.message); }
   });
 

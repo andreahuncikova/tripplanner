@@ -11,10 +11,9 @@ const MsgSchema = new Schema({
 }, { _id: false });
 
 const DestSchema = new Schema({
-  name:    { type: String, required: true },
-  emoji:   { type: String, default: '🌍' },
-  by:      String,
-  votes:   { type: [String], default: [] },
+  name:  { type: String, required: true },
+  by:    String,
+  votes: { type: [String], default: [] },
 });
 
 const AvailSchema = new Schema({
@@ -82,7 +81,6 @@ const GroupSchema = new Schema({
   members:             { type: [MemberSchema],  default: [] },
   destinations:        { type: [DestSchema],    default: [] },
   approvedDest:        { type: String, default: null },
-  approvedDestEmoji:   { type: String, default: null },
 
   availability:        { type: [AvailSchema],   default: [] },
   availabilityReady:   { type: [String],        default: [] },

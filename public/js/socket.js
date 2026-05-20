@@ -61,9 +61,6 @@ function initSocket(code) {
   socket.on('activity:new',    act    => { currentGroup.activities.push(act); renderDoneCal(); });
   socket.on('expense:new',     exp    => { if (!currentGroup.expenses) currentGroup.expenses = []; currentGroup.expenses.push(exp); renderExpenses(); });
   socket.on('expense:removed', id     => { currentGroup.expenses = (currentGroup.expenses || []).filter(e => String(e._id) !== String(id)); renderExpenses(); });
-  socket.on('pack:new',        item   => { if (!currentGroup.packingList) currentGroup.packingList = []; currentGroup.packingList.push(item); renderPackingList(); });
-  socket.on('pack:toggled',    ({ id, packed, packedBy }) => { const it = (currentGroup.packingList||[]).find(x => String(x._id)===String(id)); if(it){it.packed=packed;it.packedBy=packedBy;} renderPackingList(); });
-  socket.on('pack:removed',    id     => { currentGroup.packingList = (currentGroup.packingList||[]).filter(i => String(i._id)!==String(id)); renderPackingList(); });
   socket.on('typing',          uname  => showTyping(uname));
   socket.on('group:left',    () => goToDash());
   socket.on('group:deleted', () => goToDash());

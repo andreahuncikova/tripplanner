@@ -143,10 +143,8 @@ function renderPhase() {
       calY = fd.getFullYear();
       calM = fd.getMonth();
     }
-    renderDoneBanner();
     renderDoneCal();
     renderExpenses();
-    renderPackingList();
   }
 
   renderReadiness();

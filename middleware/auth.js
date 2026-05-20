@@ -3,12 +3,12 @@ const { JWT_SECRET } = require('../config');
 
 function authMiddleware(req, res, next) {
   const token = req.cookies?.token || req.headers.authorization?.replace('Bearer ', '');
-  if (!token) return res.status(401).json({ error: 'Nie si prihlásený' });
+  if (!token) return res.status(401).json({ error: 'Not logged in' });
   try {
     req.user = jwt.verify(token, JWT_SECRET);
     next();
   } catch {
-    res.status(401).json({ error: 'Neplatný token' });
+    res.status(401).json({ error: 'Invalid token' });
   }
 }
 
