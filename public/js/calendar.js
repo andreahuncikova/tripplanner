@@ -7,30 +7,28 @@ function renderTripWindowSetter() {
   const ws = g.tripWindowStart || '';
   const we = g.tripWindowEnd   || '';
 
+  const label = `<div class="text-[10px] font-semibold text-muted uppercase tracking-[.07em] mb-2">Trip window</div>`;
   if (isAdmin()) {
-    bar.innerHTML = `
-      <div class="flex items-center gap-2 flex-wrap">
-        <span class="text-[11px] font-semibold text-muted uppercase tracking-[.05em] flex-shrink-0">Trip window</span>
-        <select id="tw-start" style="font-size:12px;padding:4px 7px">${monthOpts(ws ? ws.slice(0,7) : '')}</select>
-        <span class="text-xs text-muted">–</span>
-        <select id="tw-end" style="font-size:12px;padding:4px 7px">${monthOpts(we ? we.slice(0,7) : '')}</select>
-        <button class="inline-flex items-center border-none rounded-lg px-3 py-[5px] bg-accent text-white text-[11px] font-semibold cursor-pointer transition-all hover:bg-[#C44A22] flex-shrink-0" onclick="setTripWindow()">${ws && we ? 'Update' : 'Set'}</button>
-        ${ws && we ? `<span class="text-[12px] font-semibold text-blue">${fmtMonthRange(ws, we)}</span>` : ''}
+    bar.innerHTML = label + `
+      <div class="flex flex-col gap-2">
+        <div class="flex items-center gap-1.5 flex-wrap">
+          <select id="tw-start" style="font-size:12px;padding:5px 8px;flex:1">${monthOpts(ws ? ws.slice(0,7) : '')}</select>
+          <span class="text-xs text-muted flex-shrink-0">–</span>
+          <select id="tw-end" style="font-size:12px;padding:5px 8px;flex:1">${monthOpts(we ? we.slice(0,7) : '')}</select>
+        </div>
+        <button class="inline-flex items-center justify-center border-none rounded-lg px-3 py-2 bg-accent text-white text-[12px] font-semibold cursor-pointer transition-all hover:bg-[#C44A22] w-full" onclick="setTripWindow()">${ws && we ? 'Update window' : 'Set window'}</button>
+        ${ws && we ? `<div class="text-[13px] font-semibold text-blue">${fmtMonthRange(ws, we)}</div>` : ''}
       </div>`;
   } else if (ws && we) {
-    bar.innerHTML = `
-      <div class="inline-flex items-center gap-1.5 bg-blue/[.08] border border-blue/20 text-blue text-[12px] font-semibold rounded-full px-3 py-1">
-        ${IC.calendar}<span>${fmtMonthRange(ws, we)}</span>
-      </div>`;
+    bar.innerHTML = label + `<div class="text-[15px] font-bold text-blue">${fmtMonthRange(ws, we)}</div>`;
   } else {
     bar.innerHTML = '';
   }
 }
 
-// generates <option> elements for a month select, 18 months starting from now
-function monthOpts(selectedYM) {
+function monthOpts(selectedYM, count = 18) {
   const now = new Date();
-  return Array.from({ length: 18 }, (_, i) => {
+  return Array.from({ length: count }, (_, i) => {
     const d   = new Date(now.getFullYear(), now.getMonth() + i, 1);
     const val = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
     return `<option value="${val}"${val === selectedYM ? ' selected' : ''}>${MONTHS[d.getMonth()]} ${d.getFullYear()}</option>`;
@@ -184,30 +182,6 @@ function computeDates() {
 // ── Date voting ───────────────────────────────────────
 
 
-function renderDurSetter() {
-  const el = document.getElementById('dur-setter-bar');
-  if (!el) return;
-  const dur    = currentGroup.tripDuration;
-  const rowCls = 'flex items-center gap-2.5 px-4 py-3 border-b border-rim flex-shrink-0 flex-wrap';
-
-  if (isAdmin()) {
-    el.innerHTML = `
-      <div class="${rowCls} bg-panel">
-        <span class="text-[11px] font-semibold text-muted uppercase tracking-[.05em] whitespace-nowrap flex items-center gap-1">${IC.ruler} Trip duration</span>
-        <input id="dur-inp" type="number" min="1" max="60" value="${dur || ''}" placeholder="days"
-          style="width:72px;text-align:center"
-          onkeydown="if(event.key==='Enter')setTripDuration()"/>
-        <button class="inline-flex items-center gap-1 border-none rounded-lg px-3 py-[5px] bg-accent text-white text-[11px] font-semibold cursor-pointer transition-all hover:bg-[#C44A22]" onclick="setTripDuration()">
-          ${dur ? 'Update' : 'Set'}
-        </button>
-        ${dur ? `<span class="text-[13px] font-semibold text-green ml-1">${IC.check} ${dur} days</span>` : ''}
-      </div>`;
-  } else if (dur) {
-    el.innerHTML = `<div class="${rowCls} bg-blue/[.04]"><span class="text-sm font-semibold text-ink flex items-center gap-1">${IC.ruler} Trip duration:</span><span class="text-[15px] font-semibold text-green">${dur} days</span></div>`;
-  } else {
-    el.innerHTML = `<div class="${rowCls} bg-blue/[.04]"><span class="text-sm text-muted">Admin hasn't set the trip duration yet…</span></div>`;
-  }
-}
 
 function setTripDuration() {
   const inp = document.getElementById('dur-inp');
@@ -231,17 +205,17 @@ function renderRanges() {
   let durCard = '';
   if (isAdmin() && !localPhaseOverride) {
     durCard = `
-      <div class="bg-panel border border-rim rounded-xl p-[13px_15px] flex items-center gap-3 flex-wrap">
-        <span class="text-[11px] font-semibold text-muted uppercase tracking-[.05em] flex-shrink-0">${IC.ruler} Trip duration</span>
-        <input id="dur-inp" type="number" min="1" max="60" value="${dur || ''}" placeholder="days"
-          style="width:72px;text-align:center"
-          onkeydown="if(event.key==='Enter')setTripDuration()"/>
-        <button class="inline-flex items-center gap-1 border-none rounded-lg px-3 py-[5px] bg-accent text-white text-[11px] font-semibold cursor-pointer hover:bg-[#C44A22] transition-colors" onclick="setTripDuration()">
-          ${dur ? 'Update' : 'Set'}
-        </button>
-        <span class="text-[12px] ${dur ? 'text-green font-semibold' : 'text-muted'} ml-auto">
-          ${dur ? `${IC.check} ${dur} days` : 'Set to filter &amp; confirm dates'}
-        </span>
+      <div class="bg-panel border border-rim rounded-xl p-[13px_15px]">
+        <div class="text-[11px] font-semibold text-muted uppercase tracking-[.05em] mb-2">${IC.ruler} Trip duration</div>
+        <div class="flex items-center gap-2">
+          <input id="dur-inp" type="number" min="1" max="60" value="${dur || ''}" placeholder="days"
+            style="width:80px;text-align:center"
+            onkeydown="if(event.key==='Enter')setTripDuration()"/>
+          <button class="inline-flex items-center gap-1 border-none rounded-lg px-3 py-[5px] bg-accent text-white text-[11px] font-semibold cursor-pointer hover:bg-[#C44A22] transition-colors flex-shrink-0" onclick="setTripDuration()">
+            ${dur ? 'Update' : 'Set'}
+          </button>
+          ${dur ? `<span class="text-[12px] text-green font-semibold flex items-center gap-1 flex-shrink-0">${IC.check} ${dur} days</span>` : `<span class="text-[12px] text-muted">Set to filter dates</span>`}
+        </div>
       </div>`;
   } else if (!dur) {
     durCard = `<p class="text-center text-[12px] text-muted py-2">Waiting for the admin to set trip duration…</p>`;
@@ -265,15 +239,26 @@ function renderRanges() {
     const [datesPart] = r.label.split(' (');
 
     const windowPill = `<span class="inline-flex items-center gap-1 bg-blue/[.08] text-blue text-[10px] font-semibold px-2 py-0.5 rounded-full">${IC.calendar} ${winDays} days free</span>`;
-    const tripPill   = dur ? `<span class="inline-flex items-center gap-1 bg-accent/[.08] text-accent text-[10px] font-semibold px-2 py-0.5 rounded-full">${IC.ruler} trip: ${dur} days</span>` : '';
+    const tripPill   = dur ? `<span class="inline-flex items-center gap-1 bg-accent/[.08] text-accent text-[10px] font-semibold px-2 py-0.5 rounded-full">${IC.ruler} ${dur} days trip</span>` : '';
+    const borderCls  = top ? 'border-green/35' : 'border-rim';
 
-    return `<div class="bg-panel border-[1.5px] ${voted ? 'border-blue/40 bg-blue/[.05]' : top ? 'border-green/40 bg-green/[.05]' : 'border-rim'} rounded-xl p-[15px_16px] cursor-pointer transition-all animate-up shadow-soft hover:border-blue/30 hover:-translate-y-px hover:shadow-md" onclick="rangeVote(${origIdx})">
-      <div class="text-base font-semibold tracking-tight">${esc(datesPart)}</div>
-      <div class="flex items-center gap-1.5 flex-wrap mt-1.5 mb-[10px]">${windowPill}${tripPill}</div>
-      <div class="text-[11px] text-muted mb-[9px]">${r.votes.length ? r.votes.map(esc).join(', ') : 'Nobody yet'}</div>
-      <div class="h-1 bg-rim rounded-full overflow-hidden mb-[5px]"><div class="h-full bg-blue rounded-full transition-[width_.5s]" style="width:${pct}%"></div></div>
-      <div class="text-[11px] text-muted font-medium">${r.votes.length} votes</div>
-      ${isAdmin() && top && dur ? `<button class="mt-[11px] inline-flex items-center gap-1.5 bg-accent text-white border-none rounded-lg px-4 py-2 text-[13px] font-semibold cursor-pointer transition-all hover:bg-[#C44A22] hover:-translate-y-px" onclick="event.stopPropagation();rangeConfirm(${origIdx})">${IC.check} Confirm this date</button>` : ''}
+    return `<div class="bg-panel border ${borderCls} rounded-xl p-[13px_15px] flex items-center gap-[11px] transition-all shadow-soft animate-up hover:shadow-md hover:-translate-y-px hover:border-blue/20">
+      <div class="flex-shrink-0 text-muted">${IC.calendar}</div>
+      <div class="flex-1 min-w-0">
+        <div class="text-[15px] font-semibold tracking-tight">${esc(datesPart)}
+          ${top ? `<span class="inline-flex items-center gap-1 text-[10px] bg-accent/[.10] text-accent border border-accent/25 rounded-full px-2 py-0.5 ml-1.5 font-semibold">${IC.trophy} Top</span>` : ''}
+        </div>
+        <div class="flex items-center gap-1.5 flex-wrap mt-1">${windowPill}${tripPill}</div>
+        <div class="text-[11px] text-muted mt-1.5">${r.votes.length ? r.votes.map(esc).join(', ') : 'Nobody yet'}</div>
+        <div class="flex items-center gap-2 mt-2">
+          <div class="flex-1 h-1 bg-rim rounded-full overflow-hidden"><div class="h-full bg-blue rounded-full transition-[width_.5s]" style="width:${pct}%"></div></div>
+          <span class="text-[11px] font-semibold text-muted min-w-4 text-right">${r.votes.length}</span>
+        </div>
+        ${isAdmin() && top && dur ? `<button class="mt-2.5 inline-flex items-center gap-1.5 bg-accent text-white border-none rounded-lg px-4 py-2 text-[13px] font-semibold cursor-pointer transition-all hover:bg-[#C44A22] hover:-translate-y-px" onclick="rangeConfirm(${origIdx})">${IC.check} Confirm this date</button>` : ''}
+      </div>
+      <div class="flex items-center gap-[7px] flex-shrink-0">
+        <button class="w-8 h-8 rounded-full border-[1.5px] ${voted ? 'bg-accent border-accent text-white' : 'border-rim bg-transparent text-muted hover:bg-accent/[.08] hover:border-accent/35 hover:text-accent hover:scale-[1.08]'} flex items-center justify-center transition-all cursor-pointer" onclick="rangeVote(${origIdx})">${voted ? IC.heart : IC.heartO}</button>
+      </div>
     </div>`;
   }).join('');
 }
@@ -401,18 +386,29 @@ function renderDayPanel() {
 
   if (!acts.length) { actsEl.innerHTML = `<p class="text-muted text-sm py-1 flex items-center gap-1.5">${IC.calendar} Nothing scheduled</p>`; return; }
 
-  actsEl.innerHTML = acts.map(a => `
-    <div class="bg-bg border border-rim rounded-[10px] p-[11px_13px] flex flex-col gap-1 text-sm animate-up">
+  actsEl.innerHTML = acts.map(a => {
+    const canEdit = isAdmin() || a.addedBy === me?.username;
+    return `
+    <div class="bg-bg border border-rim rounded-xl p-[12px_14px] flex flex-col gap-1.5 text-sm animate-up">
       ${a.calTime ? `<span class="text-[11px] font-semibold text-accent flex items-center gap-1">${IC.clock} ${esc(a.calTime)}</span>` : ''}
       <div class="flex items-start justify-between gap-2">
-        <span class="font-medium text-ink leading-snug">${esc(a.text)}</span>
-        ${(isAdmin() || a.addedBy === me?.username) ? `<button class="w-5 h-5 rounded border border-rim bg-transparent text-muted flex items-center justify-center cursor-pointer transition-all hover:border-accent/40 hover:text-accent flex-shrink-0 mt-0.5" onclick="confirmThen(this,()=>socket?.emit('activity:remove','${a._id}'))">${IC.x}</button>` : ''}
+        <span class="font-medium text-ink leading-snug flex-1">${esc(a.text)}</span>
+        ${canEdit ? `
+          <div class="flex items-center gap-1 flex-shrink-0">
+            <button class="w-6 h-6 rounded-lg border border-rim bg-transparent text-muted flex items-center justify-center cursor-pointer transition-all hover:border-blue/40 hover:text-blue" onclick="openEditActModal('${a._id}','${esc(a.text).replace(/'/g,"\\'")}','${a.calDate||''}','${a.calTime||''}')">${IC.pencil}</button>
+            <button class="w-6 h-6 rounded-lg border border-rim bg-transparent text-muted flex items-center justify-center cursor-pointer transition-all hover:border-accent/40 hover:text-accent" onclick="confirmThen(this,()=>socket?.emit('activity:remove','${a._id}'))">${IC.x}</button>
+          </div>` : ''}
       </div>
       <span class="text-[11px] text-muted">— ${esc(a.addedBy)}</span>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 function showAddActForDay() { showAddActModal(selectedDoneDay); }
+
+function openEditActModal(id, text, calDate, calTime) {
+  showAddActModal(calDate || selectedDoneDay, { id, text, calTime });
+}
 
 function inRange(key, start, dur) {
   const s = new Date(start), e = new Date(start);
@@ -420,50 +416,76 @@ function inRange(key, start, dur) {
   return new Date(key) >= s && new Date(key) <= e;
 }
 
-function showAddActModal(preDate) {
-  const dateSelect = document.getElementById('act-modal-date');
-  const timeSelect = document.getElementById('act-modal-time');
+let _editingActId = null;
 
-  dateSelect.innerHTML = '<option value="">No specific date</option>';
+function showAddActModal(preDate, editData = null) {
+  _editingActId = editData?.id || null;
+  const isEdit  = !!_editingActId;
+
+  document.getElementById('act-modal-heading').textContent = isEdit ? 'Edit activity' : 'Add activity';
+  document.getElementById('act-modal-submit').textContent  = isEdit ? 'Save changes'  : 'Add activity';
+  document.getElementById('act-modal-error').textContent   = '';
+  document.getElementById('act-modal-inp').value           = editData?.text || '';
+
+  const dateInp  = document.getElementById('act-modal-date');
+  const timeInp  = document.getElementById('act-modal-time');
+  const pillsEl  = document.getElementById('act-modal-date-pills');
+
+  // Build day pills
+  const days = [];
   if (currentGroup?.finalDate && currentGroup?.tripDuration) {
     const start = new Date(currentGroup.finalDate + 'T12:00:00');
     for (let i = 0; i < currentGroup.tripDuration; i++) {
-      const d   = new Date(start);
+      const d = new Date(start);
       d.setDate(d.getDate() + i);
-      const key   = d.toISOString().split('T')[0];
-      const label = d.toLocaleDateString('en', { weekday: 'short', month: 'short', day: 'numeric' });
-      const opt = document.createElement('option');
-      opt.value = key;
-      opt.textContent = `Day ${i + 1} – ${label}`;
-      dateSelect.appendChild(opt);
+      days.push({ key: d.toISOString().split('T')[0], label: d.toLocaleDateString('en', { weekday: 'short', day: 'numeric', month: 'short' }), n: i + 1 });
     }
   }
 
-  timeSelect.innerHTML = '<option value="">Any time</option>';
-  for (let h = 6; h <= 23; h++) {
-    for (const m of [0, 30]) {
-      const val = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-      const opt = document.createElement('option');
-      opt.value = val; opt.textContent = val;
-      timeSelect.appendChild(opt);
-    }
-  }
+  const selectedDate = preDate || '';
+  dateInp.value = selectedDate;
 
-  if (preDate) dateSelect.value = preDate;
-  document.getElementById('act-modal-inp').value = '';
-  document.getElementById('act-modal-error').textContent = '';
+  const renderPills = (sel) => {
+    pillsEl.innerHTML = [
+      ...days.map(d => {
+        const active = sel === d.key;
+        return `<button type="button" onclick="actSetDate('${d.key}')" class="flex-shrink-0 flex flex-col items-center px-3 py-[7px] rounded-lg border text-[12px] font-medium transition-all cursor-pointer ${active ? 'bg-accent text-white border-accent' : 'bg-transparent border-rim text-muted hover:border-ink hover:text-ink'}">
+          <span class="text-[10px] font-semibold opacity-70 leading-none mb-0.5">Day ${d.n}</span>
+          <span>${d.label}</span>
+        </button>`;
+      })
+    ].join('');
+  };
+
+  renderPills(selectedDate);
+  window._actRenderPills = renderPills;
+
+  timeInp.value = editData?.calTime || '';
+
   document.getElementById('act-modal').classList.remove('hidden');
   setTimeout(() => document.getElementById('act-modal-inp').focus(), 50);
 }
 
-function closeActModal() { document.getElementById('act-modal').classList.add('hidden'); }
+function actSetDate(key) {
+  document.getElementById('act-modal-date').value = key;
+  window._actRenderPills?.(key);
+}
+
+function closeActModal() {
+  document.getElementById('act-modal').classList.add('hidden');
+  _editingActId = null;
+}
 
 function actModalSubmit() {
   const text    = document.getElementById('act-modal-inp').value.trim();
   const calDate = document.getElementById('act-modal-date').value || null;
   const calTime = document.getElementById('act-modal-time').value || null;
   if (!text) { document.getElementById('act-modal-error').textContent = 'Enter an activity description'; return; }
-  socket?.emit('activity:add', { text, calDate, calTime });
+  if (_editingActId) {
+    socket?.emit('activity:edit', { id: _editingActId, text, calDate, calTime });
+  } else {
+    socket?.emit('activity:add', { text, calDate, calTime });
+  }
   closeActModal();
 }
 
@@ -488,15 +510,25 @@ function buildGrid(gridId, dayFn) {
   if (!grid) return;
   grid.innerHTML = '';
 
-  const CD_BASE  = 'aspect-square rounded-lg flex flex-col items-center justify-center cursor-pointer border border-rim bg-panel text-xs font-medium transition-all relative select-none hover:border-blue/40 hover:bg-blue/[.05] hover:z-[2]';
-  const CD_EMPTY = 'aspect-square rounded-lg border border-transparent bg-transparent';
-  const CDL_BASE = 'text-center text-[10px] font-semibold text-muted py-[5px] uppercase tracking-[.05em]';
+  const CD_BASE  = 'aspect-square rounded-xl flex flex-col items-center justify-center cursor-pointer border border-rim bg-panel text-[13px] font-medium text-ink transition-all relative select-none hover:border-blue/40 hover:bg-blue/[.05] hover:z-[2]';
+  const CD_EMPTY = 'aspect-square rounded-xl border border-transparent bg-transparent';
+  const CDL_BASE = 'text-center text-[10px] font-semibold text-muted/60 py-1 uppercase tracking-[.06em]';
 
-  DAYS.forEach(d => {
-    const el = document.createElement('div');
-    el.className = CDL_BASE; el.textContent = d;
-    grid.appendChild(el);
-  });
+  const dayNamesEl = document.getElementById(gridId.replace(/-grid$/, '-daynames'));
+  if (dayNamesEl) {
+    dayNamesEl.innerHTML = '';
+    DAYS.forEach(d => {
+      const el = document.createElement('div');
+      el.className = CDL_BASE; el.textContent = d;
+      dayNamesEl.appendChild(el);
+    });
+  } else {
+    DAYS.forEach(d => {
+      const el = document.createElement('div');
+      el.className = CDL_BASE; el.textContent = d;
+      grid.appendChild(el);
+    });
+  }
 
   const first  = new Date(calY, calM, 1).getDay();
   const offset = (first + 6) % 7;

@@ -184,7 +184,7 @@ function renderDests() {
   // once approved and not viewing in override, just show the winner
   if (g.phase !== 'destinations' && localPhaseOverride !== 'destinations') {
     el.innerHTML = `
-      <div class="bg-panel border border-green/45 bg-green/[.05] rounded-xl p-[13px_15px] flex items-center gap-[11px] shadow-soft">
+      <div class="bg-panel border-2 border-green rounded-xl p-[13px_15px] flex items-center gap-[11px] shadow-[0_0_0_3px_rgba(92,158,80,.18)]">
         <div class="text-muted flex-shrink-0">${IC.globe}</div>
         <div class="flex-1 min-w-0">
           <div class="text-[15px] font-semibold tracking-tight">${esc(g.approvedDest || '')} <span class="text-[10px] bg-green/[.12] text-green border border-green/25 rounded-full px-2 py-0.5 ml-1 font-semibold">${IC.check} Approved</span></div>
@@ -224,12 +224,12 @@ function renderDests() {
            <button class="text-[11px] px-2 py-0.5 rounded-lg bg-blue text-white border-none cursor-pointer font-semibold hover:bg-[#3a7a8e]" onclick="destEditSave('${d._id}')">Save</button>
            <button class="text-[11px] px-2 py-0.5 rounded-lg border border-rim text-muted cursor-pointer hover:text-ink" onclick="destEditCancel()">Cancel</button>
          </div>`
-      : `<div class="text-[15px] font-semibold tracking-tight">${esc(d.name)}${approvedBadge}${!approved && win ? `<span class="inline-flex items-center gap-1 text-[10px] bg-green/[.12] text-green border border-green/25 rounded-full px-2 py-0.5 ml-1.5 font-semibold">${IC.trophy} Winner</span>` : ''}</div>`;
+      : `<div class="text-[15px] font-semibold tracking-tight">${esc(d.name)}${approvedBadge}${!approved && win ? `<span class="inline-flex items-center gap-1 text-[10px] bg-accent/[.10] text-accent border border-accent/25 rounded-full px-2 py-0.5 ml-1.5 font-semibold">${IC.trophy} Winner</span>` : ''}</div>`;
 
     const cardIcon = approved ? `<span class="text-green">${IC.globe}</span>`
                    : win      ? `<span class="text-accent">${IC.trophy}</span>`
                    :            `<span class="text-muted">${IC.mapPin}</span>`;
-    const borderCls = approved ? 'border-green/50 bg-green/[.04]' : win ? 'border-green/40 bg-green/[.04]' : 'border-rim';
+    const borderCls = approved ? 'border-green border-2 shadow-[0_0_0_3px_rgba(92,158,80,.18)]' : win ? 'border-accent/50 border-[1.5px]' : 'border-rim';
     return `<div class="bg-panel border ${borderCls} rounded-xl p-[13px_15px] flex items-center gap-[11px] transition-all shadow-soft animate-up hover:shadow-md hover:-translate-y-px hover:border-blue/20">
       <div class="flex-shrink-0">${cardIcon}</div>
       <div class="flex-1 min-w-0">

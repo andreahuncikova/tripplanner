@@ -64,11 +64,14 @@ function appendMsg(m, animate = true) {
   const div = document.createElement('div');
 
   if (m.system) {
-    const icon = m.text.startsWith('Destination approved') ? IC.map
-               : m.text.startsWith('Available dates')      ? IC.calCheck
-               : m.text.startsWith('Trip confirmed')        ? IC.sparkles
-               : (m.text.startsWith('Trip unconfirmed') || m.text.startsWith('Back to')) ? IC.arrowL
-               : IC.info;
+    const SYS_ICONS = [
+      ['Destination approved', IC.map],
+      ['Available dates',      IC.calCheck],
+      ['Trip confirmed',       IC.sparkles],
+      ['Trip unconfirmed',     IC.arrowL],
+      ['Back to',              IC.arrowL],
+    ];
+    const icon = SYS_ICONS.find(([p]) => m.text.startsWith(p))?.[1] ?? IC.info;
     div.className = 'px-2.5 py-[5px]';
     div.innerHTML = `<div class="bg-blue/[.07] border border-blue/15 rounded-xl px-3 py-2 text-xs text-blue inline-flex items-center gap-1.5">${icon}<span>${esc(m.text)}</span></div>`;
   } else {

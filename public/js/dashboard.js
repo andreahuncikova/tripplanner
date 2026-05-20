@@ -25,7 +25,7 @@ async function loadMyGroups() {
     const admin = g.adminUsername === me?.username;
     const deleteIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>`;
     const leaveIcon  = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>`;
-    const monthLabel = dashMonthLabel(g.tripWindowStart, g.tripWindowEnd);
+    const monthLabel = (g.tripWindowStart && g.tripWindowEnd) ? fmtMonthRange(g.tripWindowStart, g.tripWindowEnd) : '';
     return `
     <div class="bg-panel border border-rim rounded-xl px-4 py-3.5 transition-all flex items-center justify-between shadow-soft animate-up hover:border-blue/25 hover:shadow-md hover:-translate-y-px" id="dash-card-${g.inviteCode}">
       <div class="min-w-0 flex-1 cursor-pointer" onclick="enterGroupFromDash('${g.inviteCode}')">
@@ -38,8 +38,7 @@ async function loadMyGroups() {
       </div>
       <div class="flex items-center gap-2 flex-shrink-0 ml-3">
         <span class="text-[10px] px-[9px] py-[3px] rounded-full bg-blue/10 text-blue font-semibold tracking-[.01em] whitespace-nowrap">${PHASE_LABELS[g.phase] || g.phase}</span>
-        ${admin ? `<button class="w-7 h-7 rounded-lg border border-rim bg-transparent text-muted flex items-center justify-center transition-all hover:border-blue/40 hover:text-blue flex-shrink-0" title="Change trip months" onclick="dashWindowStart('${g.inviteCode}','${g.tripWindowStart||''}','${g.tripWindowEnd||''}')">${IC.calendar}</button>` : ''}
-        ${admin ? `<button class="w-7 h-7 rounded-lg border border-rim bg-transparent text-muted flex items-center justify-center transition-all hover:border-blue/40 hover:text-blue flex-shrink-0" title="Rename group" onclick="dashRenameStart('${g.inviteCode}','${esc(g.name)}')">${IC.pencil}</button>` : ''}
+        ${admin ? `<button class="w-7 h-7 rounded-lg border border-rim bg-transparent text-muted flex items-center justify-center transition-all hover:border-blue/40 hover:text-blue flex-shrink-0" title="Edit group" onclick="dashEditStart('${g.inviteCode}','${esc(g.name)}','${g.tripWindowStart||''}','${g.tripWindowEnd||''}')">${IC.pencil}</button>` : ''}
         <button
           class="w-7 h-7 rounded-lg border border-rim bg-transparent text-muted flex items-center justify-center transition-all hover:border-accent/40 hover:text-accent flex-shrink-0"
           title="${admin ? 'Delete group' : 'Leave group'}"
@@ -56,13 +55,32 @@ async function createGroup() {
   const monthTo   = document.getElementById('new-group-month-to').value;
 
   if (!name) return modalErr('create-modal-error', 'Enter a group name');
+
+  // Edit mode — save changes to existing group
+  if (_editingGroupCode) {
+    const code = _editingGroupCode;
+    const rName = await api(`/api/groups/${code}`, 'PATCH', { name });
+    if (rName.error) return modalErr('create-modal-error', rName.error);
+    if (monthFrom) {
+      const to = (monthTo && monthTo >= monthFrom) ? monthTo : monthFrom;
+      const [ty, tm] = to.split('-').map(Number);
+      await api(`/api/groups/${code}/window`, 'PATCH', {
+        start: monthFrom + '-01',
+        end:   new Date(ty, tm, 0).toISOString().split('T')[0],
+      });
+    }
+    closeCreateModal();
+    loadMyGroups();
+    return;
+  }
+
   const r = await api('/api/groups', 'POST', { name });
   if (r.error) return modalErr('create-modal-error', r.error);
 
   // store the selected months — socket.js will emit trip:setWindow after joining
   if (monthFrom) {
-    const from = monthFrom > (monthTo || '') ? monthTo || monthFrom : monthFrom;
-    const to   = monthFrom > (monthTo || '') ? monthFrom : monthTo || monthFrom;
+    const from     = monthFrom;
+    const to       = (monthTo && monthTo >= monthFrom) ? monthTo : monthFrom;
     const [ty, tm] = to.split('-').map(Number);
     pendingTripWindow = {
       start: from + '-01',
@@ -94,23 +112,53 @@ async function joinByCode() {
   initSocket(code);
 }
 
-function showCreateModal() {
+let _editingGroupCode = null;
+
+function _openGroupModal(name = '', ws = '', we = '', editCode = null) {
+  _editingGroupCode = editCode;
+  const isEdit = !!editCode;
+
+  document.getElementById('create-modal-heading').textContent  = isEdit ? 'Edit group' : 'New trip group';
+  document.getElementById('create-modal-sub').textContent      = isEdit ? 'Update the group name or trip window.' : 'Create a group, invite friends and start planning together.';
+  document.getElementById('create-modal-submit').textContent   = isEdit ? 'Save changes' : 'Create group';
+  document.getElementById('create-modal-error').textContent    = '';
+  document.getElementById('new-group-name').value              = name;
   document.getElementById('create-modal').classList.remove('hidden');
 
-  // populate month selects with the next 18 months in English
-  const now = new Date();
-  const opts = Array.from({ length: 18 }, (_, i) => {
-    const d   = new Date(now.getFullYear(), now.getMonth() + i, 1);
-    const val = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    return `<option value="${val}">${MONTHS[d.getMonth()]} ${d.getFullYear()}</option>`;
-  }).join('');
-  document.getElementById('new-group-month-from').innerHTML = opts;
-  document.getElementById('new-group-month-to').innerHTML   = opts;
-  document.getElementById('new-group-month-to').selectedIndex = 1; // default to next month
+  const fromSel = document.getElementById('new-group-month-from');
+  const toSel   = document.getElementById('new-group-month-to');
+  const opts = monthOpts('', 24);
+  fromSel.innerHTML = opts;
+  toSel.innerHTML   = opts;
+
+  const selFrom = ws ? ws.slice(0, 7) : '';
+  const selTo   = we ? we.slice(0, 7) : '';
+  if (selFrom) { const i = [...fromSel.options].findIndex(o => o.value === selFrom); if (i >= 0) fromSel.selectedIndex = i; }
+  if (selTo)   { const i = [...toSel.options].findIndex(o => o.value === selTo);   if (i >= 0) toSel.selectedIndex   = i; }
+  else if (!selFrom) toSel.selectedIndex = 1;
+
+  fromSel.onchange = () => {
+    if (toSel.value < fromSel.value) {
+      const next = [...toSel.options].findIndex(o => o.value > fromSel.value);
+      toSel.selectedIndex = next >= 0 ? next : toSel.options.length - 1;
+    }
+  };
+  toSel.onchange = () => {
+    if (fromSel.value > toSel.value) {
+      const idx = [...fromSel.options].findIndex(o => o.value === toSel.value);
+      fromSel.selectedIndex = idx >= 0 ? idx : 0;
+    }
+  };
 
   setTimeout(() => document.getElementById('new-group-name').focus(), 50);
 }
-function closeCreateModal() { document.getElementById('create-modal').classList.add('hidden'); }
+
+function showCreateModal()                      { _openGroupModal(); }
+function dashEditStart(code, name, ws, we)      { _openGroupModal(name, ws, we, code); }
+function closeCreateModal() {
+  document.getElementById('create-modal').classList.add('hidden');
+  _editingGroupCode = null;
+}
 
 function showJoinModal() {
   document.getElementById('join-modal').classList.remove('hidden');
@@ -125,73 +173,7 @@ function enterGroupFromDash(code) {
 
 function enterGroup() { initSocket(currentCode); }
 
-function dashMonthLabel(ws, we) {
-  if (!ws || !we) return '';
-  const s = new Date(ws + 'T12:00:00'), e = new Date(we + 'T12:00:00');
-  const sm = MONTHS[s.getMonth()], em = MONTHS[e.getMonth()];
-  return sm === em ? `${sm} ${s.getFullYear()}` : `${sm} – ${em} ${s.getFullYear()}`;
-}
 
-function dashMonthOpts(selectedYM) {
-  const now = new Date();
-  return Array.from({ length: 24 }, (_, i) => {
-    const d   = new Date(now.getFullYear(), now.getMonth() + i, 1);
-    const val = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    return `<option value="${val}"${val === selectedYM ? ' selected' : ''}>${MONTHS[d.getMonth()]} ${d.getFullYear()}</option>`;
-  }).join('');
-}
-
-function dashWindowStart(code, ws, we) {
-  const el = document.getElementById(`dash-window-${code}`);
-  if (!el) return;
-  const selFrom = ws ? ws.slice(0, 7) : '';
-  const selTo   = we ? we.slice(0, 7) : '';
-  el.innerHTML = `
-    <div class="flex items-center gap-1.5 flex-wrap" onclick="event.stopPropagation()">
-      <select id="dash-wfrom-${code}" style="padding:2px 5px;font-size:11px;border-radius:6px">${dashMonthOpts(selFrom)}</select>
-      <span class="text-muted">–</span>
-      <select id="dash-wto-${code}" style="padding:2px 5px;font-size:11px;border-radius:6px">${dashMonthOpts(selTo || selFrom)}</select>
-      <button class="text-[11px] px-2 py-0.5 rounded-lg bg-blue text-white border-none cursor-pointer font-semibold hover:bg-[#3a7a8e]" onclick="dashWindowSave('${code}')">Save</button>
-      <button class="text-[11px] px-2 py-0.5 rounded-lg border border-rim text-muted cursor-pointer hover:text-ink" onclick="loadMyGroups()">Cancel</button>
-    </div>`;
-}
-
-async function dashWindowSave(code) {
-  const fromM = document.getElementById(`dash-wfrom-${code}`)?.value;
-  const toM   = document.getElementById(`dash-wto-${code}`)?.value;
-  if (!fromM || !toM) return;
-  const start = fromM + '-01';
-  const end   = (toM >= fromM ? toM : fromM) + '-01';
-  const r = await api(`/api/groups/${code}/window`, 'PATCH', { start, end });
-  if (r.error) { alert(r.error); return; }
-  loadMyGroups();
-}
-
-function dashRenameStart(code, currentName) {
-  const nameEl = document.getElementById(`dash-name-${code}`);
-  if (!nameEl) return;
-  nameEl.innerHTML = `
-    <div class="flex items-center gap-1.5" onclick="event.stopPropagation()">
-      <input id="dash-rename-inp-${code}" class="flex-1 text-sm font-semibold border border-blue/40 rounded-lg px-2 py-0.5 bg-bg min-w-0"
-        value="${esc(currentName)}"
-        onkeydown="if(event.key==='Enter')dashRenameSave('${code}');if(event.key==='Escape')loadMyGroups()"/>
-      <button class="text-[11px] px-2 py-0.5 rounded-lg bg-blue text-white border-none cursor-pointer font-semibold hover:bg-[#3a7a8e] whitespace-nowrap" onclick="dashRenameSave('${code}')">Save</button>
-      <button class="text-[11px] px-2 py-0.5 rounded-lg border border-rim text-muted cursor-pointer hover:text-ink whitespace-nowrap" onclick="loadMyGroups()">Cancel</button>
-    </div>`;
-  setTimeout(() => {
-    const inp = document.getElementById(`dash-rename-inp-${code}`);
-    if (inp) { inp.focus(); inp.select(); }
-  }, 30);
-}
-
-async function dashRenameSave(code) {
-  const inp = document.getElementById(`dash-rename-inp-${code}`);
-  const name = inp?.value.trim();
-  if (!name) return;
-  const r = await api(`/api/groups/${code}`, 'PATCH', { name });
-  if (r.error) { alert(r.error); return; }
-  loadMyGroups();
-}
 
 // dashboard group card: leave (member) or delete (admin)
 async function dashGroupAction(btn, code, isAdmin) {

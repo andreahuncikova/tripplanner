@@ -149,10 +149,11 @@ io.on('connection', socket => {
     if (!g) return;
     const d = g.destinations.id(destId);
     if (!d) return;
-    const i = d.votes.indexOf(username);
-    i === -1 ? d.votes.push(username) : d.votes.splice(i, 1);
+    const wasVoted = d.votes.includes(username);
+    g.destinations.forEach(x => { x.votes = x.votes.filter(u => u !== username); });
+    if (!wasVoted) d.votes.push(username);
     await g.save();
-    io.to(s.code).emit('dest:votes', { destId, votes: d.votes });
+    io.to(s.code).emit('state', serialize(g, getOnline(s.code)));
   });
 
   // ADMIN: APPROVE DESTINATION ────────────────────────
@@ -249,8 +250,9 @@ io.on('connection', socket => {
     if (!s) return;
     const g = await Group.findOne({ inviteCode: s.code });
     if (!g || !['date_vote', 'done'].includes(g.phase)) return;
+    const wasVoted = g.dateRanges[idx]?.votes.includes(username);
     g.dateRanges.forEach(r => { r.votes = r.votes.filter(u => u !== username); });
-    if (g.dateRanges[idx]) g.dateRanges[idx].votes.push(username);
+    if (!wasVoted && g.dateRanges[idx]) g.dateRanges[idx].votes.push(username);
     await g.save();
     io.to(s.code).emit('range:votes', g.dateRanges);
   });
@@ -494,6 +496,19 @@ io.on('connection', socket => {
   });
 
   // REMOVE ACTIVITY ───────────────────────────────────
+  socket.on('activity:edit', async ({ id, text, calDate, calTime }) => {
+    const s = sessions[socket.id];
+    if (!s) return;
+    const g = await Group.findOne({ inviteCode: s.code });
+    if (!g) return;
+    const act = g.activities.find(a => String(a._id) === String(id));
+    if (!act) return;
+    if (String(act.userId) !== String(s.userId) && String(g.adminUserId) !== String(s.userId)) return;
+    act.text = text; act.calDate = calDate || null; act.calTime = calTime || null;
+    await g.save();
+    io.to(s.code).emit('state', serialize(g, getOnline(s.code)));
+  });
+
   socket.on('activity:remove', async actId => {
     const s = sessions[socket.id];
     if (!s) return;

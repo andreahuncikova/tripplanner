@@ -160,7 +160,7 @@
 <div id="s-app" class="screen">
 
   <!-- FULL-WIDTH NAVBAR — stepper always at 50vw -->
-  <div class="relative h-[52px] bg-panel border-b border-rim flex-shrink-0 flex items-center px-4">
+  <div class="relative h-[52px] bg-panel flex-shrink-0 flex items-center px-4">
     <div class="flex items-center gap-2 min-w-0 z-10">
       <button class="inline-flex items-center gap-1.5 border border-rim rounded-lg py-[5px] px-3 bg-transparent text-muted text-[11px] cursor-pointer transition-all hover:border-ink hover:text-ink font-medium flex-shrink-0" onclick="goToDash()">
         <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>Groups
@@ -190,13 +190,20 @@
     <div class="flex-1 min-w-0 flex flex-col overflow-hidden bg-bg min-h-0" id="left-col">
 
       <!-- ── PHASE: destinations ── -->
-      <div class="flex flex-col flex-1 min-h-0 overflow-hidden px-20" id="p-destinations">
+      <div class="flex flex-col flex-1 min-h-0 overflow-hidden" id="p-destinations">
 
-        <div class="flex-1 overflow-y-auto p-3.5 flex flex-col gap-2 [scrollbar-width:thin]" id="dest-list"></div>
-        <div class="flex gap-1.5 py-3 px-3 flex-shrink-0" id="dest-add-bar">
-          <input id="dest-inp" type="text" placeholder="Suggest a destination (e.g. Paris, Vienna…)" maxlength="40"
-            onkeydown="if(event.key==='Enter')destSuggest()" class="flex-1"/>
-          <button class="bg-accent text-white border-none rounded-lg py-2 px-4 font-medium text-[13px] cursor-pointer whitespace-nowrap transition-all hover:bg-[#C44A22]" onclick="destSuggest()">Suggest</button>
+        <!-- cards constrained to max-w, centered; bg-bg fills the sides -->
+        <div class="flex-1 overflow-y-auto py-5 [scrollbar-width:thin]" id="dest-list-outer">
+          <div class="flex flex-col gap-2.5 max-w-[700px] mx-auto px-6" id="dest-list"></div>
+        </div>
+
+        <!-- add bar: full-width white bg, content constrained to match cards -->
+        <div class="flex-shrink-0 bg-panel border-t border-rim" id="dest-add-bar">
+          <div class="flex gap-1.5 py-3 px-6 max-w-[700px] mx-auto">
+            <input id="dest-inp" type="text" placeholder="Suggest a destination (e.g. Paris, Vienna…)" maxlength="40"
+              onkeydown="if(event.key==='Enter')destSuggest()" class="flex-1"/>
+            <button class="bg-accent text-white border-none rounded-lg py-2 px-4 font-medium text-[13px] cursor-pointer whitespace-nowrap transition-all hover:bg-[#C44A22]" onclick="destSuggest()">Suggest</button>
+          </div>
         </div>
       </div>
 
@@ -204,36 +211,49 @@
       <div class="flex flex-col flex-1 min-h-0 overflow-hidden hidden" id="p-calendar">
         <div class="flex flex-1 min-h-0 overflow-hidden">
 
-          <!-- Calendar column — fills full height -->
+          <!-- Calendar column -->
           <div class="flex-1 flex flex-col overflow-hidden min-w-0">
-            <div class="cal-main mx-auto w-full flex flex-col flex-1 min-h-0 py-5">
-              <!-- Header: month nav + trip window on right -->
-              <div class="flex items-center  mb-4 flex-shrink-0">
-                <button class="w-8 h-8 rounded-full border border-rim bg-panel text-muted flex items-center justify-center transition-all hover:bg-ink hover:text-white hover:border-ink flex-shrink-0" onclick="calShift(-1)"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
-                <span id="cal-label" class="text-[18px] font-bold text-ink tracking-tight flex-1 text-center"></span>
-                <button class="w-8 h-8 rounded-full border border-rim bg-panel text-muted flex items-center justify-center transition-all hover:bg-ink hover:text-white hover:border-ink flex-shrink-0" onclick="calShift(1)"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
-              
-              </div>
-              <!-- Calendar grid — stretches to fill remaining height -->
-              <div class="cal-grid flex-1 min-h-0" id="cal-grid"></div>
-              <!-- Legend -->
-              <div class="flex items-center gap-4 mt-3 flex-shrink-0 text-[11px] text-muted">
-                <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-accent/15 border border-accent/40 flex-shrink-0"></span>Unavailable</span>
-                <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-deep flex-shrink-0"></span>Selected</span>
-              </div>
+
+            <!-- Month navigation -->
+            <div class="flex items-center gap-3 px-8 pt-6 pb-4 flex-shrink-0">
+              <button class="w-8 h-8 rounded-full border border-rim bg-transparent text-muted flex items-center justify-center transition-all hover:bg-ink hover:text-white hover:border-ink cursor-pointer" onclick="calShift(-1)">
+                <i data-lucide="chevron-left" class="w-4 h-4"></i>
+              </button>
+              <span id="cal-label" class="flex-1 text-center text-[20px] font-bold text-ink tracking-tight"></span>
+              <button class="w-8 h-8 rounded-full border border-rim bg-transparent text-muted flex items-center justify-center transition-all hover:bg-ink hover:text-white hover:border-ink cursor-pointer" onclick="calShift(1)">
+                <i data-lucide="chevron-right" class="w-4 h-4"></i>
+              </button>
             </div>
+
+            <!-- Day name headers — separate from grid so they don't stretch -->
+            <div class="cal-daynames px-8 mb-2 flex-shrink-0" id="cal-daynames"></div>
+
+            <!-- Date grid — fills remaining height -->
+            <div class="cal-grid flex-1 min-h-0 px-8 pb-6" id="cal-grid"></div>
+
           </div>
 
-          <!-- Day detail panel — bg extends to screen edge, text padded from bubble -->
-          <div class="w-[420px] flex-shrink-0 flex flex-col gap-4 overflow-y-auto bg-panel border-l border-rim px-5 pt-5 pb-5">
-            <div id="trip-window-bar" class="ml-2 flex-shrink-0 "></div>
-            <div>
-              <div class="text-[11px] font-semibold text-muted uppercase tracking-[.05em] mb-1">Selected day</div>
-              <div class="text-[17px] font-bold text-ink leading-tight" id="avail-day-title">—</div>
+          <!-- Info panel -->
+          <div class="w-[420px] flex-shrink-0 flex flex-col bg-panel border-l border-rim overflow-hidden">
+
+            <!-- Trip window -->
+            <div class="px-5 pt-5 pb-4 border-b border-rim flex-shrink-0" id="trip-window-bar"></div>
+
+            <!-- Selected day + members -->
+            <div class="flex-1 flex flex-col overflow-y-auto px-5 py-5 gap-4 min-h-0">
+              <div>
+                <div class="text-[10px] font-semibold text-muted uppercase tracking-[.07em] mb-1.5">Selected day</div>
+                <div class="text-[19px] font-bold text-ink leading-tight" id="avail-day-title">—</div>
+              </div>
+              <div id="avail-day-members" class="flex flex-col gap-2"></div>
+              <div class="mt-auto text-[11px] text-muted leading-relaxed pt-3 border-t border-rim">
+                Click a day to mark yourself as unavailable. Click again to undo.
+              </div>
             </div>
-            <div id="avail-day-members" class="flex flex-col gap-2"></div>
-            <div class="text-[11px] text-muted mt-auto leading-relaxed border-t border-rim pt-3">Tap a day to toggle your unavailability.</div>
-            <div id="cal-admin-bar"></div>
+
+            <!-- Admin calculate button -->
+            <div id="cal-admin-bar" class="flex-shrink-0"></div>
+
           </div>
 
         </div>
@@ -241,7 +261,9 @@
 
       <!-- ── PHASE: date_vote ── -->
       <div class="flex flex-col flex-1 min-h-0 overflow-hidden hidden" id="p-datevote">
-        <div class="px-20 flex-1 overflow-y-auto p-3.5 flex flex-col gap-2" id="ranges-list"></div>
+        <div class="flex-1 overflow-y-auto py-5 [scrollbar-width:thin]" id="ranges-outer">
+          <div class="flex flex-col gap-2.5 max-w-[700px] mx-auto px-6" id="ranges-list"></div>
+        </div>
         <div class="hidden fixed inset-0 bg-[rgba(24,24,27,.45)] backdrop-blur-sm flex items-center justify-center z-50 p-5" id="subwindow-picker">
           <div class="bg-panel rounded-2xl p-6 w-full max-w-[420px] shadow-modal flex flex-col gap-[18px]">
             <div class="flex items-start justify-between gap-3">
@@ -277,40 +299,83 @@
         </div>
 
         <div id="done-tab-schedule" class="done-tab-pane flex-1 overflow-hidden min-h-0 flex flex-col">
-          <div class="flex h-full overflow-hidden">
-            <div class="done-cal-col flex-1 flex flex-col overflow-hidden">
-              <div class="flex items-center gap-2.5 px-[18px] py-4 flex-shrink-0 font-semibold text-[17px] tracking-tight justify-center">
-                <button class="w-7 h-7 rounded-lg border border-rim bg-panel text-muted flex items-center justify-center transition-all hover:bg-ink hover:text-white hover:border-ink" onclick="calShift(-1)"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
-                <span id="done-cal-label"></span>
-                <button class="w-7 h-7 rounded-lg border border-rim bg-panel text-muted flex items-center justify-center transition-all hover:bg-ink hover:text-white hover:border-ink" onclick="calShift(1)"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
+          <div class="flex flex-1 min-h-0 overflow-hidden">
+
+            <!-- Calendar column -->
+            <div class="flex-1 flex flex-col overflow-hidden min-w-0">
+              <div class="flex items-center gap-3 px-8 pt-6 pb-4 flex-shrink-0">
+                <button class="w-8 h-8 rounded-full border border-rim bg-transparent text-muted flex items-center justify-center transition-all hover:bg-ink hover:text-white hover:border-ink cursor-pointer" onclick="calShift(-1)">
+                  <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                </button>
+                <span id="done-cal-label" class="flex-1 text-center text-[20px] font-bold text-ink tracking-tight"></span>
+                <button class="w-8 h-8 rounded-full border border-rim bg-transparent text-muted flex items-center justify-center transition-all hover:bg-ink hover:text-white hover:border-ink cursor-pointer" onclick="calShift(1)">
+                  <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                </button>
               </div>
-              <div class="done-cal-grid" id="done-cal-grid"></div>
+              <div class="cal-daynames px-8 mb-2 flex-shrink-0" id="done-cal-daynames"></div>
+              <div class="done-cal-grid flex-1 min-h-0 px-8 pb-6" id="done-cal-grid"></div>
             </div>
-            <div class="w-[420px] flex-shrink-0 flex flex-col px-5 pt-5 pb-20 gap-3.5 overflow-y-auto bg-panel" id="done-day-panel">
-              <div class="text-[19px] font-bold text-ink leading-tight tracking-tight" id="done-day-title">Select a day</div>
-              <div class="flex-1 flex flex-col gap-2" id="done-day-acts"><p class="text-muted text-sm py-1">—</p></div>
-              <button class="hidden w-full py-3 px-3.5 border-[1.5px] border-dashed border-ink/20 rounded-[10px] bg-transparent text-muted text-[13px] cursor-pointer transition-all text-center flex-shrink-0 hover:border-accent hover:text-accent hover:bg-accent/[.04]" id="done-day-add-btn" onclick="showAddActForDay()">
-                <i data-lucide="plus" class="w-4 h-4 inline-block align-middle -mt-0.5 mr-1"></i>Add activity
-              </button>
+
+            <!-- Day detail panel — same style as availability -->
+            <div class="w-[420px] flex-shrink-0 flex flex-col bg-panel border-l border-rim overflow-hidden" id="done-day-panel">
+              <div class="flex-1 flex flex-col overflow-y-auto px-5 py-5 gap-4 min-h-0">
+                <div>
+                  <div class="text-[10px] font-semibold text-muted uppercase tracking-[.07em] mb-1.5">Selected day</div>
+                  <div class="text-[19px] font-bold text-ink leading-tight" id="done-day-title">—</div>
+                </div>
+                <div class="flex flex-col gap-2" id="done-day-acts"><p class="text-muted text-sm py-1">—</p></div>
+              </div>
+              <div class="px-5 pb-5 flex-shrink-0">
+                <button class="hidden w-full py-3 px-3.5 border-[1.5px] border-dashed border-ink/20 rounded-[10px] bg-transparent text-muted text-[13px] cursor-pointer transition-all text-center hover:border-accent hover:text-accent hover:bg-accent/[.04]" id="done-day-add-btn" onclick="showAddActForDay()">
+                  <i data-lucide="plus" class="w-4 h-4 inline-block align-middle -mt-0.5 mr-1"></i>Add activity
+                </button>
+              </div>
             </div>
+
           </div>
         </div>
 
-        <div id="done-tab-budget" class="done-tab-pane done-tab-hidden flex-1 overflow-hidden min-h-0 flex flex-col">
-          <div class="flex items-center justify-end px-5 py-3 flex-shrink-0">
-            <button class="inline-flex items-center gap-1.5 px-[15px] py-[7px] rounded-lg border-none bg-accent text-white text-xs font-semibold cursor-pointer transition-all hover:bg-[#C44A22] hover:-translate-y-px" onclick="showAddExpenseModal()">
-              <i data-lucide="plus" class="w-3.5 h-3.5"></i>Add expense
+        <div id="done-tab-budget" class="done-tab-pane done-tab-hidden flex-1 overflow-hidden min-h-0 flex">
+
+          <!-- Empty state — centred, shown when no expenses -->
+          <div id="budget-empty" class="flex-1 flex flex-col items-center justify-center gap-5 text-center px-8">
+            <div class="w-14 h-14 rounded-2xl bg-accent/10 flex items-center justify-center text-accent">
+              <i data-lucide="wallet" class="w-6 h-6"></i>
+            </div>
+            <div>
+              <div class="text-[18px] font-bold text-ink tracking-tight">No expenses yet</div>
+              <div class="text-[13px] text-muted mt-1.5 leading-relaxed max-w-[300px]">Add your first expense and track who owes what.</div>
+            </div>
+            <button class="inline-flex items-center gap-2 px-5 py-3 rounded-xl border-none bg-accent text-white text-[13px] font-semibold cursor-pointer transition-all hover:bg-[#C44A22] hover:-translate-y-px" onclick="showAddExpenseModal()">
+              <i data-lucide="plus" class="w-4 h-4"></i>Add first expense
             </button>
           </div>
-          <div class="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
-            <div id="expense-list" class="flex flex-col gap-[7px]"></div>
-            <div id="budget-summary"></div>
+
+          <!-- Split layout — shown when expenses exist -->
+          <div id="budget-split" class="hidden flex-1 min-h-0 overflow-hidden flex">
+
+            <div class="flex-1 flex flex-col overflow-hidden min-w-0">
+              <div class="flex-1 overflow-y-auto py-5 [scrollbar-width:thin]">
+                <div class="flex flex-col gap-2.5 max-w-[700px] mx-auto px-6" id="expense-list"></div>
+              </div>
+            </div>
+
+            <div class="w-[420px] flex-shrink-0 flex flex-col bg-panel border-l border-rim overflow-hidden">
+              <div class="flex-1 overflow-y-auto px-5 py-5 flex flex-col gap-4 min-h-0" id="budget-summary"></div>
+              <div class="px-5 pb-5 flex-shrink-0">
+                <button class="w-full inline-flex items-center justify-center gap-1.5 py-3 rounded-xl border-none bg-accent text-white text-[13px] font-semibold cursor-pointer transition-all hover:bg-[#C44A22] hover:-translate-y-px" onclick="showAddExpenseModal()">
+                  <i data-lucide="plus" class="w-4 h-4"></i>Add expense
+                </button>
+              </div>
+            </div>
+
           </div>
+
         </div>
 
         <div id="done-tab-packing" class="done-tab-pane done-tab-hidden flex-1 overflow-hidden min-h-0 flex flex-col">
-          <div class="flex-1 overflow-y-auto p-4 flex flex-col gap-2" id="pack-list"></div>
-          <div class="flex gap-1.5 p-3 border-t border-rim flex-shrink-0">
+          <div class="flex-1 overflow-y-auto p-5 flex flex-col gap-2.5" id="pack-list"></div>
+          <div class="flex gap-1.5 p-3 border-t border-rim flex-shrink-0 bg-panel">
             <input id="pack-inp" type="text" placeholder="Add item (e.g. Passport, Sunscreen…)" maxlength="60"
               onkeydown="if(event.key==='Enter')packSuggest()" class="flex-1"/>
             <button class="bg-accent text-white border-none rounded-lg py-2 px-4 font-semibold text-[13px] cursor-pointer whitespace-nowrap transition-all hover:bg-[#C44A22]" onclick="packSuggest()">Add</button>
@@ -401,25 +466,48 @@
 
 <!-- CREATE GROUP MODAL -->
 <div class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[100]" id="create-modal" onclick="if(event.target===this)closeCreateModal()">
-  <div class="bg-panel rounded-2xl p-7 w-[380px] max-w-[95vw] shadow-modal flex flex-col gap-3">
-    <div>
-      <h3 class="text-[18px] font-semibold tracking-[-0.02em]">New trip group</h3>
-      <p class="text-[13px] text-muted mt-1 leading-relaxed">Create a group and invite friends via link</p>
-    </div>
-    <input id="new-group-name" type="text" placeholder="Group name (e.g. Summer trip 🌊)" maxlength="40"
-      onkeydown="if(event.key==='Enter')createGroup()"/>
-    <div>
-      <div class="text-xs text-muted mb-2 font-medium">When are you planning to go?</div>
-      <div class="flex items-center gap-2">
-        <select id="new-group-month-from" class="flex-1"></select>
-        <span class="text-muted text-sm flex-shrink-0">–</span>
-        <select id="new-group-month-to" class="flex-1"></select>
+  <div class="bg-panel rounded-2xl w-[420px] max-w-[95vw] shadow-modal overflow-hidden animate-up">
+
+    <!-- Header -->
+    <div class="px-8 pt-8 pb-6 border-b border-rim">
+      <div class="w-11 h-11 rounded-2xl bg-accent/10 flex items-center justify-center text-accent mb-5" id="create-modal-icon">
+        <i data-lucide="plane-takeoff" class="w-5 h-5"></i>
       </div>
-      <div class="text-[11px] text-muted mt-1.5">You can adjust this later</div>
+      <h3 class="text-[22px] font-bold tracking-[-0.02em] text-ink" id="create-modal-heading">New trip group</h3>
+      <p class="text-[13px] text-muted mt-1.5 leading-relaxed" id="create-modal-sub">Create a group, invite friends and start planning together.</p>
     </div>
-    <div class="text-xs text-accent min-h-[14px]" id="create-modal-error"></div>
-    <button class="w-full py-[13px] border-none rounded-xl bg-accent text-white font-semibold text-sm cursor-pointer transition-all hover:bg-[#C44A22] tracking-[.01em]" onclick="createGroup()">Create group →</button>
-    <button class="text-muted text-xs cursor-pointer transition-all hover:text-ink font-medium py-1 text-center" onclick="closeCreateModal()">Cancel</button>
+
+    <!-- Body -->
+    <div class="px-8 py-6 flex flex-col gap-5">
+
+      <div class="flex flex-col gap-1.5">
+        <label class="text-[11px] font-semibold text-muted uppercase tracking-[.06em]">Group name</label>
+        <input id="new-group-name" type="text" placeholder="e.g. Summer trip, Barcelona 2025…" maxlength="40"
+          onkeydown="if(event.key==='Enter')createGroup()"/>
+      </div>
+
+      <div class="flex flex-col gap-1.5">
+        <label class="text-[11px] font-semibold text-muted uppercase tracking-[.06em]">Trip window</label>
+        <div class="flex items-center gap-3 bg-bg rounded-xl px-4 py-3 border border-rim">
+          <select id="new-group-month-from" class="flex-1 border-none bg-transparent outline-none text-[13px] font-medium text-ink cursor-pointer"></select>
+          <span class="text-muted/60 text-sm flex-shrink-0">→</span>
+          <select id="new-group-month-to" class="flex-1 border-none bg-transparent outline-none text-[13px] font-medium text-ink cursor-pointer"></select>
+        </div>
+        <div class="text-[11px] text-muted">The months you're considering for the trip — you can change this later.</div>
+      </div>
+
+      <div class="text-xs text-accent min-h-[14px] -mt-1" id="create-modal-error"></div>
+
+      <div class="flex flex-col gap-2">
+        <button class="w-full py-[14px] border-none rounded-xl bg-accent text-white font-semibold text-[14px] cursor-pointer transition-all hover:bg-[#C44A22] hover:-translate-y-px tracking-[.01em]" id="create-modal-submit" onclick="createGroup()">
+          Create group
+        </button>
+        <button class="w-full py-2.5 border border-rim rounded-xl bg-transparent text-muted text-[13px] font-medium cursor-pointer transition-all hover:border-ink/30 hover:text-ink" onclick="closeCreateModal()">
+          Cancel
+        </button>
+      </div>
+
+    </div>
   </div>
 </div>
 
@@ -439,48 +527,103 @@
   </div>
 </div>
 
-<!-- ADD ACTIVITY MODAL -->
+<!-- ADD / EDIT ACTIVITY MODAL -->
 <div class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[100]" id="act-modal" onclick="if(event.target===this)closeActModal()">
-  <div class="bg-panel rounded-2xl p-7 w-[380px] max-w-[95vw] shadow-modal flex flex-col gap-3">
-    <div>
-      <h3 class="text-[18px] font-semibold tracking-[-0.02em]">Add Activity</h3>
-      <p class="text-[13px] text-muted mt-1 leading-relaxed">Assign an activity to a day and optional time</p>
+  <div class="bg-panel rounded-2xl w-[420px] max-w-[95vw] shadow-modal overflow-hidden animate-up">
+
+    <div class="px-8 pt-8 pb-6 border-b border-rim">
+      <div class="w-11 h-11 rounded-2xl bg-accent/10 flex items-center justify-center text-accent mb-5">
+        <i data-lucide="calendar-plus" class="w-5 h-5"></i>
+      </div>
+      <h3 class="text-[22px] font-bold tracking-[-0.02em] text-ink" id="act-modal-heading">Add activity</h3>
+      <p class="text-[13px] text-muted mt-1.5 leading-relaxed">Add something to your trip itinerary.</p>
     </div>
-    <input id="act-modal-inp" type="text" placeholder="Describe the activity…" maxlength="120"
-      onkeydown="if(event.key==='Enter')actModalSubmit()"/>
-    <div class="flex gap-2">
-      <select id="act-modal-date" class="flex-1"><option value="">No specific date</option></select>
-      <select id="act-modal-time" class="flex-1"><option value="">Any time</option></select>
+
+    <div class="px-8 py-6 flex flex-col gap-5">
+
+      <div class="flex flex-col gap-1.5">
+        <label class="text-[11px] font-semibold text-muted uppercase tracking-[.06em]">Activity</label>
+        <input id="act-modal-inp" type="text" placeholder="e.g. Visit the Eiffel Tower, Dinner at…" maxlength="120"
+          onkeydown="if(event.key==='Enter')actModalSubmit()"/>
+      </div>
+
+      <div class="flex flex-col gap-1.5">
+        <label class="text-[11px] font-semibold text-muted uppercase tracking-[.06em]">Day</label>
+        <div class="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]" id="act-modal-date-pills"></div>
+        <input type="hidden" id="act-modal-date"/>
+      </div>
+
+      <div class="flex flex-col gap-1.5">
+        <label class="text-[11px] font-semibold text-muted uppercase tracking-[.06em]">Time <span class="normal-case font-normal text-muted/60">(optional)</span></label>
+        <input type="time" id="act-modal-time" step="1800"
+          style="width:100%;padding:11px 14px;border:1.5px solid rgba(24,24,27,.12);border-radius:10px;font:14px/1 'Plus Jakarta Sans',sans-serif;background:#fff;color:#27272A;outline:none"/>
+      </div>
+
+      <div class="text-xs text-accent min-h-[14px] -mt-1" id="act-modal-error"></div>
+
+      <div class="flex flex-col gap-2">
+        <button class="w-full py-[14px] border-none rounded-xl bg-accent text-white font-semibold text-[14px] cursor-pointer transition-all hover:bg-[#C44A22] hover:-translate-y-px" id="act-modal-submit" onclick="actModalSubmit()">
+          Add activity
+        </button>
+        <button class="w-full py-2.5 border border-rim rounded-xl bg-transparent text-muted text-[13px] font-medium cursor-pointer transition-all hover:border-ink/30 hover:text-ink" onclick="closeActModal()">
+          Cancel
+        </button>
+      </div>
+
     </div>
-    <div class="text-xs text-accent min-h-[14px]" id="act-modal-error"></div>
-    <button class="w-full py-[13px] border-none rounded-xl bg-accent text-white font-semibold text-sm cursor-pointer transition-all hover:bg-[#C44A22] tracking-[.01em]" onclick="actModalSubmit()">Add activity →</button>
-    <button class="text-muted text-xs cursor-pointer transition-all hover:text-ink font-medium py-1 text-center" onclick="closeActModal()">Cancel</button>
   </div>
 </div>
 
-<!-- ADD EXPENSE MODAL -->
+<!-- ADD / EDIT EXPENSE MODAL -->
 <div class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[100]" id="expense-modal" onclick="if(event.target===this)closeExpenseModal()">
-  <div class="bg-panel rounded-2xl w-[390px] max-w-[95vw] shadow-modal overflow-hidden">
-    <div class="px-6 pt-6 pb-4 border-b border-rim">
-      <h3 class="text-[17px] font-semibold tracking-[-0.02em]" id="expense-modal-title">Add Expense</h3>
+  <div class="bg-panel rounded-2xl w-[420px] max-w-[95vw] shadow-modal overflow-hidden animate-up">
+
+    <div class="px-7 pt-7 pb-5 border-b border-rim flex items-center gap-4">
+      <div class="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center text-accent flex-shrink-0">
+        <i data-lucide="receipt" class="w-5 h-5"></i>
+      </div>
+      <div>
+        <h3 class="text-[18px] font-bold tracking-[-0.02em] text-ink" id="expense-modal-title">Add expense</h3>
+        <p class="text-[12px] text-muted mt-0.5">Track a shared cost and split it among the group.</p>
+      </div>
     </div>
-    <div class="px-6 py-5 flex flex-col gap-4">
-      <input id="exp-desc" type="text" placeholder="What was it for? (e.g. Dinner, Hotel…)" maxlength="80"/>
-      <div class="flex gap-2 items-center">
-        <input id="exp-amount" type="number" placeholder="Amount" min="0.01" step="0.01" class="flex-1"/>
-        <select id="exp-currency" class="flex-shrink-0" style="width:110px"></select>
-      </div>
+
+    <div class="px-7 py-5 flex flex-col gap-4">
+
       <div class="flex flex-col gap-1.5">
-        <span class="text-[11px] font-semibold text-muted uppercase tracking-[.04em]">Paid by</span>
-        <select id="exp-paidby" style="width:100%"></select>
+        <label class="text-[10px] font-semibold text-muted uppercase tracking-[.06em]">Description</label>
+        <input id="exp-desc" type="text" placeholder="e.g. Dinner, Hotel, Train tickets…" maxlength="80"/>
       </div>
-      <div class="flex flex-col gap-2">
-        <span class="text-[11px] font-semibold text-muted uppercase tracking-[.04em]">Split among</span>
+
+      <div class="flex gap-3">
+        <div class="flex flex-col gap-1.5 w-[120px] flex-shrink-0">
+          <label class="text-[10px] font-semibold text-muted uppercase tracking-[.06em]">Amount</label>
+          <input id="exp-amount" type="number" placeholder="0.00" min="0.01" step="0.01"/>
+        </div>
+        <div class="flex flex-col gap-1.5 flex-1 min-w-0">
+          <label class="text-[10px] font-semibold text-muted uppercase tracking-[.06em]">Currency</label>
+          <select id="exp-currency" style="width:100%"></select>
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-1.5">
+        <label class="text-[10px] font-semibold text-muted uppercase tracking-[.06em]">Paid by</label>
+        <div class="flex flex-wrap gap-1.5" id="exp-paidby-pills"></div>
+        <input type="hidden" id="exp-paidby"/>
+      </div>
+
+      <div class="flex flex-col gap-1.5">
+        <label class="text-[10px] font-semibold text-muted uppercase tracking-[.06em]">Split among</label>
         <div id="exp-split-checks" class="flex flex-wrap gap-1.5"></div>
       </div>
-      <div class="text-xs text-accent min-h-[14px]" id="expense-modal-error"></div>
-      <button id="expense-modal-submit" class="w-full py-[12px] border-none rounded-xl bg-accent text-white font-semibold text-sm cursor-pointer transition-all hover:bg-[#C44A22] tracking-[.01em]" onclick="expenseSubmit()">Add expense</button>
-      <button class="text-muted text-xs cursor-pointer transition-all hover:text-ink font-medium py-1 text-center -mt-2" onclick="closeExpenseModal()">Cancel</button>
+
+      <div class="text-xs text-accent min-h-[12px]" id="expense-modal-error"></div>
+
+      <div class="flex gap-2">
+        <button class="flex-1 py-3 border border-rim rounded-xl bg-transparent text-muted text-[13px] font-medium cursor-pointer transition-all hover:border-ink/30 hover:text-ink" onclick="closeExpenseModal()">Cancel</button>
+        <button id="expense-modal-submit" class="flex-1 py-3 border-none rounded-xl bg-accent text-white font-semibold text-[13px] cursor-pointer transition-all hover:bg-[#C44A22]" onclick="expenseSubmit()">Add expense</button>
+      </div>
+
     </div>
   </div>
 </div>
