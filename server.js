@@ -81,6 +81,7 @@ function serialize(g, onlineList) {
     destinations:      g.destinations,
     approvedDest:      g.approvedDest,
     availability:      g.availability,
+    availabilityReady: g.availabilityReady,
     dateRanges:        g.dateRanges,
     finalDate:         g.finalDate,
     finalDateLabel:    g.finalDateLabel,
@@ -192,6 +193,27 @@ io.on('connection', socket => {
     else g.availability.push({ userId, username, color, unavailableDates: filtered });
     await g.save();
     io.to(s.code).emit('avail:update', { username, color, unavailableDates: dates });
+  });
+
+  // MEMBER: CONFIRM AVAILABILITY DONE ────────────────
+  socket.on('avail:ready', async () => {
+    const s = sessions[socket.id];
+    if (!s) return;
+    const g = await Group.findOne({ inviteCode: s.code });
+    if (!g) return;
+    if (!g.availabilityReady.includes(username)) g.availabilityReady.push(username);
+    await g.save();
+    io.to(s.code).emit('state', serialize(g, getOnline(s.code)));
+  });
+
+  socket.on('avail:unready', async () => {
+    const s = sessions[socket.id];
+    if (!s) return;
+    const g = await Group.findOne({ inviteCode: s.code });
+    if (!g) return;
+    g.availabilityReady = g.availabilityReady.filter(u => u !== username);
+    await g.save();
+    io.to(s.code).emit('state', serialize(g, getOnline(s.code)));
   });
 
   // ADMIN: COMPUTE DATE RANGES ────────────────────────

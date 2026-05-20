@@ -179,6 +179,26 @@ function computeDates() {
   socket?.emit('avail:compute');
 }
 
+function renderCalReadyBar() {
+  const el = document.getElementById('cal-ready-bar');
+  if (!el) return;
+  if (isAdmin() || currentGroup.phase !== 'calendar') { el.innerHTML = ''; return; }
+
+  const ready = (currentGroup.availabilityReady || []).includes(me.username);
+  if (ready) {
+    el.innerHTML = `
+      <div class="flex items-center gap-2 bg-green/[.07] border border-green/30 rounded-xl px-4 py-3">
+        <span class="text-green flex-1 text-[13px] font-semibold flex items-center gap-1.5">${IC.check} Marked as done</span>
+        <button onclick="socket?.emit('avail:unready')" class="text-[11px] text-muted hover:text-ink cursor-pointer transition-colors border-none bg-transparent">Undo</button>
+      </div>`;
+  } else {
+    el.innerHTML = `
+      <button onclick="socket?.emit('avail:ready')" class="w-full py-3 rounded-xl bg-accent text-white border-none text-[13px] font-semibold cursor-pointer transition-all hover:bg-[#C44A22] hover:-translate-y-px">
+        I'm done marking my days
+      </button>`;
+  }
+}
+
 // ── Date voting ───────────────────────────────────────
 
 

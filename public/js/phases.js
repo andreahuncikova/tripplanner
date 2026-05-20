@@ -127,6 +127,7 @@ function renderPhase() {
     renderCal();
     renderCalDayPanel();
     renderCalAdminBar();
+    renderCalReadyBar();
   }
 
   if (phase === 'date_vote') {
@@ -149,6 +150,8 @@ function renderPhase() {
     renderExpenses();
     renderPackingList();
   }
+
+  renderReadiness();
 }
 
 function returnToCurrent() {
@@ -327,6 +330,45 @@ const HINTS = {
 let pendingBackRequest = null;
 let backReqTargetPhase = null;
 
+function renderReadiness() {
+  const panel = document.getElementById('readiness-panel');
+  if (!panel) return;
+  const phase = localPhaseOverride || currentGroup?.phase;
+  const data  = phaseReadiness(phase);
+  if (!data) { panel.classList.add('hidden'); return; }
+
+  const doneCount = data.filter(m => m.done).length;
+  const allDone   = doneCount === data.length;
+
+  panel.classList.remove('hidden');
+  panel.innerHTML = `
+    <div class="text-[10px] font-semibold text-muted uppercase tracking-[.06em] mb-2.5">Member progress</div>
+    <div class="flex flex-col gap-2">
+      ${data.map(m => `
+        <div class="flex items-center gap-2">
+          <div class="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0" style="background:${m.color}">${initials(m.username)}</div>
+          <span class="text-[12px] font-medium text-ink flex-1 truncate">${esc(m.username)}</span>
+          <span class="${m.done ? 'text-green' : 'text-muted/40'} flex-shrink-0">${m.done ? IC.check : '○'}</span>
+        </div>`).join('')}
+    </div>
+    <div class="mt-2.5 pt-2.5 border-t border-rim text-[11px] font-semibold ${allDone ? 'text-green' : 'text-muted'}">
+      ${allDone ? `${IC.check} All ready` : `${doneCount} of ${data.length} ready`}
+    </div>`;
+}
+
+function phaseReadiness(phase) {
+  const g = currentGroup;
+  const members = g.members || [];
+  const check = {
+    destinations: m => (g.destinations || []).some(d => d.votes.includes(m.username)),
+    calendar:     m => (g.availabilityReady || []).includes(m.username),
+    date_vote:    m => (g.dateRanges   || []).some(r => r.votes.includes(m.username)),
+  };
+  const fn = check[phase];
+  if (!fn) return null;
+  return members.map(m => ({ ...m, done: fn(m) }));
+}
+
 function renderHint(phase) {
   const hintContent = document.getElementById('hint-content');
   const g           = currentGroup;
@@ -342,7 +384,7 @@ function renderHint(phase) {
         : h.desc);
 
   hintContent.innerHTML = `
-    <div class="text-center pointer-events-none" style="max-width:520px">
+    <div class="text-center pointer-events-none" style="max-width:560px">
       <div class="text-[13px] font-semibold text-ink leading-snug">${h.title}</div>
       <div class="text-[12px] text-muted mt-[3px] leading-relaxed">${desc}</div>
     </div>`;

@@ -251,8 +251,9 @@
               </div>
             </div>
 
-            <!-- Admin calculate button -->
+            <!-- Member ready button / Admin calculate button -->
             <div id="cal-admin-bar" class="flex-shrink-0"></div>
+            <div id="cal-ready-bar" class="flex-shrink-0 px-5 pb-5"></div>
 
           </div>
 
@@ -401,6 +402,9 @@
       </button>
     </div>
   </div>
+
+  <!-- READINESS PANEL — bottom left, shows member status per phase -->
+  <div id="readiness-panel" class="hidden fixed bottom-5 left-5 bg-panel border border-rim rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,.13)] px-4 py-3 z-40 min-w-[180px]"></div>
 
   <!-- FLOATING CHAT BUBBLE — opens the chat popup -->
   <button id="chat-bubble" onclick="toggleChat()"

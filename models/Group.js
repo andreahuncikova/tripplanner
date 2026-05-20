@@ -85,6 +85,7 @@ const GroupSchema = new Schema({
   approvedDestEmoji:   { type: String, default: null },
 
   availability:        { type: [AvailSchema],   default: [] },
+  availabilityReady:   { type: [String],        default: [] },
   dateRanges:          { type: [RangeSchema],   default: [] },
   finalDate:           { type: String, default: null },
   finalDateLabel:      { type: String, default: null },
