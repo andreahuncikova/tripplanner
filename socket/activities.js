@@ -1,6 +1,5 @@
 const Group = require('../models/Group');
 const { serialize, getOnline } = require('./helpers');
-const { ACTIVITY_SUGGESTIONS } = require('../config');
 
 module.exports = function register(socket, { io, sessions, userId, username }) {
   socket.on('activity:add', async ({ text, calDate, calTime }) => {
@@ -44,20 +43,4 @@ module.exports = function register(socket, { io, sessions, userId, username }) {
     } catch (e) { console.error('[activity:remove]', e.message); }
   });
 
-  // Returns pre-written suggestions based on the approved destination.
-  // Falls back to generic suggestions if the city isn't in our list.
-  socket.on('activity:suggest', async () => {
-    try {
-      const s = sessions[socket.id];
-      if (!s) return;
-      // .select() loads only the approvedDest field — no need to load the whole document
-      const g = await Group.findOne({ inviteCode: s.code }).select('approvedDest');
-      if (!g) return;
-      const dest = g.approvedDest;
-      const suggestions = ACTIVITY_SUGGESTIONS[dest] ||
-        ACTIVITY_SUGGESTIONS[Object.keys(ACTIVITY_SUGGESTIONS).find(k => dest?.includes(k))] ||
-        ['🗺️ City sightseeing tour', '🍽️ Local food experience', '🏛️ Historic city centre', '📸 Photo walk', '🛍️ Local market'];
-      socket.emit('activity:suggestions', { dest, suggestions });
-    } catch (e) { console.error('[activity:suggest]', e.message); }
-  });
 };
