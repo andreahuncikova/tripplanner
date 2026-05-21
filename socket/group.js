@@ -40,31 +40,4 @@ module.exports = function register(socket, { io, sessions, username }) {
     } catch (e) { console.error('[group:delete]', e.message); }
   });
 
-  // Member asks to go back to a previous phase — broadcast to the room so admin sees it
-  socket.on('back:request', ({ targetPhase }) => {
-    const s = sessions[socket.id];
-    if (!s) return;
-    io.to(s.code).emit('back:pending', { username, targetPhase });
-  });
-
-  // Admin approves — find the specific member's socket and send them the approval directly
-  socket.on('back:approve', ({ targetUsername, targetPhase }) => {
-    const s = sessions[socket.id];
-    if (!s) return;
-    const targetSid = Object.keys(sessions).find(sid =>
-      sessions[sid].code === s.code && sessions[sid].username === targetUsername
-    );
-    if (targetSid) io.to(targetSid).emit('back:approved', { targetPhase });
-    io.to(s.code).emit('back:resolved', { username: targetUsername });
-  });
-
-  socket.on('back:deny', ({ targetUsername }) => {
-    const s = sessions[socket.id];
-    if (!s) return;
-    const targetSid = Object.keys(sessions).find(sid =>
-      sessions[sid].code === s.code && sessions[sid].username === targetUsername
-    );
-    if (targetSid) io.to(targetSid).emit('back:denied');
-    io.to(s.code).emit('back:resolved', { username: targetUsername });
-  });
 };

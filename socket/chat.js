@@ -20,14 +20,4 @@ module.exports = function register(socket, { io, sessions, userId, username, col
     if (s) socket.to(s.code).emit('typing', username);
   });
 
-  // Shares an itinerary activity as a chat message
-  socket.on('activity:share', async text => {
-    try {
-      const s = sessions[socket.id];
-      if (!s) return;
-      const msg = { userId, username, color, text, time: ts() };
-      await Group.updateOne({ inviteCode: s.code }, { $push: { messages: msg } });
-      io.to(s.code).emit('msg', msg);
-    } catch (e) { console.error('[activity:share]', e.message); }
-  });
 };

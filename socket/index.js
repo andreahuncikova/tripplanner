@@ -5,7 +5,6 @@ const registerAvailability = require('./availability');
 const registerDatevote     = require('./datevote');
 const registerActivities   = require('./activities');
 const registerExpenses     = require('./expenses');
-const registerPacking      = require('./packing');
 const registerGroup        = require('./group');
 
 // This function is called once when the server starts.
@@ -29,7 +28,6 @@ module.exports = function registerAllHandlers(io, sessions) {
     registerDatevote(socket, ctx);       // vote on date windows, confirm trip date
     registerActivities(socket, ctx);     // add/edit/remove itinerary activities
     registerExpenses(socket, ctx);       // add/edit/remove shared expenses
-    registerPacking(socket, ctx);        // packing list items
-    registerGroup(socket, ctx);          // leave/delete group, back-navigation requests
+    registerGroup(socket, ctx);          // leave/delete group
   });
 };

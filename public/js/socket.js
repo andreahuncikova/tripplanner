@@ -73,37 +73,4 @@ function initSocket(code) {
   socket.on('typing',          uname  => showTyping(uname));
   socket.on('group:left',    () => goToDash());
   socket.on('group:deleted', () => goToDash());
-
-  // Back-request flow: admin sees pending requests, member gets approved/denied
-  socket.on('back:pending', ({ username, targetPhase }) => {
-    if (!isAdmin()) return;
-    if (!pendingRequests.find(r => r.username === username)) {
-      pendingRequests.push({ username, targetPhase });
-    }
-    renderBackRequestBar();
-  });
-
-  socket.on('back:resolved', ({ username }) => {
-    pendingRequests = pendingRequests.filter(r => r.username !== username);
-    renderBackRequestBar();
-  });
-
-  // Member was approved — set their local phase override so they can view the previous phase
-  socket.on('back:approved', ({ targetPhase }) => {
-    pendingBackRequest = null;
-    closeBackReqModal();
-    localPhaseOverride = targetPhase;
-    renderPhase();
-  });
-
-  socket.on('back:denied', () => {
-    pendingBackRequest = null;
-    renderHint(localPhaseOverride || currentGroup?.phase);
-    const bar  = document.getElementById('hint-bar');
-    const note = document.createElement('div');
-    note.className = 'px-5 py-2 text-[11px] text-accent font-semibold bg-accent/[.05] border-b border-accent/15';
-    note.textContent = '⚠️ Admin denied your request.';
-    bar.prepend(note);
-    setTimeout(() => note.remove(), 4000);
-  });
 }
