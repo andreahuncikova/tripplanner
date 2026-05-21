@@ -1,5 +1,5 @@
 // ── Shared calendar grid builder ─────────────────────
-
+// Creates reusable calendar grid
 function buildGrid(gridId, dayFn) {
   const grid = document.getElementById(gridId);
   if (!grid) return;
@@ -49,6 +49,7 @@ function calShift(dir) {
 
   const g            = currentGroup;
   const displayPhase = localPhaseOverride || g?.phase;
+  // Restrict calendar inside trip window
   if (displayPhase === 'calendar' && (g.tripWindowStart || g.tripWindowEnd)) {
     const ym = calY * 12 + calM;
     if (g.tripWindowStart) {
@@ -62,7 +63,7 @@ function calShift(dir) {
       if (ym > maxYM) { calY = we.getFullYear(); calM = we.getMonth(); }
     }
   }
-
+  // Re-render correct calendar
   if (displayPhase === 'calendar') renderCal();
   if (g?.phase === 'done')         renderDoneCal();
 }

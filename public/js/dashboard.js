@@ -1,9 +1,11 @@
+// Switches to the dashboard screen and fetches the user's groups
 async function showDash() {
   document.getElementById('d-username').textContent = me?.username || '';
   showScreen('dash');
   loadMyGroups();
 }
 
+// Fetches the user's groups from the server and renders them as cards
 async function loadMyGroups() {
   const r = await api('/api/groups');
   if (!r.groups) return;
@@ -49,6 +51,7 @@ async function loadMyGroups() {
   }).join('');
 }
 
+// Creates a new group or saves edits to an existing one (shared submit handler)
 async function createGroup() {
   const name      = document.getElementById('new-group-name').value.trim();
   const monthFrom = document.getElementById('new-group-month-from').value;
@@ -102,6 +105,7 @@ async function createGroup() {
   showScreen('invite');
 }
 
+// Joins an existing group by invite code typed manually
 async function joinByCode() {
   const code = document.getElementById('join-code-input').value.trim().toUpperCase();
   if (code.length < 6) return modalErr('join-modal-error', 'Enter a valid invite code');
@@ -112,8 +116,10 @@ async function joinByCode() {
   initSocket(code);
 }
 
+// Tracks which group is currently being edited (null = create mode)
 let _editingGroupCode = null;
 
+// Opens the create/edit group modal — reused for both flows
 function _openGroupModal(name = '', ws = '', we = '', editCode = null) {
   _editingGroupCode = editCode;
   const isEdit = !!editCode;
@@ -166,6 +172,7 @@ function showJoinModal() {
 }
 function closeJoinModal() { document.getElementById('join-modal').classList.add('hidden'); }
 
+// Enters a group from the dashboard card click
 function enterGroupFromDash(code) {
   currentCode = code;
   initSocket(code);
@@ -193,6 +200,7 @@ function deleteGroupInApp(btn) {
   confirmThen(btn, () => { closeModal(); socket?.emit('group:delete'); });
 }
 
+// Disconnects socket and returns to the dashboard
 function goToDash() {
   if (socket) { socket.disconnect(); socket = null; }
   currentCode = null; currentGroup = null;

@@ -3,6 +3,7 @@ const jwt    = require('jsonwebtoken');
 const User   = require('../models/User');
 const { JWT_SECRET, JWT_EXPIRES, COLORS } = require('../config');
 
+// Creates a signed JWT and sets it as an httpOnly cookie so the browser stores it automatically and sends it with every request.
 function issueToken(user, res) {
   const token = jwt.sign(
     { _id: user._id, email: user.email, username: user.username, color: user.color },
@@ -23,6 +24,7 @@ router.post('/register', async (req, res) => {
     if (await User.findOne({ email }))
       return res.status(409).json({ error: 'Email already in use' });
 
+    // Assign a random color from the palette for this user's avatar
     const color = COLORS[Math.floor(Math.random() * COLORS.length)];
     const user  = await User.create({ email, password, username, color });
     const token = issueToken(user, res);
@@ -39,6 +41,7 @@ router.post('/login', async (req, res) => {
     const { email, password } = req.body;
     if (!email || !password)
       return res.status(400).json({ error: 'Please enter your email and password' });
+    // .select('+password') is needed because password has select:false in the schema
     const user = await User.findOne({ email }).select('+password');
     if (!user || !(await user.comparePassword(password)))
       return res.status(401).json({ error: 'Incorrect email or password' });
@@ -50,19 +53,19 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// POST /api/auth/logout
+// POST /api/auth/logout — just clears the cookie on the client
 router.post('/logout', (_req, res) => {
   res.clearCookie('token');
   res.json({ ok: true });
 });
 
-// GET /api/auth/me
+// GET /api/auth/me — used on page load to restore the session from the stored token
 router.get('/me', async (req, res) => {
   const token = req.cookies?.token || req.headers.authorization?.replace('Bearer ', '');
   if (!token) return res.status(401).json({ error: 'no token' });
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    const user = await User.findById(decoded._id);
+    const user    = await User.findById(decoded._id);
     if (!user) return res.status(404).json({ error: 'not found' });
     res.json({ user: user.toSafe() });
   } catch { res.status(401).json({ error: 'invalid' }); }

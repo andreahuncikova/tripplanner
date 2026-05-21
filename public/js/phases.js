@@ -1,6 +1,6 @@
 // ── Phase stepper ─────────────────────────────────────
-// Single source of truth for "where am I" and "go back".
-// Replaces the scattered back buttons that were in each panel.
+// Admins can click completed steps to jump back temporarily (local override only).
+// Members cannot navigate — they follow whatever phase the admin sets.
 
 const STEP_LABELS = ['Destinations', 'Availability', 'Date voting', 'Trip!'];
 
@@ -15,10 +15,9 @@ function renderPhaseStepper() {
 
   // build the 4 step nodes separated by connectors
   const stepsHtml = [];
-  PHASE_ORDER.forEach((phase, i) => {
+  PHASE_ORDER.forEach((_, i) => {
     const done    = i < actualIdx;
     const current = i === viewIdx;
-    const future  = i > actualIdx;
 
     let circle, labelCls;
     if (current) {
@@ -68,6 +67,7 @@ function jumpToPhase(idx) {
 
 // ── State ─────────────────────────────────────────────
 
+// Called every time the server sends a full state update — syncs local state and re-renders
 function applyState(data) {
   if (!currentGroup) currentGroup = {};
   Object.assign(currentGroup, data);
@@ -95,6 +95,7 @@ function applyState(data) {
   renderOnline(data.online || []);
 }
 
+// Shows the correct phase panel — uses localPhaseOverride when admin is viewing a past phase
 function renderPhase() {
   const g           = currentGroup;
   const actualPhase = g.phase;
@@ -159,6 +160,7 @@ function isAdmin() {
   return currentGroup?.adminUsername === me?.username;
 }
 
+// Admin can click "Go back" to step back through the phases locally without affecting the group phase
 function goBack() {
   const current = localPhaseOverride || currentGroup.phase;
   const idx     = PHASE_ORDER.indexOf(current);
@@ -176,6 +178,7 @@ function goBack() {
 
 // ── Destinations ──────────────────────────────────────
 
+// Renders the destination voting cards, or the approved destination if past that phase
 function renderDests() {
   const g  = currentGroup;
   const el = document.getElementById('dest-list');
@@ -323,6 +326,7 @@ const HINTS = {
   },
 };
 
+// Shows how many members have completed the current phase step (voted, marked days, etc.)
 function renderReadiness() {
   const panel = document.getElementById('readiness-panel');
   if (!panel) return;
@@ -349,6 +353,7 @@ function renderReadiness() {
     </div>`;
 }
 
+// Returns an array of { username, color, done } for each member based on what "ready" means per phase
 function phaseReadiness(phase) {
   const g = currentGroup;
   const members = g.members || [];
@@ -362,6 +367,7 @@ function phaseReadiness(phase) {
   return members.map(m => ({ ...m, done: fn(m) }));
 }
 
+// Renders the contextual hint bar at the top — different text for admin vs. member vs. override mode
 function renderHint(phase) {
   const hintContent = document.getElementById('hint-content');
   const g           = currentGroup;

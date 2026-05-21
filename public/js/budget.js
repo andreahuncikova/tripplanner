@@ -14,6 +14,7 @@ const CURRENCIES = [
   { code: 'AUD', symbol: 'A$',  name: 'Australian Dollar' },
 ];
 
+// Currency the user wants to see totals in (stored in localStorage so it persists)
 let displayCurrency = localStorage.getItem('tp_disp_currency') || 'EUR';
 let fxRates     = null;
 let fxFetchedAt = 0;
@@ -22,6 +23,7 @@ function currSym(code) {
   return CURRENCIES.find(c => c.code === code)?.symbol || code;
 }
 
+// Formats an amount with the correct symbol and decimal places for the currency
 function fmtAmt(amount, code) {
   const sym  = currSym(code);
   const dp   = ['JPY', 'HUF'].includes(code) ? 0 : 2;
@@ -38,6 +40,7 @@ function currencyOpts(selected, compact = false) {
   }).join('');
 }
 
+// Fetches exchange rates from our server proxy (cached for 1 hour)
 async function ensureFxRates() {
   if (fxRates && Date.now() - fxFetchedAt < 3_600_000) return;
   try {
@@ -50,6 +53,7 @@ async function ensureFxRates() {
   if (!fxRates) fxRates = { EUR: 1 };
 }
 
+// Converts an amount from its original currency to the user's chosen display currency
 function toDisplay(amount, fromCode) {
   if (!fxRates || fromCode === displayCurrency) return amount;
   const from = fxRates[fromCode];

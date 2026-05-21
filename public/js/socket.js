@@ -1,10 +1,15 @@
+// Connects to the server via WebSocket and registers all event listeners.
 function initSocket(code) {
   localStorage.setItem('tp_last_group', code.toUpperCase());
 
   document.getElementById('chat-msgs').innerHTML = '';
   document.getElementById('typing-row').innerHTML = '';
   currentGroup = null;
+
+  // Disconnect any existing socket before creating a new one
   if (socket) socket.disconnect();
+
+  // Send the JWT token in the handshake so the server can verify us before we join
   socket = io({ auth: { token } });
 
   socket.on('connect', () => {
@@ -15,7 +20,7 @@ function initSocket(code) {
   socket.on('disconnect', () => setWsStatus(false));
 
   socket.on('err', msg => {
-    // if we haven't loaded group data yet (e.g. bad code on auto-reconnect), go back to dash
+    // If we haven't loaded group data yet (e.g. bad code on auto-reconnect), go back to dashboard
     if (!currentGroup?.phase) {
       localStorage.removeItem('tp_last_group');
       showDash();
@@ -30,9 +35,10 @@ function initSocket(code) {
     currentGroup = null;
 
     applyState(data);
+    // Load message history without animation (animate = false)
     (data.messages || []).forEach(m => appendMsg(m, false));
 
-    // if we just created this group and picked months, apply them now
+    // If we just created this group and pre-selected months, send the window now
     if (pendingTripWindow && isAdmin() && !data.tripWindowStart) {
       socket.emit('trip:setWindow', pendingTripWindow);
       pendingTripWindow = null;
@@ -42,12 +48,15 @@ function initSocket(code) {
     document.getElementById('chat-inp').focus();
   });
 
-  socket.on('state',   data  => applyState(data));
-  socket.on('online',  list  => renderOnline(list));
-  socket.on('msg',     m     => appendMsg(m));
+  // Full state update — happens when anything in the group changes
+  socket.on('state', data => applyState(data));
+  socket.on('online', list => renderOnline(list));
+  socket.on('msg', m => appendMsg(m));
 
+  // Destination added — append to local state and re-render without a full state update
   socket.on('dest:new', dest => { currentGroup.destinations.push(dest); renderDests(); });
 
+  // One member's availability changed — update only their entry, not the whole state
   socket.on('avail:update', ({ username, color, unavailableDates }) => {
     let a = currentGroup.availability.find(x => x.username === username);
     if (a) { a.unavailableDates = unavailableDates; a.color = color; }
@@ -65,4 +74,36 @@ function initSocket(code) {
   socket.on('group:left',    () => goToDash());
   socket.on('group:deleted', () => goToDash());
 
+  // Back-request flow: admin sees pending requests, member gets approved/denied
+  socket.on('back:pending', ({ username, targetPhase }) => {
+    if (!isAdmin()) return;
+    if (!pendingRequests.find(r => r.username === username)) {
+      pendingRequests.push({ username, targetPhase });
+    }
+    renderBackRequestBar();
+  });
+
+  socket.on('back:resolved', ({ username }) => {
+    pendingRequests = pendingRequests.filter(r => r.username !== username);
+    renderBackRequestBar();
+  });
+
+  // Member was approved — set their local phase override so they can view the previous phase
+  socket.on('back:approved', ({ targetPhase }) => {
+    pendingBackRequest = null;
+    closeBackReqModal();
+    localPhaseOverride = targetPhase;
+    renderPhase();
+  });
+
+  socket.on('back:denied', () => {
+    pendingBackRequest = null;
+    renderHint(localPhaseOverride || currentGroup?.phase);
+    const bar  = document.getElementById('hint-bar');
+    const note = document.createElement('div');
+    note.className = 'px-5 py-2 text-[11px] text-accent font-semibold bg-accent/[.05] border-b border-accent/15';
+    note.textContent = '⚠️ Admin denied your request.';
+    bar.prepend(note);
+    setTimeout(() => note.remove(), 4000);
+  });
 }

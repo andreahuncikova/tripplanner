@@ -33,7 +33,7 @@ async function logout() {
   if (socket) { socket.disconnect(); socket = null; }
   showScreen('auth');
 }
-
+// Store token and user info after login/register
 function storeAuth(r) {
   token = r.token; me = r.user;
   localStorage.setItem('tp_token', token);

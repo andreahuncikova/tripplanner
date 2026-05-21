@@ -1,5 +1,7 @@
+// Inline style applied to every icon so they align nicely inside flex/text containers
 const S = 'display:inline-block;vertical-align:middle;flex-shrink:0';
 
+// Lucide SVG icon strings — used throughout the app as IC.check, IC.pencil, etc.
 const IC = {
   check:    `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="${S}"><path d="M20 6 9 17 4 12"/></svg>`,
   x:        `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="${S}"><path d="M18 6 6 18M6 6l12 12"/></svg>`,

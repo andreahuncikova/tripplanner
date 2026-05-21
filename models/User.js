@@ -3,22 +3,25 @@ const bcrypt   = require('bcryptjs');
 
 const UserSchema = new mongoose.Schema({
   email:    { type: String, required: true, unique: true, lowercase: true, trim: true },
+  // Hides password from queries
   password: { type: String, required: true, minlength: 6, select: false },
   username: { type: String, required: true, trim: true, maxlength: 30 },
   color:    { type: String, default: '#4A90A4' },
-  createdAt:{ type: Date, default: Date.now }
 });
 
+// Hash password before saving
 UserSchema.pre('save', async function(next) {
   if (!this.isModified('password')) return next();
   this.password = await bcrypt.hash(this.password, 12);
   next();
 });
 
+// Compare login password
 UserSchema.methods.comparePassword = function(candidate) {
   return bcrypt.compare(candidate, this.password);
 };
 
+// Return safe user data
 UserSchema.methods.toSafe = function() {
   return { _id: this._id, email: this.email, username: this.username, color: this.color };
 };

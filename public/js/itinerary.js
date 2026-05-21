@@ -1,7 +1,9 @@
 // ── Done phase – itinerary & activities ───────────────
 
+// Stores the ID of the activity currently being edited (null = adding new)
 let _editingActId = null;
 
+// Renders the trip calendar with green highlights on trip days and dots for activities
 function renderDoneCal() {
   document.getElementById('done-cal-label').textContent = MONTHS[calM] + ' ' + calY;
   const g          = currentGroup;
@@ -86,12 +88,14 @@ function openEditActModal(id, text, calDate, calTime) {
   showAddActModal(calDate || selectedDoneDay, { id, text, calTime });
 }
 
+// Checks if a date string falls within the confirmed trip dates
 function inRange(key, start, dur) {
   const s = new Date(start), e = new Date(start);
   e.setDate(e.getDate() + (dur || 1) - 1);
   return new Date(key) >= s && new Date(key) <= e;
 }
 
+// Opens the add/edit activity modal — if editData is passed, the modal pre-fills existing values
 function showAddActModal(preDate, editData = null) {
   _editingActId = editData?.id || null;
   const isEdit  = !!_editingActId;
@@ -160,6 +164,7 @@ function actModalSubmit() {
   closeActModal();
 }
 
+// Switches between the Itinerary and Budget tabs in the Trip! phase
 function switchDoneTab(tab) {
   document.querySelectorAll('.dtab').forEach(b => {
     b.classList.remove('text-accent', 'font-semibold');

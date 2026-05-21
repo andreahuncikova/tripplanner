@@ -1,19 +1,25 @@
 // ── Global state ──────────────────────────────────────
+// Saved login data from localStorage
 let token       = localStorage.getItem('tp_token') || null;
 let me          = JSON.parse(localStorage.getItem('tp_me') || 'null');
+// Active socket + current group
 let socket      = null;
 let currentCode  = null;
 let currentGroup = null;
+// User unavailable dates
 let myUnavail    = new Set();
+// Calendar state
 let calY, calM;
 let selectedDoneDay = null;
 let selectedCalDay  = null;
+// Temporary phase overrides
 let localPhaseOverride  = null;
 let pendingTripWindow   = null; // set during group creation, emitted after socket joins
 let pendingOverrideTarget = false; // false = no action | null = clear | string = set to phase
+// Edit states
 let destEditingId = null;
 let editingExpenseId = null;
-
+// Order of app phases
 const PHASE_ORDER = ['destinations', 'calendar', 'date_vote', 'done'];
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -28,7 +34,7 @@ const PHASE_LABELS = {
 
 // ── Helpers ───────────────────────────────────────────
 
-// shows a small floating popover above the button with Confirm / Cancel
+// Creates a small confirm popup above a button
 function confirmThen(btn, fn) {
   document.getElementById('_cpop')?.remove();
   document.querySelectorAll('[data-c="1"]').forEach(b => b.dataset.c = '');
@@ -46,7 +52,7 @@ function confirmThen(btn, fn) {
     </div>`;
   document.body.appendChild(pop);
 
-  // position above the button, centred, clamped to viewport
+  // Position the popup centered above the button, or below if there's not enough space
   const br = btn.getBoundingClientRect();
   const pr = pop.getBoundingClientRect();
   let left = br.left + br.width / 2 - pr.width / 2;
@@ -69,7 +75,7 @@ function confirmThen(btn, fn) {
   document.getElementById('_cpop_no').onclick  = e => { e.stopPropagation(); close(); };
   setTimeout(() => document.addEventListener('click', outside), 0);
 }
-
+// Escapes HTML characters to prevent injection
 function esc(s) {
   return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
@@ -87,7 +93,7 @@ function modalErr(id, msg) {
   el.textContent = msg;
   setTimeout(() => { el.textContent = ''; }, 4000);
 }
-
+// Updates websocket online/offline indicator
 function setWsStatus(on) {
   const el = document.getElementById('ws-pill');
   if (!el) return;
@@ -109,6 +115,7 @@ async function api(url, method = 'GET', body) {
 
 // ── Boot ──────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
+    // Set current month + year for calendar view
   const d = new Date(); calY = d.getFullYear(); calM = d.getMonth();
 
   document.querySelectorAll('.ptab').forEach(t => {
@@ -122,7 +129,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   document.getElementById('f-register').addEventListener('submit', e => { e.preventDefault(); authRegister(e.target); });
   document.getElementById('f-login').addEventListener('submit',    e => { e.preventDefault(); authLogin(e.target); });
-
+  // Group code from shared URL
   const urlCode = new URLSearchParams(window.location.search).get('code');
   if (urlCode) {
     const code = urlCode.toUpperCase();
@@ -135,6 +142,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
+  // Auto login if token exists
   if (token && me) {
     const lastGroup = localStorage.getItem('tp_last_group');
     const pending   = localStorage.getItem('tp_pending_code');

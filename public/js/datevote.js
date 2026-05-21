@@ -1,7 +1,9 @@
 // ── Date voting ───────────────────────────────────────
 
+// Tracks which range card the admin has selected (before confirming)
 let _adminSelectedRange = null;
 
+// Admin sends the number of trip days to the server
 function setTripDuration() {
   const inp = document.getElementById('dur-inp');
   if (!inp) return;
@@ -10,6 +12,7 @@ function setTripDuration() {
   socket?.emit('trip:setDuration', val);
 }
 
+// Returns how many days a range spans (used to filter ranges shorter than trip duration)
 function rangeDays(r) {
   return Math.round((new Date(r.end) - new Date(r.start)) / 86400000) + 1;
 }
@@ -114,6 +117,7 @@ function renderRanges() {
   }).join('');
 }
 
+// Admin clicks a range card to select it (clicking again deselects)
 function selectRange(i) {
   if (!isAdmin()) return;
   _adminSelectedRange = _adminSelectedRange === i ? null : i;
@@ -148,6 +152,7 @@ function fmtShortRange(s, e) {
     : `${s.getDate()} ${MONTHS[s.getMonth()]} – ${e.getDate()} ${MONTHS[e.getMonth()]}`;
 }
 
+// If the free window is longer than the trip, let admin pick the exact start date
 function showSubWindowPicker(origIdx, r, dur) {
   const windows  = [];
   const rangeEnd = new Date(r.end + 'T12:00:00');

@@ -1,5 +1,5 @@
 // ── Trip window ───────────────────────────────────────
-
+// Renders the trip window section
 function renderTripWindowSetter() {
   const bar = document.getElementById('trip-window-bar');
   if (!bar) return;
@@ -8,6 +8,7 @@ function renderTripWindowSetter() {
   const we = g.tripWindowEnd   || '';
 
   const label = `<div class="text-[10px] font-semibold text-muted uppercase tracking-[.07em] mb-2">Trip window</div>`;
+  // Admin can edit trip window
   if (isAdmin()) {
     bar.innerHTML = label + `
       <div class="flex flex-col gap-2">
@@ -19,13 +20,14 @@ function renderTripWindowSetter() {
         <button class="inline-flex items-center justify-center border-none rounded-lg px-3 py-2 bg-accent text-white text-[12px] font-semibold cursor-pointer transition-all hover:bg-[#C44A22] w-full" onclick="setTripWindow()">${ws && we ? 'Update window' : 'Set window'}</button>
         ${ws && we ? `<div class="text-[13px] font-semibold text-blue">${fmtMonthRange(ws, we)}</div>` : ''}
       </div>`;
+  // Normal users only see selected range
   } else if (ws && we) {
     bar.innerHTML = label + `<div class="text-[15px] font-bold text-blue">${fmtMonthRange(ws, we)}</div>`;
   } else {
     bar.innerHTML = '';
   }
 }
-
+// Creates month options for select input
 function monthOpts(selectedYM, count = 18) {
   const now = new Date();
   return Array.from({ length: count }, (_, i) => {
@@ -35,6 +37,7 @@ function monthOpts(selectedYM, count = 18) {
   }).join('');
 }
 
+// Formats the window into a readable label like "May – June 2026" or "July 2026"
 function fmtMonthRange(ws, we) {
   const s  = new Date(ws + 'T12:00:00');
   const e  = new Date(we + 'T12:00:00');
@@ -44,17 +47,19 @@ function fmtMonthRange(ws, we) {
   return `${sm} ${sy} – ${em} ${ey}`;
 }
 
+// Sends selected trip window to server
 function setTripWindow() {
   const fromM = document.getElementById('tw-start')?.value;
   const toM   = document.getElementById('tw-end')?.value;
   if (!fromM) return;
+  // End month cannot be before start month
   const endMonth = (toM && toM >= fromM) ? toM : fromM;
   const [ty, tm] = endMonth.split('-').map(Number);
   const lastDay  = new Date(ty, tm, 0);
   const end = `${lastDay.getFullYear()}-${String(lastDay.getMonth()+1).padStart(2,'0')}-${String(lastDay.getDate()).padStart(2,'0')}`;
   socket?.emit('trip:setWindow', { start: fromM + '-01', end });
 }
-
+// Moves calendar into selected trip window
 function jumpToWindow() {
   const g = currentGroup;
   if (!g.tripWindowStart) return;
@@ -75,6 +80,7 @@ function monthEnd(dateStr) {
   return `${last.getFullYear()}-${String(last.getMonth()+1).padStart(2,'0')}-${String(last.getDate()).padStart(2,'0')}`;
 }
 
+// Builds the availability calendar grid for the current month
 function renderCal() {
   document.getElementById('cal-label').textContent = MONTHS[calM] + ' ' + calY;
   const g  = currentGroup;
@@ -82,6 +88,7 @@ function renderCal() {
   const we = monthEnd(g.tripWindowEnd);
 
   buildGrid('cal-grid', (key, el) => {
+    // Disable days outside trip window
     if ((ws && key < ws) || (we && key > we)) {
       el.className = 'aspect-square rounded-lg text-ink/20 cursor-default pointer-events-none border border-transparent bg-transparent';
       return;
@@ -106,6 +113,7 @@ function renderCal() {
   renderCalDayPanel();
 }
 
+// Toggles a day as unavailable and syncs with the server immediately
 function toggleUnavail(key, el) {
   if (myUnavail.has(key)) {
     myUnavail.delete(key);
@@ -118,6 +126,7 @@ function toggleUnavail(key, el) {
   renderCal();
 }
 
+// Shows which members are available/unavailable on the selected day
 function renderCalDayPanel() {
   const titleEl   = document.getElementById('avail-day-title');
   const membersEl = document.getElementById('avail-day-members');
@@ -146,7 +155,7 @@ function renderCalDayPanel() {
     </div>`;
   }).join('');
 }
-
+// Renders the admin bar for calculating date ranges
 function renderCalAdminBar() {
   const el = document.getElementById('cal-admin-bar');
   const inOverride = localPhaseOverride === 'calendar';
@@ -158,12 +167,12 @@ function renderCalAdminBar() {
   el.className = 'px-4 py-3 flex-shrink-0 flex items-center gap-2.5';
   el.innerHTML = `<button class="inline-flex items-center gap-1.5 bg-accent text-white border-none rounded-lg px-4 py-2 text-[13px] font-semibold cursor-pointer transition-all hover:bg-[#C44A22] hover:-translate-y-px" onclick="computeDates()">${label} ${IC.arrowR}</button><span class="text-[11px] text-muted">Admin only</span>`;
 }
-
+// Requests date calculation
 function computeDates() {
   pendingOverrideTarget = 'date_vote';
   socket?.emit('avail:compute');
 }
-
+// Renders ready button for members
 function renderCalReadyBar() {
   const el = document.getElementById('cal-ready-bar');
   if (!el) return;

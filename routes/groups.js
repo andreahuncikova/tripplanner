@@ -2,23 +2,20 @@ const router = require('express').Router();
 const { v4: uuidv4 } = require('uuid');
 const Group  = require('../models/Group');
 const { authMiddleware } = require('../middleware/auth');
+const { ts, snapMonthEnd } = require('../utils');
 
-function ts() {
-  const d = new Date();
-  return d.getHours() + ':' + String(d.getMinutes()).padStart(2,'0');
-}
-
-// POST /api/groups  — create
+// Create a new group
 router.post('/', authMiddleware, async (req, res) => {
   try {
     const { name } = req.body;
     if (!name?.trim()) return res.status(400).json({ error: 'Group name is required' });
     const { _id: userId, username, color } = req.user;
+    // Generate a short random invite code, e.g. "A3BF92C1"
     const inviteCode = uuidv4().slice(0,8).toUpperCase();
     const group = await Group.create({
       inviteCode, name: name.trim(),
       adminUserId: userId, adminUsername: username,
-      members: [{ userId, username, color }],
+      members:  [{ userId, username, color }],
       messages: [{ username:'System', text:`Group "${name.trim()}" created! Code: ${inviteCode}`, time: ts(), system: true }]
     });
     res.status(201).json({ inviteCode, groupId: group._id });
@@ -28,7 +25,7 @@ router.post('/', authMiddleware, async (req, res) => {
   }
 });
 
-// GET /api/groups/:code  — info (public, for invite link preview)
+// Public info used for the invite link preview page
 router.get('/:code', async (req, res) => {
   try {
     const g = await Group.findOne({ inviteCode: req.params.code.toUpperCase() });
@@ -40,9 +37,10 @@ router.get('/:code', async (req, res) => {
   }
 });
 
-// GET /api/groups  — my groups
+// List all groups the logged-in user belongs to
 router.get('/', authMiddleware, async (req, res) => {
   try {
+    // .select() limits which fields are returned
     const groups = await Group.find({ 'members.userId': req.user._id })
       .select('name inviteCode phase members createdAt tripDuration adminUsername tripWindowStart tripWindowEnd')
       .sort('-createdAt').limit(20);
@@ -53,18 +51,20 @@ router.get('/', authMiddleware, async (req, res) => {
   }
 });
 
-// POST /api/groups/:code/leave  — leave a group
+// Used from the dashboard (not connected via socket)
 router.post('/:code/leave', authMiddleware, async (req, res) => {
   try {
     const g = await Group.findOne({ inviteCode: req.params.code.toUpperCase() });
     if (!g) return res.json({ error: 'Group not found' });
-    const uid    = String(req.user._id);
-    const isAdm  = String(g.adminUserId) === uid;
+    const uid   = String(req.user._id);
+    const isAdm = String(g.adminUserId) === uid;
     g.members = g.members.filter(m => String(m.userId) !== uid);
     if (isAdm && g.members.length > 0) {
+      // Promote the next member to admin if the admin leaves
       g.adminUserId   = g.members[0].userId;
       g.adminUsername = g.members[0].username;
     } else if (isAdm) {
+      // Last person leaving — just delete the group
       await g.deleteOne();
       return res.json({ ok: true });
     }
@@ -73,7 +73,7 @@ router.post('/:code/leave', authMiddleware, async (req, res) => {
   } catch { res.json({ error: 'Server error' }); }
 });
 
-// PATCH /api/groups/:code/window  — update trip window (admin only)
+// Update the trip month range from the dashboard
 router.patch('/:code/window', authMiddleware, async (req, res) => {
   try {
     const { start, end } = req.body;
@@ -81,16 +81,14 @@ router.patch('/:code/window', authMiddleware, async (req, res) => {
     const g = await Group.findOne({ inviteCode: req.params.code.toUpperCase() });
     if (!g) return res.json({ error: 'Group not found' });
     if (String(g.adminUserId) !== String(req.user._id)) return res.json({ error: 'Not admin' });
-    const endDate = new Date(end + 'T12:00:00');
-    const lastDay = new Date(endDate.getFullYear(), endDate.getMonth() + 1, 0);
     g.tripWindowStart = start;
-    g.tripWindowEnd   = `${lastDay.getFullYear()}-${String(lastDay.getMonth()+1).padStart(2,'0')}-${String(lastDay.getDate()).padStart(2,'0')}`;
+    g.tripWindowEnd   = snapMonthEnd(end); // snap to real last day to avoid timezone issues
     await g.save();
     res.json({ ok: true });
   } catch { res.json({ error: 'Server error' }); }
 });
 
-// PATCH /api/groups/:code  — rename a group (admin only)
+// Rename a group (admin only)
 router.patch('/:code', authMiddleware, async (req, res) => {
   try {
     const { name } = req.body;
@@ -104,7 +102,7 @@ router.patch('/:code', authMiddleware, async (req, res) => {
   } catch { res.json({ error: 'Server error' }); }
 });
 
-// DELETE /api/groups/:code  — delete a group (admin only)
+// Delete a group entirely (admin only)
 router.delete('/:code', authMiddleware, async (req, res) => {
   try {
     const g = await Group.findOne({ inviteCode: req.params.code.toUpperCase() });

@@ -1,6 +1,9 @@
+// Whether the chat panel is currently visible
 let chatOpen    = false;
+// Messages received while the chat was closed
 let unreadCount = 0;
 
+// Opens or closes the floating chat panel with a CSS animation
 function toggleChat() {
   chatOpen = !chatOpen;
   const panel  = document.getElementById('chat-panel');
@@ -37,6 +40,7 @@ function toggleChat() {
   }
 }
 
+// Shows or hides the unread count badge on the chat toggle button
 function updateChatBadge() {
   const badge       = document.getElementById('chat-unread-badge');
   const bubbleBadge = document.getElementById('chat-bubble-badge');
@@ -59,6 +63,8 @@ function chatSend() {
   inp.value = '';
 }
 
+// Appends a message to the chat list — system messages get a different style
+// animate=false is used for history messages loaded on join (no slide-in)
 function appendMsg(m, animate = true) {
   const el  = document.getElementById('chat-msgs');
   const div = document.createElement('div');
@@ -95,7 +101,9 @@ function appendMsg(m, animate = true) {
   }
 }
 
+// Per-user debounce timers so the typing indicator auto-hides after 2.5 s
 let typingTimers = {};
+// Shows a typing indicator for a user — cleared automatically after 2.5 seconds
 function showTyping(uname) {
   const el = document.getElementById('typing-row');
   clearTimeout(typingTimers[uname]);
@@ -103,19 +111,23 @@ function showTyping(uname) {
   typingTimers[uname] = setTimeout(() => { el.innerHTML = ''; }, 2500);
 }
 
+// Throttle timer so we only emit 'typing' once every 2 seconds while the user types
 let myTypingT = null;
+// Emits a typing event at most once every 2 seconds while the user is writing
 function chatTyping() {
   if (myTypingT) return;
   socket?.emit('typing');
   myTypingT = setTimeout(() => { myTypingT = null; }, 2000);
 }
 
+// Renders the online members avatar stack in the top bar
 function renderOnline(list) {
   document.getElementById('online-row').innerHTML = (list || []).map((u, i) =>
     `<div class="w-[27px] h-[27px] rounded-full flex items-center justify-center text-[10px] font-bold text-white border-2 border-deep ${i > 0 ? '-ml-[6px]' : ''} cursor-default transition-transform hover:scale-110 hover:z-[5]" style="background:${u.color}" title="${esc(u.username)}">${initials(u.username)}</div>`
   ).join('');
 }
 
+// Opens the group info / invite modal and resets any double-confirm button state
 function showInviteModal() {
   document.getElementById('modal-code').textContent = currentCode;
   document.getElementById('modal-link').textContent = `${location.origin}?code=${currentCode}`;

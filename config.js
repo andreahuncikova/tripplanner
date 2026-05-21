@@ -1,30 +1,19 @@
 module.exports = {
-  // ─── MongoDB Atlas ───────────────────────────────────────────────────────────
-  // 1. Registruj sa na https://cloud.mongodb.com  (zadarmo)
-  // 2. Create a cluster → Connect → Drivers → Node.js
-  // 3. Paste your connection string here:
+  // Connection string to MongoDB Atlas
   MONGO_URI: process.env.MONGO_URI ||
     'mongodb+srv://<user>:<password>@cluster0.xxxxx.mongodb.net/tripplanner?retryWrites=true&w=majority',
 
   PORT: process.env.PORT || 3000,
 
-  JWT_SECRET:  process.env.JWT_SECRET  || 'tp-secret-change-me-in-prod',
+  // Secret used to sign JWT tokens
+  JWT_SECRET:  process.env.JWT_SECRET || 'tp-secret-change-me-in-prod',
   JWT_EXPIRES: '7d',
 
+  // A palette of colors — one is picked randomly when a user registers and used as their avatar color throughout the app
   COLORS: ['#E8572A','#4A90A4','#6BAB5E','#9B59B6','#E67E22','#E91E63','#00BCD4','#3498DB','#1ABC9C','#F39C12'],
 
-  DEST_EMOJIS: {
-    Paris:'🇫🇷', Berlin:'🇩🇪', Copenhagen:'🇩🇰', Lisbon:'🇵🇹',
-    Barcelona:'🇪🇸', Amsterdam:'🇳🇱', Prague:'🇨🇿', Rome:'🇮🇹',
-    Athens:'🇬🇷', Dublin:'🇮🇪', Vienna:'🇦🇹', Wien:'🇦🇹',
-    Budapest:'🇭🇺', Madrid:'🇪🇸', London:'🇬🇧',
-    Bratislava:'🇸🇰', Warsaw:'🇵🇱', Krakow:'🇵🇱', 'Kraków':'🇵🇱',
-    Stockholm:'🇸🇪', Oslo:'🇳🇴', Helsinki:'🇫🇮', Dubrovnik:'🇭🇷', Split:'🇭🇷',
-    Santorini:'🇬🇷', Reykjavik:'🇮🇸', Porto:'🇵🇹', Seville:'🇪🇸',
-    Tallinn:'🇪🇪', Riga:'🇱🇻', Vilnius:'🇱🇹',
-    Ljubljana:'🇸🇮', Zurich:'🇨🇭', Nice:'🇫🇷', Brussels:'🇧🇪',
-  },
-
+  // Pre-defined activity suggestions shown when a user asks for AI ideas.
+  // Keyed by city name so we can do a quick lookup by the approved destination.
   ACTIVITY_SUGGESTIONS: {
     Paris:      ['🗼 Eiffel Tower','🎨 Louvre Museum','🥐 Croissant tour in Montmartre','🚢 Seine river cruise','🛍️ Champs-Élysées shopping','🍷 Wine bar in Le Marais'],
     Berlin:     ['🏛️ Berlin Wall','🎭 Pergamon Museum','🍺 Beer garden in Tiergarten','🎶 Techno night at Berghain','🚲 Bike tour of the city centre','🌊 Müggelsee lake'],
