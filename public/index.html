@@ -162,17 +162,17 @@
 <div id="s-app" class="screen">
 
   <!-- FULL-WIDTH NAVBAR — stepper always at 50vw -->
-  <div class="relative h-[52px] bg-panel flex-shrink-0 flex items-center px-4">
+  <div class="relative h-[52px] bg-panel flex-shrink-0 flex items-center px-3 sm:px-4">
     <div class="flex items-center gap-2 min-w-0 z-10">
       <button class="inline-flex items-center gap-1.5 border border-rim rounded-lg py-[5px] px-3 bg-transparent text-muted text-[11px] cursor-pointer transition-all hover:border-ink hover:text-ink font-medium flex-shrink-0" onclick="goToDash()">
         <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>Groups
       </button>
-      <span class="text-[13px] font-semibold text-ink truncate tracking-[-0.01em]" id="tb-group-name">—</span>
+      <span class="text-[13px] font-semibold text-ink truncate tracking-[-0.01em] hidden sm:block" id="tb-group-name">—</span>
     </div>
     <!-- Stepper absolutely centred across the full page -->
     <div id="phase-stepper" class="absolute inset-0 flex items-center justify-center pointer-events-none"></div>
-    <div class="ml-auto flex items-center gap-2.5 z-10">
-      <div class="ws-pill" id="ws-pill"><span class="live-dot"></span> Live</div>
+    <div class="ml-auto flex items-center gap-2 z-10">
+      <div class="ws-pill hidden sm:inline-flex" id="ws-pill"><span class="live-dot"></span> Live</div>
       <button class="inline-flex items-center gap-1 border border-rim rounded-lg py-[5px] px-2.5 bg-transparent text-muted text-[11px] cursor-pointer transition-all hover:border-ink hover:text-ink font-medium" onclick="showInviteModal()">
         <i data-lucide="link-2" class="w-3 h-3"></i>Invite
       </button>
@@ -193,12 +193,12 @@
 
         <!-- cards constrained to max-w, centered; bg-bg fills the sides -->
         <div class="flex-1 overflow-y-auto py-5 [scrollbar-width:thin]" id="dest-list-outer">
-          <div class="flex flex-col gap-2.5 max-w-[700px] mx-auto px-6" id="dest-list"></div>
+          <div class="flex flex-col gap-2.5 max-w-[700px] mx-auto px-4 md:px-6" id="dest-list"></div>
         </div>
 
         <!-- add bar: full-width white bg, content constrained to match cards -->
         <div class="flex-shrink-0 bg-panel border-t border-rim" id="dest-add-bar">
-          <div class="flex gap-1.5 py-3 px-6 max-w-[700px] mx-auto">
+          <div class="flex gap-1.5 py-3 px-4 md:px-6 max-w-[700px] mx-auto">
             <input id="dest-inp" type="text" placeholder="Suggest a destination (e.g. Paris, Vienna…)" maxlength="40"
               onkeydown="if(event.key==='Enter')destSuggest()" class="flex-1"/>
             <button class="bg-accent text-white border-none rounded-lg py-2 px-4 font-medium text-[13px] cursor-pointer whitespace-nowrap transition-all hover:bg-[#C44A22]" onclick="destSuggest()">Suggest</button>
@@ -208,44 +208,44 @@
 
       <!-- ── PHASE: calendar ── -->
       <div class="flex flex-col flex-1 min-h-0 overflow-hidden hidden" id="p-calendar">
-        <div class="flex flex-1 min-h-0 overflow-hidden px-20">
+        <div class="flex flex-col md:flex-row flex-1 min-h-0 overflow-y-auto md:overflow-hidden md:px-20">
 
           <!-- Calendar column -->
-          <div class="flex-1 flex flex-col overflow-hidden min-w-0">
+          <div class="flex flex-col overflow-hidden min-w-0 md:flex-1 flex-shrink-0">
 
             <!-- Month navigation -->
-            <div class="flex items-center gap-3 px-8 pt-6 pb-4 flex-shrink-0">
+            <div class="flex items-center gap-3 px-4 md:px-8 pt-4 md:pt-6 pb-3 md:pb-4 flex-shrink-0">
               <button class="w-8 h-8 rounded-full border border-rim bg-transparent text-muted flex items-center justify-center transition-all hover:bg-ink hover:text-white hover:border-ink cursor-pointer" onclick="calShift(-1)">
                 <i data-lucide="chevron-left" class="w-4 h-4"></i>
               </button>
-              <span id="cal-label" class="flex-1 text-center text-[20px] font-bold text-ink tracking-tight"></span>
+              <span id="cal-label" class="flex-1 text-center text-[18px] md:text-[20px] font-bold text-ink tracking-tight"></span>
               <button class="w-8 h-8 rounded-full border border-rim bg-transparent text-muted flex items-center justify-center transition-all hover:bg-ink hover:text-white hover:border-ink cursor-pointer" onclick="calShift(1)">
                 <i data-lucide="chevron-right" class="w-4 h-4"></i>
               </button>
             </div>
 
             <!-- Day name headers — separate from grid so they don't stretch -->
-            <div class="cal-daynames px-8 mb-2 flex-shrink-0" id="cal-daynames"></div>
+            <div class="cal-daynames px-4 md:px-8 mb-2 flex-shrink-0" id="cal-daynames"></div>
 
-            <!-- Date grid — fills remaining height -->
-            <div class="cal-grid flex-1 min-h-0 px-8 pb-6" id="cal-grid"></div>
+            <!-- Date grid — fills remaining height on desktop, auto height on mobile -->
+            <div class="cal-grid min-h-0 md:flex-1 px-4 md:px-8 pb-4 md:pb-6" id="cal-grid"></div>
 
           </div>
 
           <!-- Info panel -->
-          <div class="w-[420px] flex-shrink-0 flex flex-col bg-panel border-l border-rim overflow-hidden">
+          <div class="w-full md:w-[420px] flex-shrink-0 flex flex-col bg-panel border-t md:border-t-0 md:border-l border-rim overflow-hidden">
 
             <!-- Trip window -->
             <div class="px-5 pt-5 pb-4 border-b border-rim flex-shrink-0" id="trip-window-bar"></div>
 
             <!-- Selected day + members -->
-            <div class="flex-1 flex flex-col overflow-y-auto px-5 py-5 gap-4 min-h-0">
+            <div class="flex flex-col overflow-y-auto px-5 py-5 gap-4 md:flex-1 md:min-h-0">
               <div>
                 <div class="text-[10px] font-semibold text-muted uppercase tracking-[.07em] mb-1.5">Selected day</div>
                 <div class="text-[19px] font-bold text-ink leading-tight" id="avail-day-title">—</div>
               </div>
               <div id="avail-day-members" class="flex flex-col gap-2"></div>
-              <div class="mt-auto text-[11px] text-muted leading-relaxed pt-3 border-t border-rim">
+              <div class="md:mt-auto text-[11px] text-muted leading-relaxed pt-3 border-t border-rim">
                 Click a day to mark yourself as unavailable. Click again to undo.
               </div>
             </div>
@@ -262,7 +262,7 @@
       <!-- ── PHASE: date_vote ── -->
       <div class="flex flex-col flex-1 min-h-0 overflow-hidden hidden" id="p-datevote">
         <div class="flex-1 overflow-y-auto py-5 [scrollbar-width:thin]" id="ranges-outer">
-          <div class="flex flex-col gap-2.5 max-w-[700px] mx-auto px-6" id="ranges-list"></div>
+          <div class="flex flex-col gap-2.5 max-w-[700px] mx-auto px-4 md:px-6" id="ranges-list"></div>
         </div>
         <div class="hidden fixed inset-0 bg-[rgba(24,24,27,.45)] backdrop-blur-sm flex items-center justify-center z-50 p-5" id="subwindow-picker">
           <div class="bg-panel rounded-2xl p-6 w-full max-w-[420px] shadow-modal flex flex-col gap-[18px]">
@@ -292,27 +292,27 @@
           </button>
         </div>
 
-        <div id="done-tab-schedule" class="done-tab-pane flex-1 overflow-hidden min-h-0 flex flex-col px-20">
-          <div class="flex flex-1 min-h-0 overflow-hidden">
+        <div id="done-tab-schedule" class="done-tab-pane flex-1 overflow-hidden min-h-0 flex flex-col md:px-20">
+          <div class="flex flex-col md:flex-row flex-1 min-h-0 overflow-y-auto md:overflow-hidden">
 
             <!-- Calendar column -->
-            <div class="flex-1 flex flex-col overflow-hidden min-w-0">
-              <div class="flex items-center gap-3 px-8 pt-6 pb-4 flex-shrink-0">
+            <div class="flex flex-col overflow-hidden min-w-0 md:flex-1 flex-shrink-0">
+              <div class="flex items-center gap-3 px-4 md:px-8 pt-4 md:pt-6 pb-3 md:pb-4 flex-shrink-0">
                 <button class="w-8 h-8 rounded-full border border-rim bg-transparent text-muted flex items-center justify-center transition-all hover:bg-ink hover:text-white hover:border-ink cursor-pointer" onclick="calShift(-1)">
                   <i data-lucide="chevron-left" class="w-4 h-4"></i>
                 </button>
-                <span id="done-cal-label" class="flex-1 text-center text-[20px] font-bold text-ink tracking-tight"></span>
+                <span id="done-cal-label" class="flex-1 text-center text-[18px] md:text-[20px] font-bold text-ink tracking-tight"></span>
                 <button class="w-8 h-8 rounded-full border border-rim bg-transparent text-muted flex items-center justify-center transition-all hover:bg-ink hover:text-white hover:border-ink cursor-pointer" onclick="calShift(1)">
                   <i data-lucide="chevron-right" class="w-4 h-4"></i>
                 </button>
               </div>
-              <div class="cal-daynames px-8 mb-2 flex-shrink-0" id="done-cal-daynames"></div>
-              <div class="done-cal-grid flex-1 min-h-0 px-8 pb-6" id="done-cal-grid"></div>
+              <div class="cal-daynames px-4 md:px-8 mb-2 flex-shrink-0" id="done-cal-daynames"></div>
+              <div class="done-cal-grid min-h-0 md:flex-1 px-4 md:px-8 pb-4 md:pb-6" id="done-cal-grid"></div>
             </div>
 
             <!-- Day detail panel — same style as availability -->
-            <div class="w-[420px] flex-shrink-0 flex flex-col bg-panel border-l border-rim overflow-hidden" id="done-day-panel">
-              <div class="flex-1 flex flex-col overflow-y-auto px-5 py-5 gap-4 min-h-0">
+            <div class="w-full md:w-[420px] flex-shrink-0 flex flex-col bg-panel border-t md:border-t-0 md:border-l border-rim overflow-hidden" id="done-day-panel">
+              <div class="flex flex-col overflow-y-auto px-5 py-5 gap-4 md:flex-1 md:min-h-0">
                 <div>
                   <div class="text-[10px] font-semibold text-muted uppercase tracking-[.07em] mb-1.5">Selected day</div>
                   <div class="text-[19px] font-bold text-ink leading-tight" id="done-day-title">—</div>
@@ -329,7 +329,7 @@
           </div>
         </div>
 
-        <div id="done-tab-budget" class="done-tab-pane done-tab-hidden flex-1 overflow-hidden min-h-0 flex px-20">
+        <div id="done-tab-budget" class="done-tab-pane done-tab-hidden flex-1 overflow-hidden min-h-0 flex md:px-20">
 
           <!-- Empty state — centred, shown when no expenses -->
           <div id="budget-empty" class="flex-1 flex flex-col items-center justify-center gap-5 text-center px-8">
@@ -350,11 +350,11 @@
 
             <div class="flex-1 flex flex-col overflow-hidden min-w-0">
               <div class="flex-1 overflow-y-auto py-5 [scrollbar-width:thin]">
-                <div class="flex flex-col gap-2.5 max-w-[700px] mx-auto px-6" id="expense-list"></div>
+                <div class="flex flex-col gap-2.5 max-w-[700px] mx-auto px-4 md:px-6" id="expense-list"></div>
               </div>
             </div>
 
-            <div class="w-[420px] flex-shrink-0 flex flex-col bg-panel border-l border-rim overflow-hidden">
+            <div class="w-full md:w-[420px] md:flex-shrink-0 flex flex-col bg-panel border-l border-rim overflow-hidden">
               <div class="flex-1 overflow-y-auto px-5 py-5 flex flex-col gap-4 min-h-0" id="budget-summary"></div>
               <div class="px-5 pb-5 flex-shrink-0">
                 <button class="w-full inline-flex items-center justify-center gap-1.5 py-3 rounded-xl border-none bg-accent text-white text-[13px] font-semibold cursor-pointer transition-all hover:bg-[#C44A22] hover:-translate-y-px" onclick="showAddExpenseModal()">

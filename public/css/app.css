@@ -72,6 +72,9 @@ select.select-ghost { border: none; background: transparent; padding: 4px 2px; b
 .done-tab-pane   { flex:1; overflow:hidden; min-height:0; display:flex; flex-direction:column; }
 .done-tab-hidden { display:none !important; }
 #done-tab-budget { overflow-y:auto; }
+@media (min-width: 768px) {
+  #done-tab-budget { flex-direction: row; overflow: hidden; }
+}
 
 /* ── Typing dots ── */
 .tdots span { width:5px; height:5px; border-radius:50%; background:#71717A; display:inline-block; animation:bounce .9s infinite; margin:0 1px; }
@@ -81,3 +84,23 @@ select.select-ghost { border: none; background: transparent; padding: 4px 2px; b
 /* ── Expense checkbox :has()  ── */
 .exp-check:has(input:checked) { border-color:#E8572A; background:rgba(232,87,42,.06); }
 .exp-check input { display:none; }
+
+/* ── Mobile (< 768px) ─────────────────────── */
+@media (max-width: 767px) {
+  /* Calendar cells become square so the grid height is auto */
+  #cal-grid > div,
+  #done-cal-grid > div      { aspect-ratio: 1 !important; }
+  #cal-grid,
+  #done-cal-grid             { grid-auto-rows: auto; align-content: start; }
+
+  /* Budget split stacks vertically */
+  #budget-split              { flex-direction: column; overflow: visible; }
+  #budget-split > div:first-child { min-height: 220px; }
+  #budget-split > div:last-child  { width: 100%; border-left: none; border-top: 1px solid rgba(24,24,27,.10); }
+
+  /* Readiness panel hidden — too small to fit on mobile */
+  #readiness-panel           { display: none !important; }
+
+  /* Chat panel stretches to fill screen width */
+  #chat-panel                { width: calc(100vw - 32px) !important; left: 16px; right: 16px; }
+}
