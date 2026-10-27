@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { JWT_SECRET } from '../config';
+import User from '../models/User';
 import type { AppSocket, JwtUser } from '../types';
 
 // A request that went through authMiddleware, so req.user is always set
@@ -22,25 +23,47 @@ export function verifyToken(token: string): JwtUser {
   return jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] }) as JwtUser;
 }
 
+// A correctly signed token is still refused when its version is older than the user's tokenVersion
+// (the password was changed after the token was made) or when the user no longer exists.
+// Tokens from before tokenVersion existed have no tv and count as version 0.
+export async function isCurrentToken(payload: JwtUser): Promise<boolean> {
+  const user = await User.findById(payload._id).select('tokenVersion').lean();
+  return !!user && (user.tokenVersion ?? 0) === (payload.tv ?? 0);
+}
+
 // Checks JWT for HTTP routes
-export function authMiddleware(req: Request, res: Response, next: NextFunction) {
+export async function authMiddleware(req: Request, res: Response, next: NextFunction) {
   const token = readBearer(req.headers.authorization);
   if (!token) return res.status(401).json({ error: 'Not logged in' });
+
+  let user: JwtUser;
   try {
-    (req as AuthRequest).user = verifyToken(token);
-    next();
+    user = verifyToken(token);
   } catch {
-    res.status(401).json({ error: 'Invalid token' });
+    return res.status(401).json({ error: 'Invalid token' });
   }
+
+  try {
+    if (!(await isCurrentToken(user))) return res.status(401).json({ error: 'Your session has ended — please log in again' });
+  } catch (e) {
+    // A database problem is not the user's fault, so it must not look like a bad token
+    console.error('[auth]', (e as Error).message);
+    return res.status(503).json({ error: 'The database is not available right now — please try again in a moment' });
+  }
+
+  (req as AuthRequest).user = user;
+  next();
 }
 
 // Checks JWT for sockets — the client sends it in io({ auth: { token } })
-export function socketAuth(socket: AppSocket, next: (err?: Error) => void) {
+export async function socketAuth(socket: AppSocket, next: (err?: Error) => void) {
   const token = socket.handshake.auth?.token;
   if (typeof token !== 'string' || !token) return next(new Error('auth'));
   try {
+    const user = verifyToken(token);
+    if (!(await isCurrentToken(user))) return next(new Error('auth'));
     // socket.data is the place Socket.IO gives us for our own data on each connection
-    socket.data.user = verifyToken(token);
+    socket.data.user = user;
     next();
   } catch {
     next(new Error('auth'));
