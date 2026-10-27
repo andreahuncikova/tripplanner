@@ -92,6 +92,7 @@ Open http://localhost:5173. Requests to /api and /socket.io are forwarded to the
 Other scripts (run in `server/`):
 
 ```
+npm test            # run the unit tests (Vitest), also run by GitHub Actions on every push
 npm run typecheck   # check types without building
 npm run build       # compile TypeScript to dist/
 npm start           # run the compiled server (used on Render)
