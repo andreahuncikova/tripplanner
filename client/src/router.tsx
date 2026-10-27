@@ -1,5 +1,6 @@
 import { createBrowserRouter } from 'react-router-dom'
 import App from './App'
+import RequireAuth from './components/RequireAuth'
 import Landing from './pages/Landing'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
@@ -12,11 +13,17 @@ export const router = createBrowserRouter([
     path: '/',
     element: <App />,
     children: [
-      { index: true,           element: <Landing /> },
-      { path: 'login',         element: <Login /> },
-      { path: 'dashboard',     element: <Dashboard /> },
-      { path: 'trips/:tripId', element: <Trip /> },
-      { path: '*',             element: <NotFound /> },
+      { index: true,   element: <Landing /> },
+      { path: 'login', element: <Login /> },
+      {
+        // Pages below need a logged-in user.
+        element: <RequireAuth />,
+        children: [
+          { path: 'dashboard',     element: <Dashboard /> },
+          { path: 'trips/:tripId', element: <Trip /> },
+        ],
+      },
+      { path: '*', element: <NotFound /> },
     ],
   },
 ])

@@ -15,9 +15,9 @@ export default function Landing() {
   return (
     <main className="mx-auto flex max-w-md flex-col items-center gap-6 px-4 py-24 text-center">
       <img src="/logo.svg" alt="" className="h-12" />
-      <h1 className="text-3xl font-semibold">TripPlanner</h1>
-      <Link to="/login" className="rounded-lg bg-slate-900 px-5 py-2.5 text-white">Log in</Link>
-      <p className="text-sm text-slate-500">
+      <h1 className="font-display text-display font-extrabold tracking-tight">TripPlanner</h1>
+      <Link to="/login" className="rounded-md bg-sommet px-5 py-3 font-bold text-white hover:bg-sommet-dark hover:text-white">Log in</Link>
+      <p className="text-sm text-muted">
         Server: {server === 'checking' ? 'checking…' : server === 'ok' ? 'connected' : 'not reachable'}
       </p>
     </main>
