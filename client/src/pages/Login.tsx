@@ -52,7 +52,9 @@ export default function Login() {
   const longEnough = password.length >= PASSWORD_MIN
 
   return (
-    <div className="min-h-dvh bg-white lg:flex lg:gap-3.5 lg:p-3.5">
+    // Desktop: the page is exactly as tall as the window, so the photo keeps its size on both tabs;
+    // a form that does not fit scrolls on its own, next to the photo.
+    <div className="min-h-dvh bg-white lg:flex lg:h-dvh lg:gap-3.5 lg:p-3.5">
       {/* Mobile: photo on top, the form slides over it */}
       <div className="relative h-[220px] lg:hidden">
         <img src="/login-hero.jpg" alt={PHOTO_ALT} className="size-full object-cover object-[50%_60%]" />
@@ -65,13 +67,14 @@ export default function Login() {
         </Link>
       </div>
 
-      <main className="relative -mt-7 rounded-t-2xl bg-white px-5 pb-7 pt-6.5 lg:mt-0 lg:flex lg:flex-[1_1_460px] lg:flex-col lg:rounded-none lg:px-10 lg:py-6">
+      <main className="relative -mt-7 rounded-t-2xl bg-white px-5 pb-7 pt-6.5 lg:mt-0 lg:flex lg:min-h-0 lg:flex-[1_1_460px] lg:flex-col lg:overflow-y-auto lg:rounded-none lg:px-10 lg:py-6">
         <Link to="/" className="hidden items-center gap-2.5 text-xl font-extrabold text-roche hover:text-roche lg:flex">
           <svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="10" className="fill-sommet" /><path d="M9 20l14-8-5 12-2-5z" fill="none" stroke="#FFFFFF" strokeWidth="2" strokeLinejoin="round" /></svg>
           TripPlanner
         </Link>
 
-        <div className="mx-auto flex w-full max-w-[420px] flex-col gap-[18px] lg:flex-1 lg:justify-center lg:gap-5 lg:py-8">
+        {/* Starts at the same height on both tabs, so the heading and tabs do not move when the sign-up form adds a field */}
+        <div className="mx-auto flex w-full max-w-[420px] flex-col gap-[18px] lg:gap-5 lg:pt-[max(2rem,12vh)] lg:pb-8">
           <h1 className="font-display text-display font-extrabold tracking-[-0.02em] lg:text-[44px] lg:tracking-[-0.03em]">
             {mode === 'login' ? 'Welcome back' : 'Create your account'}
           </h1>
@@ -122,7 +125,7 @@ export default function Login() {
       </main>
 
       {/* Desktop: photo with a short message next to the form */}
-      <aside className="relative hidden min-h-[560px] flex-[1_1_520px] overflow-hidden rounded-2xl bg-sommet lg:block">
+      <aside className="relative hidden flex-[1_1_520px] overflow-hidden rounded-2xl bg-sommet lg:block">
         <img src="/login-hero.jpg" alt={PHOTO_ALT} className="absolute inset-0 size-full object-cover object-[55%_60%]" />
         <div className="absolute inset-x-7 bottom-7 flex flex-col gap-1.5 rounded-xl bg-roche/60 px-[22px] py-5 text-white backdrop-blur-md">
           <strong className="font-display text-2xl">Planned in one place.</strong>
