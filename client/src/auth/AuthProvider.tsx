@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { api, getToken, setToken as saveToken } from '../lib/api'
-import type { User } from '../types'
+import type { User } from '@shared/types'
 import { AuthContext } from './AuthContext'
 
 interface AuthResponse {

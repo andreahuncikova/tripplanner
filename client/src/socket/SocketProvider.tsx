@@ -1,14 +1,14 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { io, type Socket } from 'socket.io-client'
+import { io } from 'socket.io-client'
 import { useAuth } from '../auth/useAuth'
 import { API_URL } from '../lib/api'
-import { SocketContext } from './SocketContext'
+import { SocketContext, type TripSocket } from './SocketContext'
 
 // One socket connection for the whole app, open while someone is logged in.
 // Screens use it through useSocket(); a trip screen emits 'join' with the trip's code.
 export function SocketProvider({ children }: { children: ReactNode }) {
   const { token } = useAuth()
-  const [socket, setSocket] = useState<Socket | null>(null)
+  const [socket, setSocket] = useState<TripSocket | null>(null)
   const [connected, setConnected] = useState(false)
 
   useEffect(() => {
@@ -16,7 +16,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
 
     // The server checks this token before it accepts the connection (socketAuth on the server).
     // With an empty API_URL the socket connects to the page's own origin, which Vite proxies in development.
-    const s = io(API_URL || undefined, { auth: { token } })
+    const s: TripSocket = io(API_URL || undefined, { auth: { token } })
     s.on('connect', () => setConnected(true))
     s.on('disconnect', () => setConnected(false))
     setSocket(s)
