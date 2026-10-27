@@ -17,8 +17,8 @@ const server = http.createServer(app);
 const io     = new Server(server);
 
 // ── Static files & REST API ───────────────────────────
-// Serve everything in /public directly to the browser.
-app.use(express.static(path.join(__dirname, 'public')));
+// Serve the old frontend from /client until the React app replaces it.
+app.use(express.static(path.join(__dirname, '..', 'client')));
 app.use(express.json());
 app.use(cookieParser());
 app.use('/api/auth',   require('./routes/auth'));

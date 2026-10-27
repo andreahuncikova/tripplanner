@@ -55,3 +55,21 @@ Invite Friends
 * Typing indicator
 * Activity planning
 * AI activity recommendations
+
+## Project Structure
+
+```
+client/   frontend (served by the server for now)
+server/   Express + Socket.IO backend
+```
+
+## Running Locally
+
+```
+cd server
+cp .env.example .env   # then fill in MONGO_URI
+npm install
+npm run dev
+```
+
+Open http://localhost:3000.
