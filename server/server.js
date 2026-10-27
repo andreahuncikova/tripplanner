@@ -17,8 +17,8 @@ const server = http.createServer(app);
 const io     = new Server(server);
 
 // ── Static files & REST API ───────────────────────────
-// Serve the old frontend from /client until the React app replaces it.
-app.use(express.static(path.join(__dirname, '..', 'client')));
+// Serve the old frontend from /client-legacy until the React app on Vercel replaces it.
+app.use(express.static(path.join(__dirname, '..', 'client-legacy')));
 app.use(express.json());
 app.use(cookieParser());
 app.use('/api/auth',   require('./routes/auth'));

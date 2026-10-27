@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 52">
+  <title>TripPlanner</title>
+  <!-- Orange badge -->
+  <circle cx="26" cy="26" r="24" fill="#E8572A"/>
+  <circle cx="26" cy="26" r="24" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/>
+  <!-- Paper airplane: main body (white triangle, tip pointing upper-right) -->
+  <path d="M9,38 L40,14 L30,29 Z" fill="white"/>
+  <!-- Paper airplane: fold shadow (underside crease) -->
+  <path d="M9,38 L19,35 L30,29 Z" fill="rgba(255,255,255,0.38)"/>
+  <!-- Fold line for paper effect -->
+  <line x1="9" y1="38" x2="30" y2="29" stroke="rgba(255,255,255,0.22)" stroke-width="0.6"/>
+  <!-- Wordmark: "Trip" bold dark + "Planner" light orange -->
+  <text y="33" font-family="Georgia,'Times New Roman',serif" font-size="24">
+    <tspan x="62" font-weight="700" fill="#18181B">Trip</tspan><tspan font-weight="400" fill="#E8572A">Planner</tspan>
+  </text>
+</svg>

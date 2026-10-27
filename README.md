@@ -59,11 +59,14 @@ Invite Friends
 ## Project Structure
 
 ```
-client/   frontend (served by the server for now)
-server/   Express + Socket.IO backend
+client/          new React + TypeScript frontend (Vite, Tailwind)
+client-legacy/   old frontend, served by the server until the React app replaces it
+server/          Express + Socket.IO backend
 ```
 
 ## Running Locally
+
+Server:
 
 ```
 cd server
@@ -72,4 +75,14 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:3000.
+The old app runs on http://localhost:3000.
+
+Client (in a second terminal):
+
+```
+cd client
+npm install
+npm run dev
+```
+
+Open http://localhost:5173. Requests to /api and /socket.io are forwarded to the server on port 3000.

@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TripPlanner</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<meta name="description" content="Plan trips together, in real time">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          bg:     '#F2EDE4',
+          deep:   '#18181B',
+          ink:    '#27272A',
+          muted:  '#71717A',
+          panel:  '#FAFAF8',
+          accent: '#E8572A',
+          blue:   '#4A90A4',
+          green:  '#5C9E50',
+          purple: '#9B59B6',
+          rim:    'rgba(24,24,27,.10)',
+        },
+        fontFamily: {
+          sans: ['Plus Jakarta Sans', 'sans-serif'],
+        },
+        boxShadow: {
+          soft:  '0 1px 3px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.07)',
+          modal: '0 8px 40px rgba(0,0,0,.22)',
+        },
+        keyframes: { up: { from: { opacity:'0', transform:'translateY(6px)' }, to: { opacity:'1', transform:'none' } } },
+        animation: { up: 'up .25s ease both' },
+      },
+    },
+  }
+</script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════
+  AUTH SCREEN
+═══════════════════════════════════════════ -->
+<div id="s-auth" class="screen active">
+  <div class="auth-bg min-h-screen flex items-center justify-center">
+    <div class="bg-panel rounded-2xl py-10 px-9 w-[400px] max-w-[96vw] shadow-modal text-center">
+      <img src="/logo.svg" alt="TripPlanner" class="h-14 mx-auto mb-1.5">
+      <p class="text-[13px] text-muted mb-[22px] leading-relaxed">Plan trips together, in real time</p>
+
+      <div class="flex gap-1 bg-bg rounded-[10px] p-1 mb-[18px]">
+        <button class="ptab flex-1 py-2 border-none rounded-lg text-[13px] font-medium cursor-pointer bg-transparent text-muted transition-all active" data-tab="login">Log in</button>
+        <button class="ptab flex-1 py-2 border-none rounded-lg text-[13px] font-medium cursor-pointer bg-transparent text-muted transition-all" data-tab="register">Register</button>
+      </div>
+
+      <form class="auth-form active" id="f-login" onsubmit="event.preventDefault();authLogin(this)">
+        <input type="email"    name="email"    placeholder="Email" required autocomplete="email"/>
+        <input type="password" name="password" placeholder="Password" required autocomplete="current-password"/>
+        <button type="submit" class="w-full py-[13px] border-none rounded-[10px] bg-accent text-white font-semibold text-sm cursor-pointer transition-all hover:bg-[#C44A22] hover:-translate-y-px active:scale-[.98]">Log in</button>
+        <p class="text-[12px] text-muted text-center mt-1">Don't have an account? <button type="button" class="text-accent font-semibold hover:underline cursor-pointer border-none bg-transparent p-0" onclick="document.querySelector('[data-tab=register]').click()">Register</button></p>
+      </form>
+
+      <form class="auth-form" id="f-register" onsubmit="event.preventDefault();authRegister(this)">
+        <input type="text"     name="username" placeholder="Your name (visible to others)" required maxlength="30"/>
+        <input type="email"    name="email"    placeholder="Email" required autocomplete="email"/>
+        <input type="password" name="password" placeholder="Password (min. 6 characters)" required minlength="6" autocomplete="new-password"/>
+        <button type="submit" class="w-full py-[13px] border-none rounded-[10px] bg-accent text-white font-semibold text-sm cursor-pointer transition-all hover:bg-[#C44A22] hover:-translate-y-px active:scale-[.98]">Create account</button>
+        <p class="text-[12px] text-muted text-center mt-1">Already have an account? <button type="button" class="text-accent font-semibold hover:underline cursor-pointer border-none bg-transparent p-0" onclick="document.querySelector('[data-tab=login]').click()">Log in</button></p>
+      </form>
+
+      <div class="text-xs text-accent min-h-4 mt-1.5" id="auth-error"></div>
+      <div class="ws-pill mt-3"><span class="live-dot"></span> Powered by WebSockets</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+  DASHBOARD SCREEN
+═══════════════════════════════════════════ -->
+<div id="s-dash" class="screen overflow-y-auto">
+  <div class="max-w-xl mx-auto py-6 px-5">
+    <div class="flex items-center justify-between mb-8 pb-4 border-b border-rim">
+      <img src="/logo.svg" alt="TripPlanner" class="h-9">
+      <div class="flex items-center gap-2.5">
+        <span id="d-username" class="text-[13px] text-muted"></span>
+        <button class="border border-rim rounded-lg py-1.5 px-3.5 bg-transparent text-muted text-xs cursor-pointer transition-all hover:border-ink hover:text-ink" onclick="logout()">Log out</button>
+      </div>
+    </div>
+
+    <div class="hidden text-center py-12 px-4" id="dash-empty">
+      <div class="mb-4 flex justify-center">
+        <i data-lucide="plane-takeoff" class="w-14 h-14 text-muted"></i>
+      </div>
+      <h2 class="text-[22px] font-semibold mb-2">Welcome, <span id="de-username"></span>!</h2>
+      <p class="text-sm text-muted mb-8">Start planning a trip with your friends.</p>
+      <div class="flex gap-4 justify-center flex-wrap">
+        <button class="flex-1 min-w-[170px] max-w-[210px] py-6 px-[18px] bg-panel border border-rim rounded-[16px] cursor-pointer transition-all text-center flex flex-col items-center gap-2 hover:border-accent hover:shadow-soft hover:-translate-y-0.5" onclick="showCreateModal()">
+          <div class="w-[50px] h-[50px] rounded-full bg-accent/10 flex items-center justify-center text-accent">
+            <i data-lucide="plus" class="w-6 h-6"></i>
+          </div>
+          <div class="font-semibold text-sm">Create a group</div>
+          <div class="text-xs text-muted leading-snug">Start a new trip and invite friends</div>
+        </button>
+        <button class="flex-1 min-w-[170px] max-w-[210px] py-6 px-[18px] bg-panel border border-rim rounded-[16px] cursor-pointer transition-all text-center flex flex-col items-center gap-2 hover:border-accent hover:shadow-soft hover:-translate-y-0.5" onclick="showJoinModal()">
+          <div class="w-[50px] h-[50px] rounded-full bg-accent/10 flex items-center justify-center text-accent">
+            <i data-lucide="link-2" class="w-6 h-6"></i>
+          </div>
+          <div class="font-semibold text-sm">Join with a code</div>
+          <div class="text-xs text-muted leading-snug">Enter an invite code or open a link</div>
+        </button>
+      </div>
+    </div>
+
+    <div class="hidden" id="dash-groups-wrap">
+      <div class="flex items-center justify-between mb-3.5">
+        <h2 class="text-lg font-semibold">My groups</h2>
+        <div class="flex gap-2 items-center">
+          <button class="inline-flex items-center gap-1.5 border border-rim rounded-lg py-1.5 px-3.5 bg-transparent text-muted text-xs cursor-pointer transition-all hover:border-ink hover:text-ink" onclick="showJoinModal()">
+            <i data-lucide="link-2" class="w-3.5 h-3.5"></i>Join
+          </button>
+          <button class="inline-flex items-center gap-1.5 py-2 px-4 rounded-[9px] border-none bg-accent text-white text-[13px] font-semibold cursor-pointer transition-all hover:bg-[#C44A22]" onclick="showCreateModal()">
+            <i data-lucide="plus" class="w-4 h-4"></i>New group
+          </button>
+        </div>
+      </div>
+      <div id="my-groups-list" class="flex flex-col gap-2"></div>
+    </div>
+
+    <div class="text-xs text-accent min-h-[14px] mt-2" id="dash-error"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+  INVITE SCREEN
+═══════════════════════════════════════════ -->
+<div id="s-invite" class="screen">
+  <div class="auth-bg min-h-screen flex items-center justify-center">
+    <div class="bg-panel rounded-2xl py-10 px-9 w-[400px] max-w-[96vw] shadow-modal text-center">
+      <div class="mb-3 flex justify-center">
+        <i data-lucide="sparkles" class="w-10 h-10 text-muted"></i>
+      </div>
+      <h2 id="inv-group-name" class="text-[26px] font-semibold mb-1.5 tracking-[-0.02em]"></h2>
+      <p class="text-[13px] text-muted mb-[22px] leading-relaxed">Share this code with your friends</p>
+      <div class="font-bold text-[30px] tracking-[.22em] bg-bg border-2 border-dashed border-rim rounded-xl p-4 mt-[14px] mb-2 text-ink" id="inv-code"></div>
+      <div class="text-[11px] text-muted break-all mb-3" id="inv-link"></div>
+      <button class="inline-flex items-center justify-center gap-2 w-full py-[11px] border-[1.5px] border-rim rounded-[10px] bg-transparent text-ink font-medium text-[13px] cursor-pointer transition-all hover:bg-bg" onclick="copyInvite()">
+        <i data-lucide="copy" class="w-4 h-4"></i>Copy link
+      </button>
+      <button class="inline-flex items-center justify-center gap-2 w-full py-[13px] border-none rounded-[10px] bg-accent text-white font-semibold text-sm cursor-pointer transition-all hover:bg-[#C44A22] mt-2" onclick="enterGroup()">
+        Enter<i data-lucide="arrow-right" class="w-4 h-4"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+  APP SCREEN
+═══════════════════════════════════════════ -->
+<div id="s-app" class="screen">
+
+  <!-- FULL-WIDTH NAVBAR — stepper always at 50vw -->
+  <div class="relative h-[52px] bg-panel flex-shrink-0 flex items-center px-3 sm:px-4">
+    <div class="flex items-center gap-2 min-w-0 z-10">
+      <button class="inline-flex items-center gap-1.5 border border-rim rounded-lg py-[5px] px-3 bg-transparent text-muted text-[11px] cursor-pointer transition-all hover:border-ink hover:text-ink font-medium flex-shrink-0" onclick="goToDash()">
+        <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>Groups
+      </button>
+      <span class="text-[13px] font-semibold text-ink truncate tracking-[-0.01em] hidden sm:block" id="tb-group-name">—</span>
+    </div>
+    <!-- Stepper absolutely centred across the full page -->
+    <div id="phase-stepper" class="absolute inset-0 flex items-center justify-center pointer-events-none"></div>
+    <div class="ml-auto flex items-center gap-2 z-10">
+      <div class="ws-pill hidden sm:inline-flex" id="ws-pill"><span class="live-dot"></span> Live</div>
+      <button class="inline-flex items-center gap-1 border border-rim rounded-lg py-[5px] px-2.5 bg-transparent text-muted text-[11px] cursor-pointer transition-all hover:border-ink hover:text-ink font-medium" onclick="showInviteModal()">
+        <i data-lucide="link-2" class="w-3 h-3"></i>Invite
+      </button>
+    </div>
+  </div>
+
+  <!-- HINT BAR — full-width, text always at true page centre -->
+  <div id="hint-bar" class="flex-shrink-0 relative bg-panel border-b border-rim pt-3 pb-2">
+    <div id="hint-content" class="flex items-center justify-center pointer-events-none"></div>
+  </div>
+
+  <!-- MAIN: phases left + chat right -->
+  <div class="flex-1 flex min-h-0 overflow-hidden">
+    <div class="flex-1 min-w-0 flex flex-col overflow-hidden bg-bg min-h-0" id="left-col">
+
+      <!-- ── PHASE: destinations ── -->
+      <div class="flex flex-col flex-1 min-h-0 overflow-hidden" id="p-destinations">
+
+        <!-- cards constrained to max-w, centered; bg-bg fills the sides -->
+        <div class="flex-1 overflow-y-auto py-5 [scrollbar-width:thin]" id="dest-list-outer">
+          <div class="flex flex-col gap-2.5 max-w-[700px] mx-auto px-4 md:px-6" id="dest-list"></div>
+        </div>
+
+        <!-- add bar: full-width white bg, content constrained to match cards -->
+        <div class="flex-shrink-0 bg-panel border-t border-rim" id="dest-add-bar">
+          <div class="flex gap-1.5 py-3 px-4 md:px-6 max-w-[700px] mx-auto">
+            <input id="dest-inp" type="text" placeholder="Suggest a destination (e.g. Paris, Vienna…)" maxlength="40"
+              onkeydown="if(event.key==='Enter')destSuggest()" class="flex-1"/>
+            <button class="bg-accent text-white border-none rounded-lg py-2 px-4 font-medium text-[13px] cursor-pointer whitespace-nowrap transition-all hover:bg-[#C44A22]" onclick="destSuggest()">Suggest</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── PHASE: calendar ── -->
+      <div class="flex flex-col flex-1 min-h-0 overflow-hidden hidden" id="p-calendar">
+        <div class="flex flex-col md:flex-row flex-1 min-h-0 overflow-y-auto md:overflow-hidden md:px-20">
+
+          <!-- Calendar column -->
+          <div class="flex flex-col overflow-hidden min-w-0 md:flex-1 flex-shrink-0">
+
+            <!-- Month navigation -->
+            <div class="flex items-center gap-3 px-4 md:px-8 pt-4 md:pt-6 pb-3 md:pb-4 flex-shrink-0">
+              <button class="w-8 h-8 rounded-full border border-rim bg-transparent text-muted flex items-center justify-center transition-all hover:bg-ink hover:text-white hover:border-ink cursor-pointer" onclick="calShift(-1)">
+                <i data-lucide="chevron-left" class="w-4 h-4"></i>
+              </button>
+              <span id="cal-label" class="flex-1 text-center text-[18px] md:text-[20px] font-bold text-ink tracking-tight"></span>
+              <button class="w-8 h-8 rounded-full border border-rim bg-transparent text-muted flex items-center justify-center transition-all hover:bg-ink hover:text-white hover:border-ink cursor-pointer" onclick="calShift(1)">
+                <i data-lucide="chevron-right" class="w-4 h-4"></i>
+              </button>
+            </div>
+
+            <!-- Day name headers — separate from grid so they don't stretch -->
+            <div class="cal-daynames px-4 md:px-8 mb-2 flex-shrink-0" id="cal-daynames"></div>
+
+            <!-- Date grid — fills remaining height on desktop, auto height on mobile -->
+            <div class="cal-grid min-h-0 md:flex-1 px-4 md:px-8 pb-4 md:pb-6" id="cal-grid"></div>
+
+          </div>
+
+          <!-- Info panel -->
+          <div class="w-full md:w-[420px] flex-shrink-0 flex flex-col bg-panel border-t md:border-t-0 md:border-l border-rim overflow-hidden">
+
+            <!-- Trip window -->
+            <div class="px-5 pt-5 pb-4 border-b border-rim flex-shrink-0" id="trip-window-bar"></div>
+
+            <!-- Selected day + members -->
+            <div class="flex flex-col overflow-y-auto px-5 py-5 gap-4 md:flex-1 md:min-h-0">
+              <div>
+                <div class="text-[10px] font-semibold text-muted uppercase tracking-[.07em] mb-1.5">Selected day</div>
+                <div class="text-[19px] font-bold text-ink leading-tight" id="avail-day-title">—</div>
+              </div>
+              <div id="avail-day-members" class="flex flex-col gap-2"></div>
+              <div class="md:mt-auto text-[11px] text-muted leading-relaxed pt-3 border-t border-rim">
+                Click a day to mark yourself as unavailable. Click again to undo.
+              </div>
+            </div>
+
+            <!-- Member ready button / Admin calculate button -->
+            <div id="cal-admin-bar" class="flex-shrink-0"></div>
+            <div id="cal-ready-bar" class="flex-shrink-0 px-5 pb-5"></div>
+
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ── PHASE: date_vote ── -->
+      <div class="flex flex-col flex-1 min-h-0 overflow-hidden hidden" id="p-datevote">
+        <div class="flex-1 overflow-y-auto py-5 [scrollbar-width:thin]" id="ranges-outer">
+          <div class="flex flex-col gap-2.5 max-w-[700px] mx-auto px-4 md:px-6" id="ranges-list"></div>
+        </div>
+        <div class="hidden fixed inset-0 bg-[rgba(24,24,27,.45)] backdrop-blur-sm flex items-center justify-center z-50 p-5" id="subwindow-picker">
+          <div class="bg-panel rounded-2xl p-6 w-full max-w-[420px] shadow-modal flex flex-col gap-[18px]">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <div class="text-[17px] font-bold text-ink tracking-tight leading-tight" id="subwindow-title">Choose your exact dates</div>
+                <div class="text-xs text-muted mt-1" id="subwindow-sub"></div>
+              </div>
+              <button class="w-7 h-7 rounded-lg border border-rim bg-transparent text-muted flex items-center justify-center transition-all hover:bg-bg hover:text-ink flex-shrink-0" onclick="closeSubWindowPicker()">
+                <i data-lucide="x" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+            <div class="flex flex-col gap-[7px] max-h-[320px] overflow-y-auto" id="subwindow-options"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── PHASE: done ── -->
+      <div class="flex flex-col flex-1 min-h-0 overflow-hidden hidden" id="p-done">
+        <div class="flex border-b-2 border-rim bg-panel flex-shrink-0">
+          <button class="dtab flex-1 py-3 bg-transparent border-none border-b-2 text-accent font-semibold text-sm cursor-pointer transition-all -mb-[2px] tracking-[.01em] flex items-center justify-center gap-1.5" style="border-bottom-color:#E8572A" id="dtab-schedule" onclick="switchDoneTab('schedule')">
+            <i data-lucide="calendar" class="w-3.5 h-3.5"></i>Itinerary
+          </button>
+          <div class="w-px bg-rim my-2 flex-shrink-0"></div>
+          <button class="dtab flex-1 py-3 bg-transparent border-none border-b-2 border-transparent text-muted font-medium text-sm cursor-pointer transition-all -mb-[2px] tracking-[.01em] flex items-center justify-center gap-1.5" id="dtab-budget" onclick="switchDoneTab('budget')">
+            <i data-lucide="wallet" class="w-3.5 h-3.5"></i>Budget
+          </button>
+        </div>
+
+        <div id="done-tab-schedule" class="done-tab-pane flex-1 overflow-hidden min-h-0 flex flex-col md:px-20">
+          <div class="flex flex-col md:flex-row flex-1 min-h-0 overflow-y-auto md:overflow-hidden">
+
+            <!-- Calendar column -->
+            <div class="flex flex-col overflow-hidden min-w-0 md:flex-1 flex-shrink-0">
+              <div class="flex items-center gap-3 px-4 md:px-8 pt-4 md:pt-6 pb-3 md:pb-4 flex-shrink-0">
+                <button class="w-8 h-8 rounded-full border border-rim bg-transparent text-muted flex items-center justify-center transition-all hover:bg-ink hover:text-white hover:border-ink cursor-pointer" onclick="calShift(-1)">
+                  <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                </button>
+                <span id="done-cal-label" class="flex-1 text-center text-[18px] md:text-[20px] font-bold text-ink tracking-tight"></span>
+                <button class="w-8 h-8 rounded-full border border-rim bg-transparent text-muted flex items-center justify-center transition-all hover:bg-ink hover:text-white hover:border-ink cursor-pointer" onclick="calShift(1)">
+                  <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                </button>
+              </div>
+              <div class="cal-daynames px-4 md:px-8 mb-2 flex-shrink-0" id="done-cal-daynames"></div>
+              <div class="done-cal-grid min-h-0 md:flex-1 px-4 md:px-8 pb-4 md:pb-6" id="done-cal-grid"></div>
+            </div>
+
+            <!-- Day detail panel — same style as availability -->
+            <div class="w-full md:w-[420px] flex-shrink-0 flex flex-col bg-panel border-t md:border-t-0 md:border-l border-rim overflow-hidden" id="done-day-panel">
+              <div class="flex flex-col overflow-y-auto px-5 py-5 gap-4 md:flex-1 md:min-h-0">
+                <div>
+                  <div class="text-[10px] font-semibold text-muted uppercase tracking-[.07em] mb-1.5">Selected day</div>
+                  <div class="text-[19px] font-bold text-ink leading-tight" id="done-day-title">—</div>
+                </div>
+                <div class="flex flex-col gap-2" id="done-day-acts"><p class="text-muted text-sm py-1">—</p></div>
+              </div>
+              <div class="px-5 pb-5 flex-shrink-0">
+                <button class="hidden w-full py-3 px-3.5 border-[1.5px] border-dashed border-ink/20 rounded-[10px] bg-transparent text-muted text-[13px] cursor-pointer transition-all text-center hover:border-accent hover:text-accent hover:bg-accent/[.04]" id="done-day-add-btn" onclick="showAddActForDay()">
+                  <i data-lucide="plus" class="w-4 h-4 inline-block align-middle -mt-0.5 mr-1"></i>Add activity
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <div id="done-tab-budget" class="done-tab-pane done-tab-hidden flex-1 overflow-hidden min-h-0 flex md:px-20">
+
+          <!-- Empty state — centred, shown when no expenses -->
+          <div id="budget-empty" class="flex-1 flex flex-col items-center justify-center gap-5 text-center px-8">
+            <div class="w-14 h-14 rounded-2xl bg-accent/10 flex items-center justify-center text-accent">
+              <i data-lucide="wallet" class="w-6 h-6"></i>
+            </div>
+            <div>
+              <div class="text-[18px] font-bold text-ink tracking-tight">No expenses yet</div>
+              <div class="text-[13px] text-muted mt-1.5 leading-relaxed max-w-[300px]">Add your first expense and track who owes what.</div>
+            </div>
+            <button class="inline-flex items-center gap-2 px-5 py-3 rounded-xl border-none bg-accent text-white text-[13px] font-semibold cursor-pointer transition-all hover:bg-[#C44A22] hover:-translate-y-px" onclick="showAddExpenseModal()">
+              <i data-lucide="plus" class="w-4 h-4"></i>Add first expense
+            </button>
+          </div>
+
+          <!-- Split layout — shown when expenses exist -->
+          <div id="budget-split" class="hidden flex-1 min-h-0 overflow-hidden flex">
+
+            <div class="flex-1 flex flex-col overflow-hidden min-w-0">
+              <div class="flex-1 overflow-y-auto py-5 [scrollbar-width:thin]">
+                <div class="flex flex-col gap-2.5 max-w-[700px] mx-auto px-4 md:px-6" id="expense-list"></div>
+              </div>
+            </div>
+
+            <div class="w-full md:w-[420px] md:flex-shrink-0 flex flex-col bg-panel border-l border-rim overflow-hidden">
+              <div class="flex-1 overflow-y-auto px-5 py-5 flex flex-col gap-4 min-h-0" id="budget-summary"></div>
+              <div class="px-5 pb-5 flex-shrink-0">
+                <button class="w-full inline-flex items-center justify-center gap-1.5 py-3 rounded-xl border-none bg-accent text-white text-[13px] font-semibold cursor-pointer transition-all hover:bg-[#C44A22] hover:-translate-y-px" onclick="showAddExpenseModal()">
+                  <i data-lucide="plus" class="w-4 h-4"></i>Add expense
+                </button>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div><!-- /left-col -->
+
+  </div><!-- /main -->
+
+  <!-- FLOATING CHAT PANEL — fixed popup bottom-right -->
+  <div id="chat-panel" class="hidden fixed bottom-[76px] right-5 flex flex-col bg-panel rounded-2xl border border-rim overflow-hidden z-40" style="width:340px;height:520px;box-shadow:0 8px 40px rgba(0,0,0,.18)">
+    <!-- Header -->
+    <div class="flex items-center justify-between px-4 py-3 border-b border-rim flex-shrink-0 bg-panel">
+      <div class="flex items-center gap-2">
+        <div id="online-row" class="flex"></div>
+        <span class="text-[13px] font-semibold text-ink">Group Chat</span>
+      </div>
+      <button onclick="toggleChat()" class="w-7 h-7 flex items-center justify-center rounded-lg text-muted hover:text-ink hover:bg-bg transition-all cursor-pointer border-none bg-transparent">
+        <i data-lucide="x" class="w-4 h-4"></i>
+      </button>
+    </div>
+    <!-- Messages -->
+    <div class="flex-1 overflow-y-auto min-h-0 py-1" id="chat-msgs"></div>
+    <div class="min-h-[22px] px-3 pb-1 text-[11px] text-muted flex items-center gap-[5px] flex-shrink-0" id="typing-row"></div>
+    <!-- Input -->
+    <div class="p-2 px-2.5 flex gap-2 items-center flex-shrink-0 border-t border-rim">
+      <input id="chat-inp" type="text" placeholder="Type a message…" maxlength="300"
+        onkeydown="if(event.key==='Enter')chatSend()"
+        oninput="chatTyping()"
+        style="border-radius:20px;padding:9px 15px;font-size:13px;flex:1"/>
+      <button class="w-9 h-9 rounded-full bg-deep border-none text-white flex items-center justify-center cursor-pointer transition-all flex-shrink-0 hover:bg-accent hover:scale-[1.06]" onclick="chatSend()">
+        <i data-lucide="arrow-up" class="w-4 h-4"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- READINESS PANEL — bottom left, shows member status per phase -->
+  <div id="readiness-panel" class="hidden fixed bottom-5 left-5 bg-panel border border-rim rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,.13)] px-4 py-3 z-40 min-w-[180px]"></div>
+
+  <!-- FLOATING CHAT BUBBLE — opens the chat popup -->
+  <button id="chat-bubble" onclick="toggleChat()"
+    class="flex fixed bottom-5 right-5 w-12 h-12 rounded-full bg-deep text-white shadow-[0_4px_20px_rgba(0,0,0,.22)] items-center justify-center cursor-pointer hover:bg-accent transition-all hover:scale-105 z-50">
+    <i data-lucide="message-circle" class="w-5 h-5"></i>
+    <span id="chat-bubble-badge" class="hidden absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full bg-accent text-white text-[10px] font-bold items-center justify-center px-1 leading-none"></span>
+  </button>
+
+</div><!-- /s-app -->
+
+<!-- INVITE MODAL -->
+<div class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[100]" id="inv-modal" onclick="if(event.target===this)closeModal()">
+  <div class="bg-panel rounded-2xl p-7 w-[360px] max-w-[95vw] text-center shadow-modal flex flex-col gap-3">
+    <h3 class="text-[18px] font-semibold tracking-[-0.02em]">Invite to group</h3>
+    <div class="font-bold text-[28px] tracking-[.2em] bg-bg border border-dashed border-rim rounded-xl p-4 text-ink" id="modal-code"></div>
+    <div class="text-[11px] text-muted break-all leading-relaxed" id="modal-link"></div>
+    <button class="inline-flex items-center justify-center gap-2 w-full py-[11px] border-[1.5px] border-rim rounded-xl bg-transparent text-ink font-medium text-[13px] cursor-pointer transition-all hover:bg-bg hover:border-ink/20" onclick="copyInvite()">
+      <i data-lucide="copy" class="w-4 h-4"></i>Copy link
+    </button>
+    <button class="text-muted text-xs cursor-pointer transition-all hover:text-ink font-medium py-1" onclick="closeModal()">Close</button>
+    <div class="border-t border-rim pt-2 flex flex-col gap-1">
+      <button id="inv-modal-leave"  class="text-muted text-xs cursor-pointer transition-all hover:text-ink font-medium py-1" onclick="leaveGroupInApp(this)">Leave group</button>
+      <button id="inv-modal-delete" class="hidden text-accent text-xs cursor-pointer transition-all hover:text-[#C44A22] font-medium py-1" onclick="deleteGroupInApp(this)">Delete group</button>
+    </div>
+  </div>
+</div>
+
+<!-- CREATE GROUP MODAL -->
+<div class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[100]" id="create-modal" onclick="if(event.target===this)closeCreateModal()">
+  <div class="bg-panel rounded-2xl w-[420px] max-w-[95vw] shadow-modal overflow-hidden animate-up">
+
+    <!-- Header -->
+    <div class="px-8 pt-8 pb-6 border-b border-rim">
+      <div class="w-11 h-11 rounded-2xl bg-accent/10 flex items-center justify-center text-accent mb-5" id="create-modal-icon">
+        <i data-lucide="plane-takeoff" class="w-5 h-5"></i>
+      </div>
+      <h3 class="text-[22px] font-bold tracking-[-0.02em] text-ink" id="create-modal-heading">New trip group</h3>
+      <p class="text-[13px] text-muted mt-1.5 leading-relaxed" id="create-modal-sub">Create a group, invite friends and start planning together.</p>
+    </div>
+
+    <!-- Body -->
+    <div class="px-8 py-6 flex flex-col gap-5">
+
+      <div class="flex flex-col gap-1.5">
+        <label class="text-[11px] font-semibold text-muted uppercase tracking-[.06em]">Group name</label>
+        <input id="new-group-name" type="text" placeholder="e.g. Summer trip, Barcelona 2025…" maxlength="40"
+          onkeydown="if(event.key==='Enter')createGroup()"/>
+      </div>
+
+      <div class="flex flex-col gap-1.5">
+        <label class="text-[11px] font-semibold text-muted uppercase tracking-[.06em]">Trip window</label>
+        <div class="flex items-center gap-3 bg-bg rounded-xl px-4 py-3 border border-rim">
+          <select id="new-group-month-from" class="select-ghost flex-1 text-[13px] font-medium text-ink cursor-pointer"></select>
+          <span class="text-muted/60 text-sm flex-shrink-0">→</span>
+          <select id="new-group-month-to" class="select-ghost flex-1 text-[13px] font-medium text-ink cursor-pointer"></select>
+        </div>
+        <div class="text-[11px] text-muted">The months you're considering for the trip — you can change this later.</div>
+      </div>
+
+      <div class="text-xs text-accent min-h-[14px] -mt-1" id="create-modal-error"></div>
+
+      <div class="flex flex-col gap-2">
+        <button class="w-full py-[14px] border-none rounded-xl bg-accent text-white font-semibold text-[14px] cursor-pointer transition-all hover:bg-[#C44A22] hover:-translate-y-px tracking-[.01em]" id="create-modal-submit" onclick="createGroup()">
+          Create group
+        </button>
+        <button class="w-full py-2.5 border border-rim rounded-xl bg-transparent text-muted text-[13px] font-medium cursor-pointer transition-all hover:border-ink/30 hover:text-ink" onclick="closeCreateModal()">
+          Cancel
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- JOIN GROUP MODAL -->
+<div class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[100]" id="join-modal" onclick="if(event.target===this)closeJoinModal()">
+  <div class="bg-panel rounded-2xl p-7 w-[380px] max-w-[95vw] shadow-modal flex flex-col gap-3">
+    <div>
+      <h3 class="text-[18px] font-semibold tracking-[-0.02em]">Join a group</h3>
+      <p class="text-[13px] text-muted mt-1 leading-relaxed">Enter the invite code shared by the group admin</p>
+    </div>
+    <input id="join-code-input" type="text" placeholder="A1B2C3D4" maxlength="8"
+      style="text-transform:uppercase;letter-spacing:.18em;text-align:center;font-size:22px;font-weight:700;padding:16px"
+      onkeydown="if(event.key==='Enter')joinByCode()"/>
+    <div class="text-xs text-accent min-h-[14px]" id="join-modal-error"></div>
+    <button class="w-full py-[13px] border-none rounded-xl bg-accent text-white font-semibold text-sm cursor-pointer transition-all hover:bg-[#C44A22] tracking-[.01em]" onclick="joinByCode()">Join →</button>
+    <button class="text-muted text-xs cursor-pointer transition-all hover:text-ink font-medium py-1 text-center" onclick="closeJoinModal()">Cancel</button>
+  </div>
+</div>
+
+<!-- ADD / EDIT ACTIVITY MODAL -->
+<div class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[100]" id="act-modal" onclick="if(event.target===this)closeActModal()">
+  <div class="bg-panel rounded-2xl w-[420px] max-w-[95vw] shadow-modal overflow-hidden animate-up">
+
+    <div class="px-8 pt-8 pb-6 border-b border-rim">
+      <div class="w-11 h-11 rounded-2xl bg-accent/10 flex items-center justify-center text-accent mb-5">
+        <i data-lucide="calendar-plus" class="w-5 h-5"></i>
+      </div>
+      <h3 class="text-[22px] font-bold tracking-[-0.02em] text-ink" id="act-modal-heading">Add activity</h3>
+      <p class="text-[13px] text-muted mt-1.5 leading-relaxed">Add something to your trip itinerary.</p>
+    </div>
+
+    <div class="px-8 py-6 flex flex-col gap-5">
+
+      <div class="flex flex-col gap-1.5">
+        <label class="text-[11px] font-semibold text-muted uppercase tracking-[.06em]">Activity</label>
+        <input id="act-modal-inp" type="text" placeholder="e.g. Visit the Eiffel Tower, Dinner at…" maxlength="120"
+          onkeydown="if(event.key==='Enter')actModalSubmit()"/>
+      </div>
+
+      <div class="flex flex-col gap-1.5">
+        <label class="text-[11px] font-semibold text-muted uppercase tracking-[.06em]">Day</label>
+        <div class="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]" id="act-modal-date-pills"></div>
+        <input type="hidden" id="act-modal-date"/>
+      </div>
+
+      <div class="flex flex-col gap-1.5">
+        <label class="text-[11px] font-semibold text-muted uppercase tracking-[.06em]">Time <span class="normal-case font-normal text-muted/60">(optional)</span></label>
+        <input type="time" id="act-modal-time" step="1800"
+          style="width:100%;padding:11px 14px;border:1.5px solid rgba(24,24,27,.12);border-radius:10px;font:14px/1 'Plus Jakarta Sans',sans-serif;background:#fff;color:#27272A;outline:none"/>
+      </div>
+
+      <div class="text-xs text-accent min-h-[14px] -mt-1" id="act-modal-error"></div>
+
+      <div class="flex flex-col gap-2">
+        <button class="w-full py-[14px] border-none rounded-xl bg-accent text-white font-semibold text-[14px] cursor-pointer transition-all hover:bg-[#C44A22] hover:-translate-y-px" id="act-modal-submit" onclick="actModalSubmit()">
+          Add activity
+        </button>
+        <button class="w-full py-2.5 border border-rim rounded-xl bg-transparent text-muted text-[13px] font-medium cursor-pointer transition-all hover:border-ink/30 hover:text-ink" onclick="closeActModal()">
+          Cancel
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ADD / EDIT EXPENSE MODAL -->
+<div class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[100]" id="expense-modal" onclick="if(event.target===this)closeExpenseModal()">
+  <div class="bg-panel rounded-2xl w-[420px] max-w-[95vw] shadow-modal overflow-hidden animate-up">
+
+    <div class="px-7 pt-7 pb-5 border-b border-rim flex items-center gap-4">
+      <div class="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center text-accent flex-shrink-0">
+        <i data-lucide="receipt" class="w-5 h-5"></i>
+      </div>
+      <div>
+        <h3 class="text-[18px] font-bold tracking-[-0.02em] text-ink" id="expense-modal-title">Add expense</h3>
+        <p class="text-[12px] text-muted mt-0.5">Track a shared cost and split it among the group.</p>
+      </div>
+    </div>
+
+    <div class="px-7 py-5 flex flex-col gap-4">
+
+      <div class="flex flex-col gap-1.5">
+        <label class="text-[10px] font-semibold text-muted uppercase tracking-[.06em]">Description</label>
+        <input id="exp-desc" type="text" placeholder="e.g. Dinner, Hotel, Train tickets…" maxlength="80"/>
+      </div>
+
+      <div class="flex gap-3">
+        <div class="flex flex-col gap-1.5 w-[120px] flex-shrink-0">
+          <label class="text-[10px] font-semibold text-muted uppercase tracking-[.06em]">Amount</label>
+          <input id="exp-amount" type="number" placeholder="0.00" min="0.01" step="0.01"/>
+        </div>
+        <div class="flex flex-col gap-1.5 flex-1 min-w-0">
+          <label class="text-[10px] font-semibold text-muted uppercase tracking-[.06em]">Currency</label>
+          <select id="exp-currency" style="width:100%;height:46px"></select>
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-1.5">
+        <label class="text-[10px] font-semibold text-muted uppercase tracking-[.06em]">Paid by</label>
+        <div class="flex flex-wrap gap-1.5" id="exp-paidby-pills"></div>
+        <input type="hidden" id="exp-paidby"/>
+      </div>
+
+      <div class="flex flex-col gap-1.5">
+        <label class="text-[10px] font-semibold text-muted uppercase tracking-[.06em]">Split among</label>
+        <div id="exp-split-checks" class="flex flex-wrap gap-1.5"></div>
+      </div>
+
+      <div class="text-xs text-accent min-h-[12px]" id="expense-modal-error"></div>
+
+      <div class="flex gap-2">
+        <button class="flex-1 py-3 border border-rim rounded-xl bg-transparent text-muted text-[13px] font-medium cursor-pointer transition-all hover:border-ink/30 hover:text-ink" onclick="closeExpenseModal()">Cancel</button>
+        <button id="expense-modal-submit" class="flex-1 py-3 border-none rounded-xl bg-accent text-white font-semibold text-[13px] cursor-pointer transition-all hover:bg-[#C44A22]" onclick="expenseSubmit()">Add expense</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="/js/icons.js"></script>
+<script src="/js/app.js"></script>
+<script src="/js/auth.js"></script>
+<script src="/js/dashboard.js"></script>
+<script src="/js/socket.js"></script>
+<script src="/js/phases.js"></script>
+<script src="/js/calendar.js"></script>
+<script src="/js/availability.js"></script>
+<script src="/js/datevote.js"></script>
+<script src="/js/itinerary.js"></script>
+<script src="/js/budget.js"></script>
+<script src="/js/chat.js"></script>
+<script>lucide.createIcons();</script>
+</body>
+</html>
