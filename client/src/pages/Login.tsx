@@ -124,14 +124,16 @@ export default function Login() {
         </div>
       </main>
 
-      {/* Desktop: photo with a short message next to the form */}
-      <aside className="relative hidden flex-[1_1_520px] overflow-hidden rounded-2xl bg-sommet lg:block">
+      {/* Desktop: photo with a short message next to the form.
+          The message grows and shrinks with the photo: --s is 1% of the photo's width (or less when the photo is low),
+          so at the mockup's size (1440 × 900 window) it matches the design, and clamp() keeps it readable on small screens. */}
+      <aside className="relative hidden flex-[1_1_520px] overflow-hidden rounded-2xl bg-sommet [container-type:size] [--s:min(1cqw,0.85cqh)] lg:block">
         <img src="/login-hero.jpg" alt={PHOTO_ALT} className="absolute inset-0 size-full object-cover object-[55%_60%]" />
-        <div className="absolute inset-x-7 bottom-7 flex flex-col gap-1.5 rounded-xl bg-roche/60 px-[22px] py-5 text-white backdrop-blur-md">
-          <strong className="font-display text-2xl">Planned in one place.</strong>
-          <span className="text-md text-[#E8ECF1]">Destination, dates, stays and costs — decided together with your friends.</span>
+        <div className="absolute inset-x-[clamp(16px,calc(var(--s)*3.8),44px)] bottom-[clamp(16px,calc(var(--s)*3.8),44px)] flex flex-col gap-[clamp(4px,calc(var(--s)*0.8),10px)] rounded-[clamp(12px,calc(var(--s)*2.7),24px)] bg-roche/60 px-[clamp(14px,calc(var(--s)*3),32px)] py-[clamp(12px,calc(var(--s)*2.7),28px)] text-white backdrop-blur-md">
+          <strong className="font-display text-[length:clamp(18px,calc(var(--s)*3.25),34px)] leading-tight">Planned in one place.</strong>
+          <span className="text-[length:clamp(13px,calc(var(--s)*2),20px)] text-[#E8ECF1]">Destination, dates, stays and costs — decided together with your friends.</span>
         </div>
-        <span className="absolute right-4 top-3 text-2xs text-white/90">Photo: Vidar Nordli-Mathisen / Unsplash</span>
+        <span className="absolute right-4 top-3 text-[length:clamp(10px,calc(var(--s)*1.5),13px)] text-white/90">Photo: Vidar Nordli-Mathisen / Unsplash</span>
       </aside>
     </div>
   )
