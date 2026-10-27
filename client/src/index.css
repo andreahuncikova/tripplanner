@@ -1,1 +1,66 @@
 @import "tailwindcss";
+
+/*
+  Design tokens from the mockups (TripPlanner – App Design).
+  Tailwind 4 reads its config from this @theme block: --color-sommet becomes bg-sommet, text-sommet, border-sommet…
+  Spacing keeps Tailwind's 4px steps (p-4 = 16px, p-4.5 = 18px), which covers every value in the mockups.
+*/
+@theme {
+  /* Palette */
+  --color-sommet: #485978;        /* buttons, links, active tabs */
+  --color-sommet-dark: #36435b;   /* hover on sommet */
+  --color-ciel: #a3d9e2;          /* light accents, photo placeholders */
+  --color-ciel-light: #e4f4f7;    /* chips, selected rows, Invite button */
+  --color-chemin: #ffb133;        /* step numbers, badges */
+  --color-chemin-light: #fff8e6;  /* warning background */
+  --color-chemin-line: #ffd48a;   /* warning border */
+  --color-chemin-dark: #7a4f00;   /* text on warnings */
+  --color-roche: #232830;         /* text and dark surfaces */
+  --color-roche-light: #343b47;   /* boxes inside dark surfaces */
+
+  /* Neutrals */
+  --color-canvas: #f3f6f8;        /* app background */
+  --color-sky: #e6f1f5;           /* landing page background */
+  --color-muted: #5b6676;         /* secondary text */
+  --color-subtle: #3d4a5c;        /* icons, tertiary text */
+  --color-faint: #8a96a6;         /* empty radio, inactive dots */
+  --color-line: #e6e9ee;          /* dividers, card borders */
+  --color-line-strong: #c9d3dc;   /* input and outline-button borders */
+  --color-danger: #9a2e14;        /* errors, delete */
+  --color-danger-light: #fde7e1;  /* error background, liked stay */
+
+  /* Fonts (loaded in index.html) */
+  --font-sans: "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-display: "Bricolage Grotesque", "Plus Jakarta Sans", sans-serif;
+  --font-mono: ui-monospace, Menlo, monospace;
+
+  /* Text sizes the mockups use besides Tailwind's own (xs 12, sm 14, base 16, lg 18) */
+  --text-2xs: 11px;
+  --text-caption: 13px;
+  --text-md: 15px;
+  --text-lead: 17px;
+  --text-title: 22px;
+  --text-heading: 28px;
+  --text-display: 32px;
+
+  /* Corner radii */
+  --radius-sm: 8px;    /* small tags, bars */
+  --radius-md: 12px;   /* buttons, inputs */
+  --radius-lg: 16px;   /* list cards, banners */
+  --radius-xl: 20px;   /* trip cards, dark summary boxes */
+  --radius-2xl: 28px;  /* bottom sheets */
+
+  /* Shadows */
+  --shadow-card: 0 1px 2px rgb(35 40 48 / 0.06);
+  --shadow-raised: 0 1px 3px rgb(35 40 48 / 0.12);
+  --shadow-float: 0 10px 28px rgb(35 40 48 / 0.28);
+}
+
+@layer base {
+  body {
+    @apply bg-canvas font-sans text-roche antialiased;
+  }
+  a {
+    @apply text-sommet hover:text-sommet-dark;
+  }
+}
