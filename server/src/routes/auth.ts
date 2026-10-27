@@ -4,13 +4,15 @@ import rateLimit from 'express-rate-limit';
 import User, { SafeUser } from '../models/User';
 import { JWT_SECRET, JWT_EXPIRES, COLORS } from '../config';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
+import { checkLogin, checkPasswordChange, checkRegister } from '../validation';
 
 const router = Router();
 
 // Creates a signed JWT. The client keeps it and sends it in the Authorization header (see middleware/auth.ts).
-function issueToken(user: SafeUser): string {
+// tv is the user's current token version: changing the password raises it and older tokens stop working.
+function issueToken(user: SafeUser & { tokenVersion: number }): string {
   return jwt.sign(
-    { _id: user._id, email: user.email, username: user.username, color: user.color },
+    { _id: user._id, email: user.email, username: user.username, color: user.color, tv: user.tokenVersion },
     JWT_SECRET, { algorithm: 'HS256', expiresIn: JWT_EXPIRES }
   );
 }
@@ -29,11 +31,9 @@ const authLimiter = rateLimit({
 // POST /api/auth/register
 router.post('/register', authLimiter, async (req, res) => {
   try {
-    const { email, password, username } = req.body;
-    if (!email || !password || !username)
-      return res.status(400).json({ error: 'Please fill in all fields' });
-    if (password.length < 6)
-      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    const input = checkRegister(req.body);
+    if (!input.ok) return res.status(400).json({ error: input.error });
+    const { email, password, username } = input.value;
     if (await User.findOne({ email }))
       return res.status(409).json({ error: 'Email already in use' });
 
@@ -43,6 +43,9 @@ router.post('/register', authLimiter, async (req, res) => {
     const token = issueToken(user);
     res.status(201).json({ token, user: user.toSafe() });
   } catch (e) {
+    // Two sign-ups with the same email at the same moment: the unique index in MongoDB stops the second one
+    if ((e as { code?: number }).code === 11000)
+      return res.status(409).json({ error: 'Email already in use' });
     console.error('[register]', (e as Error).message);
     res.status(500).json({ error: 'Server error — please try again' });
   }
@@ -51,9 +54,9 @@ router.post('/register', authLimiter, async (req, res) => {
 // POST /api/auth/login
 router.post('/login', authLimiter, async (req, res) => {
   try {
-    const { email, password } = req.body;
-    if (!email || !password)
-      return res.status(400).json({ error: 'Please enter your email and password' });
+    const input = checkLogin(req.body);
+    if (!input.ok) return res.status(400).json({ error: input.error });
+    const { email, password } = input.value;
     // .select('+password') is needed because password has select:false in the schema
     const user = await User.findOne({ email }).select('+password');
     if (!user || !(await user.comparePassword(password)))
@@ -66,8 +69,30 @@ router.post('/login', authLimiter, async (req, res) => {
   }
 });
 
-// POST /api/auth/logout — the client deletes its token. A JWT cannot be cancelled on the server,
-// it stays valid until it expires (JWT_EXPIRES), so this route only confirms the logout.
+// POST /api/auth/password — change the password.
+// The token version goes up, so every older token stops working and other devices are logged out.
+// This device gets a new token in the answer and stays logged in.
+router.post('/password', authLimiter, authMiddleware, async (req: Request, res) => {
+  try {
+    const input = checkPasswordChange(req.body);
+    if (!input.ok) return res.status(400).json({ error: input.error });
+    const user = await User.findById((req as AuthRequest).user._id).select('+password');
+    if (!user) return res.status(404).json({ error: 'not found' });
+    if (!(await user.comparePassword(input.value.currentPassword)))
+      return res.status(401).json({ error: 'Your current password is not correct' });
+
+    user.password = input.value.newPassword;   // hashed by the pre-save hook in models/User.ts
+    user.tokenVersion += 1;
+    await user.save();
+    res.json({ token: issueToken(user), user: user.toSafe() });
+  } catch (e) {
+    console.error('[password]', (e as Error).message);
+    res.status(500).json({ error: 'Server error — please try again' });
+  }
+});
+
+// POST /api/auth/logout — the client deletes its token. The token itself stays valid until it expires
+// (JWT_EXPIRES); only a password change ends all tokens at once (POST /api/auth/password).
 router.post('/logout', (_req, res) => {
   res.json({ ok: true });
 });

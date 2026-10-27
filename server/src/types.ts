@@ -6,8 +6,9 @@ import type { ClientToServerEvents, ServerToClientEvents, User } from '../../sha
 // This file only adds the types that the server needs for itself.
 export type * from '../../shared/types';
 
-// The data we put inside the JWT when a user logs in — the same fields as the user the client gets
-export type JwtUser = User;
+// The data we put inside the JWT when a user logs in — the same fields as the user the client gets,
+// plus tv: the user's token version at the moment the token was made (see models/User.ts)
+export type JwtUser = User & { tv?: number };
 
 // One connected socket — which user it belongs to and which group room it is in
 export interface Session {

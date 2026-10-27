@@ -1,11 +1,11 @@
 import 'dotenv/config';
-import express      from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import http         from 'http';
 import { Server }   from 'socket.io';
-import mongoose     from 'mongoose';
 import cors         from 'cors';
 
-import { MONGO_URI, PORT, CLIENT_URLS } from './config';
+import { PORT, CLIENT_URLS }  from './config';
+import { connectWithRetry, isDbReady } from './db';
 import { socketAuth }      from './middleware/auth';
 import registerAllHandlers from './socket';
 import authRoutes          from './routes/auth';
@@ -29,8 +29,22 @@ const io     = new Server<ClientToServerEvents, ServerToClientEvents, {}, Socket
 app.set('trust proxy', 1);
 app.use(cors({ origin: CLIENT_URLS }));
 app.use(express.json());
-app.use('/api/auth',   authRoutes);
-app.use('/api/groups', groupRoutes);
+
+// While the database is not connected, answer straight away with 503 (Service Unavailable),
+// instead of letting the request wait and then fail with a general server error.
+function requireDb(_req: Request, res: Response, next: NextFunction) {
+  if (isDbReady()) return next();
+  res.status(503).json({ error: 'The database is not available right now — please try again in a moment' });
+}
+
+// Shows if the server and the database are working, e.g. https://<server>/api/health
+app.get('/api/health', (_req, res) => {
+  const db = isDbReady();
+  res.status(db ? 200 : 503).json({ ok: db, database: db ? 'connected' : 'not connected' });
+});
+
+app.use('/api/auth',   requireDb, authRoutes);
+app.use('/api/groups', requireDb, groupRoutes);
 
 // ── Currency exchange rates  ─────────────────────
 // fallback data if API fails or returns incomplete data
@@ -60,9 +74,9 @@ app.get('/api/fx-rates', async (_req, res) => {
 });
 
 // ── Database connection ───────────────────────────────
-mongoose.connect(MONGO_URI)
-  .then(() => console.log('✅ MongoDB connected'))
-  .catch(e  => console.error('❌ MongoDB:', e.message));
+// Keeps trying until the database answers (see db.ts). The server starts listening right away,
+// so /api/health and the 503 answers work while it is still connecting.
+connectWithRetry();
 
 // ── WebSocket setup ───────────────────────────────────
 // socketAuth runs before every new connection — it checks the JWT token and rejects unauthenticated sockets before they can send any events.

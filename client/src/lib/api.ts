@@ -10,6 +10,16 @@ export const getToken = () => localStorage.getItem(TOKEN_KEY)
 export const setToken = (token: string | null) =>
   token ? localStorage.setItem(TOKEN_KEY, token) : localStorage.removeItem(TOKEN_KEY)
 
+// An error answer from the server, with its HTTP status, so callers can tell
+// "your token is not valid" (401) apart from "the server has a problem right now" (503, 500).
+export class ApiError extends Error {
+  status: number
+  constructor(message: string, status: number) {
+    super(message)
+    this.status = status
+  }
+}
+
 export async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getToken()
   const res = await fetch(API_URL + path, {
@@ -22,6 +32,6 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
   })
   // The server answers errors as { error: "message" }; pass that message on to the screen.
   const data = await res.json().catch(() => ({}))
-  if (!res.ok) throw new Error(data.error ?? `${res.status} ${res.statusText}`)
+  if (!res.ok) throw new ApiError(data.error ?? `${res.status} ${res.statusText}`, res.status)
   return data
 }

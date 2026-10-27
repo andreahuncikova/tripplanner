@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { api, getToken, setToken as saveToken } from '../lib/api'
+import { ApiError, api, getToken, setToken as saveToken } from '../lib/api'
 import type { User } from '@shared/types'
 import { AuthContext } from './AuthContext'
 
@@ -18,8 +18,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!token) return
     api<{ user: User }>('/api/auth/me')
       .then(r => setUser(r.user))
-      // An expired or invalid token: forget it, the user has to log in again.
-      .catch(() => { saveToken(null); setToken(null) })
+      // Only a token the server rejects (401: expired, invalid, or the password was changed) is forgotten.
+      // When the server or the database is down (503, 500, no connection) the token is kept for the next visit.
+      .catch(err => {
+        if (err instanceof ApiError && err.status === 401) { saveToken(null); setToken(null) }
+      })
       .finally(() => setLoading(false))
     // Only on page load; login and register set the user themselves.
     // eslint-disable-next-line react-hooks/exhaustive-deps

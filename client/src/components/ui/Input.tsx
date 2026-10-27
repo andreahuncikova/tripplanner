@@ -7,10 +7,12 @@ export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   hideLabel?: boolean
   error?: string
   hint?: string
+  // success: the hint turns green, e.g. when the password is long enough
+  hintTone?: 'muted' | 'success'
 }
 
 // A text field with its label above it, as in the log-in and add-expense mockups.
-export function Input({ label, hideLabel, error, hint, id, className, ...props }: InputProps) {
+export function Input({ label, hideLabel, error, hint, hintTone = 'muted', id, className, ...props }: InputProps) {
   const autoId = useId()
   const inputId = id ?? autoId
   const noteId = `${inputId}-note`
@@ -31,7 +33,7 @@ export function Input({ label, hideLabel, error, hint, id, className, ...props }
         {...props}
       />
       {(error || hint) && (
-        <p id={noteId} className={cn('text-caption', error ? 'text-danger' : 'text-muted')}>{error ?? hint}</p>
+        <p id={noteId} className={cn('text-caption', error ? 'text-danger' : hintTone === 'success' ? 'font-semibold text-success' : 'text-muted')}>{error ?? hint}</p>
       )}
     </div>
   )
