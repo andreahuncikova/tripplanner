@@ -5,12 +5,15 @@ import './index.css'
 import { router } from './router'
 import { AuthProvider } from './auth/AuthProvider'
 import { SocketProvider } from './socket/SocketProvider'
+import { ToastProvider } from './components/ui'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <AuthProvider>
       <SocketProvider>
-        <RouterProvider router={router} />
+        <ToastProvider>
+          <RouterProvider router={router} />
+        </ToastProvider>
       </SocketProvider>
     </AuthProvider>
   </StrictMode>,

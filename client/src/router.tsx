@@ -6,6 +6,7 @@ import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Trip from './pages/Trip'
 import NotFound from './pages/NotFound'
+import UiGallery from './pages/UiGallery'
 
 // Every page of the app. App wraps them all and renders the current one in its <Outlet />.
 export const router = createBrowserRouter([
@@ -15,6 +16,8 @@ export const router = createBrowserRouter([
     children: [
       { index: true,   element: <Landing /> },
       { path: 'login', element: <Login /> },
+      // Overview of the UI components, for checking them against the mockups.
+      { path: 'ui',    element: <UiGallery /> },
       {
         // Pages below need a logged-in user.
         element: <RequireAuth />,
