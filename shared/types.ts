@@ -184,3 +184,27 @@ export interface ServerToClientEvents {
   'group:left': () => void
   'group:deleted': () => void
 }
+
+// ── REST ──────────────────────────────────────────────
+
+// One trip in GET /api/groups (the dashboard and the sidebar).
+export interface TripSummary {
+  _id: string
+  name: string
+  inviteCode: string
+  phase: Phase
+  members: Member[]
+  createdAt: string
+  tripDuration: number | null
+  adminUsername: string
+  tripWindowStart: string | null
+  tripWindowEnd: string | null
+}
+
+// GET /api/groups/:code, public, also used for the invite preview.
+export interface TripPreview {
+  name: string
+  inviteCode: string
+  phase: Phase
+  memberCount: number
+}
