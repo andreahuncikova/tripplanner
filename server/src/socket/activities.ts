@@ -1,7 +1,8 @@
-const Group = require('../models/Group');
-const { serialize, getOnline } = require('./helpers');
+import Group from '../models/Group';
+import { serialize, getOnline } from './helpers';
+import type { AppSocket, Ctx } from '../types';
 
-module.exports = function register(socket, { io, sessions, userId, username }) {
+export default function register(socket: AppSocket, { io, sessions, userId, username }: Ctx) {
   socket.on('activity:add', async ({ text, calDate, calTime }) => {
     try {
       const s = sessions[socket.id];
@@ -11,7 +12,7 @@ module.exports = function register(socket, { io, sessions, userId, username }) {
       g.activities.push({ text: text.trim(), addedBy: username, userId, calDate: calDate || null, calTime: calTime || null });
       await g.save();
       io.to(s.code).emit('activity:new', g.activities.at(-1));
-    } catch (e) { console.error('[activity:add]', e.message); }
+    } catch (e) { console.error('[activity:add]', (e as Error).message); }
   });
 
   // Only the person who added it or the admin can edit or remove
@@ -26,7 +27,7 @@ module.exports = function register(socket, { io, sessions, userId, username }) {
       act.text = text; act.calDate = calDate || null; act.calTime = calTime || null;
       await g.save();
       io.to(s.code).emit('state', serialize(g, getOnline(sessions, s.code)));
-    } catch (e) { console.error('[activity:edit]', e.message); }
+    } catch (e) { console.error('[activity:edit]', (e as Error).message); }
   });
 
   socket.on('activity:remove', async actId => {
@@ -37,10 +38,10 @@ module.exports = function register(socket, { io, sessions, userId, username }) {
       if (!g) return;
       const act = g.activities.find(a => String(a._id) === String(actId));
       if (!act || (String(act.userId) !== String(userId) && String(g.adminUserId) !== String(userId))) return;
-      g.activities = g.activities.filter(a => String(a._id) !== String(actId));
+      act.deleteOne();
       await g.save();
       io.to(s.code).emit('state', serialize(g, getOnline(sessions, s.code)));
-    } catch (e) { console.error('[activity:remove]', e.message); }
+    } catch (e) { console.error('[activity:remove]', (e as Error).message); }
   });
 
-};
+}

@@ -1,7 +1,8 @@
-const Group = require('../models/Group');
-const { ts } = require('./helpers');
+import Group from '../models/Group';
+import { ts } from './helpers';
+import type { AppSocket, Ctx } from '../types';
 
-module.exports = function register(socket, { io, sessions, userId, username, color }) {
+export default function register(socket: AppSocket, { io, sessions, userId, username, color }: Ctx) {
   // User sends a chat message — save it to the DB and broadcast to the whole room
   socket.on('msg', async text => {
     try {
@@ -11,7 +12,7 @@ module.exports = function register(socket, { io, sessions, userId, username, col
       // $push appends to the messages array without loading the whole document
       await Group.updateOne({ inviteCode: s.code }, { $push: { messages: msg } });
       io.to(s.code).emit('msg', msg);
-    } catch (e) { console.error('[msg]', e.message); }
+    } catch (e) { console.error('[msg]', (e as Error).message); }
   });
 
   // Typing indicator — sent to everyone except the sender (socket.to skips the sender)
@@ -20,4 +21,4 @@ module.exports = function register(socket, { io, sessions, userId, username, col
     if (s) socket.to(s.code).emit('typing', username);
   });
 
-};
+}

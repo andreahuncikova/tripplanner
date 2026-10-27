@@ -1,7 +1,8 @@
-const Group = require('../models/Group');
-const { serialize, getOnline } = require('./helpers');
+import Group from '../models/Group';
+import { serialize, getOnline } from './helpers';
+import type { AppSocket, Ctx } from '../types';
 
-module.exports = function register(socket, { io, sessions, userId, username, color }) {
+export default function register(socket: AppSocket, { io, sessions, userId, username, color }: Ctx) {
   socket.on('join', async ({ code }) => {
     try {
       const inviteCode = code.toUpperCase();
@@ -27,7 +28,7 @@ module.exports = function register(socket, { io, sessions, userId, username, col
 
       // Tell everyone else in the room that someone new joined
       io.to(inviteCode).emit('online', getOnline(sessions, inviteCode).map(s => ({ username: s.username, color: s.color })));
-    } catch (e) { console.error('[join]', e.message); }
+    } catch (e) { console.error('[join]', (e as Error).message); }
   });
 
   socket.on('disconnect', () => {
@@ -38,4 +39,4 @@ module.exports = function register(socket, { io, sessions, userId, username, col
       io.to(s.code).emit('online', getOnline(sessions, s.code).map(x => ({ username: x.username, color: x.color })));
     }
   });
-};
+}

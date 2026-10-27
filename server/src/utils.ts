@@ -1,7 +1,16 @@
+// One free date window, as stored in group.dateRanges
+export interface DateRange {
+  label: string;
+  start: string;
+  end: string;
+  votes: string[];
+  selected: boolean;
+}
+
 const EN_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
 // Returns the current time as a "HH:MM" string, used for chat message timestamps.
-function ts() {
+export function ts(): string {
   const d = new Date();
   return d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0');
 }
@@ -10,25 +19,24 @@ function ts() {
 // can shift it to June 29 in timezones ahead of UTC (e.g. UTC+2).
 // To fix this, we always recalculate the real last day of the given month
 // using local time, so June always ends on the 30th regardless of timezone.
-function snapMonthEnd(dateStr) {
-  if (!dateStr) return dateStr;
+export function snapMonthEnd(dateStr: string): string {
   const d    = new Date(dateStr + 'T12:00:00');
   const last = new Date(d.getFullYear(), d.getMonth() + 1, 0); // day 0 of next month = last day of this month
   return `${last.getFullYear()}-${String(last.getMonth()+1).padStart(2,'0')}-${String(last.getDate()).padStart(2,'0')}`;
 }
 
 // Converts a JavaScript Date object to a "YYYY-MM-DD" string (our date key format).
-function toKey(d) {
+function toKey(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
 // Returns the number of days between two Date objects (inclusive of both endpoints).
-function daysBetween(a, b) {
-  return Math.round((b - a) / 86400000) + 1;
+function daysBetween(a: Date, b: Date): number {
+  return Math.round((b.getTime() - a.getTime()) / 86400000) + 1;
 }
 
 // Formats a date range into a human-readable label like "3 – 12 April (10 days)".
-function formatRange(start, end) {
+function formatRange(start: Date, end: Date): string {
   const days    = daysBetween(start, end);
   const dayWord = days === 1 ? 'day' : 'days';
   const sm      = start.getMonth(), em = end.getMonth();
@@ -39,7 +47,7 @@ function formatRange(start, end) {
 }
 
 // Builds the label for a confirmed trip
-function formatTripLabel(startKey, dur) {
+export function formatTripLabel(startKey: string, dur: number): string {
   const s = new Date(startKey + 'T12:00:00');
   const e = new Date(s);
   e.setDate(e.getDate() + dur - 1);
@@ -47,10 +55,15 @@ function formatTripLabel(startKey, dur) {
 }
 
 // Core algorithm: finds all consecutive date windows where NOBODY in the group has marked themselves as unavailable.
-function computeDateRanges(memberNames, unavailMap, windowStart, windowEnd) {
+export function computeDateRanges(
+  memberNames: string[],
+  unavailMap: Record<string, string[]>,
+  windowStart?: string | null,
+  windowEnd?: string | null,
+): DateRange[] {
   // Build a set of all days that at least one member can't travel
-  const blocked      = new Set();
-  const allUnavailKeys = [];
+  const blocked        = new Set<string>();
+  const allUnavailKeys: string[] = [];
   memberNames.forEach(name => {
     (unavailMap[name] || []).forEach(d => {
       blocked.add(d);
@@ -58,7 +71,7 @@ function computeDateRanges(memberNames, unavailMap, windowStart, windowEnd) {
     });
   });
 
-  let scanStart, scanEnd;
+  let scanStart: Date, scanEnd: Date;
 
   if (windowStart && windowEnd) {
     // Admin set an explicit trip window, so scan that exact range
@@ -77,9 +90,9 @@ function computeDateRanges(memberNames, unavailMap, windowStart, windowEnd) {
     scanEnd   = new Date(ly, lm, 0);
   }
 
-  const ranges    = [];
+  const ranges: DateRange[] = [];
   const cur       = new Date(scanStart);
-  let windowStart_ = null; // tracks the start of the current free streak
+  let windowStart_: Date | null = null; // tracks the start of the current free streak
 
   while (cur <= scanEnd) {
     const key = toKey(cur);
@@ -117,4 +130,3 @@ function computeDateRanges(memberNames, unavailMap, windowStart, windowEnd) {
   return ranges.slice(0, 8);
 }
 
-module.exports = { ts, snapMonthEnd, computeDateRanges, formatTripLabel };

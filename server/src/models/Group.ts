@@ -1,5 +1,4 @@
-const mongoose = require('mongoose');
-const { Schema } = mongoose;
+import { Schema, model, InferSchemaType } from 'mongoose';
 
 // _id: false means Mongoose won't add an _id to these sub-documents
 const MsgSchema = new Schema({
@@ -56,7 +55,7 @@ const GroupSchema = new Schema({
   tripWindowEnd:   { type: String, default: null }, // "YYYY-MM-DD" — last day of the allowed travel period
   phase: {
     type: String, default: 'destinations',
-    enum: ['destinations', 'calendar', 'date_vote', 'done'],
+    enum: ['destinations', 'calendar', 'date_vote', 'done'] as const,
   },
   members:           { type: [MemberSchema],   default: [] },
   destinations:      { type: [DestSchema],     default: [] },
@@ -72,4 +71,7 @@ const GroupSchema = new Schema({
   createdAt:         { type: Date,             default: Date.now },
 });
 
-module.exports = mongoose.model('Group', GroupSchema);
+// TypeScript reads the field types straight from the schema above, so we don't write them twice
+export type IGroup = InferSchemaType<typeof GroupSchema>;
+
+export default model('Group', GroupSchema);

@@ -1,7 +1,8 @@
-const Group = require('../models/Group');
-const { ts, serialize, getOnline } = require('./helpers');
+import Group from '../models/Group';
+import { ts, serialize, getOnline } from './helpers';
+import type { AppSocket, Ctx } from '../types';
 
-module.exports = function register(socket, { io, sessions, username }) {
+export default function register(socket: AppSocket, { io, sessions, username }: Ctx) {
   socket.on('group:leave', async () => {
     try {
       const s = sessions[socket.id];
@@ -9,7 +10,7 @@ module.exports = function register(socket, { io, sessions, username }) {
       const g = await Group.findOne({ inviteCode: s.code });
       if (!g) return;
       const isAdm = String(g.adminUserId) === String(s.userId);
-      g.members = g.members.filter(m => String(m.userId) !== String(s.userId));
+      g.set('members', g.members.filter(m => String(m.userId) !== String(s.userId)));
       if (isAdm && g.members.length > 0) {
         // Automatically promote the next member to admin
         g.adminUserId   = g.members[0].userId;
@@ -26,7 +27,7 @@ module.exports = function register(socket, { io, sessions, username }) {
       await g.save();
       socket.emit('group:left');
       io.to(s.code).emit('state', serialize(g, getOnline(sessions, s.code)));
-    } catch (e) { console.error('[group:leave]', e.message); }
+    } catch (e) { console.error('[group:leave]', (e as Error).message); }
   });
 
   socket.on('group:delete', async () => {
@@ -37,7 +38,7 @@ module.exports = function register(socket, { io, sessions, username }) {
       if (!g || String(g.adminUserId) !== String(s.userId)) return;
       await g.deleteOne();
       io.to(s.code).emit('group:deleted');
-    } catch (e) { console.error('[group:delete]', e.message); }
+    } catch (e) { console.error('[group:delete]', (e as Error).message); }
   });
 
-};
+}

@@ -1,7 +1,8 @@
-const Group = require('../models/Group');
-const { broadcastState } = require('./helpers');
+import Group from '../models/Group';
+import { broadcastState } from './helpers';
+import type { AppSocket, Ctx } from '../types';
 
-module.exports = function register(socket, { io, sessions, userId, username }) {
+export default function register(socket: AppSocket, { io, sessions, userId, username }: Ctx) {
   socket.on('expense:add', async ({ description, amount, currency, paidBy, splitAmong }) => {
     try {
       const s = sessions[socket.id];
@@ -12,7 +13,7 @@ module.exports = function register(socket, { io, sessions, userId, username }) {
       const member = g.members.find(m => m.username === paidBy);
       g.expenses.push({
         description: description.trim(),
-        amount:      parseFloat(amount),
+        amount:      Number(amount),
         currency:    currency || 'EUR',
         paidBy,
         paidByColor: member?.color || '#888',
@@ -21,7 +22,7 @@ module.exports = function register(socket, { io, sessions, userId, username }) {
       });
       await g.save();
       io.to(s.code).emit('expense:new', g.expenses.at(-1));
-    } catch (e) { console.error('[expense:add]', e.message); }
+    } catch (e) { console.error('[expense:add]', (e as Error).message); }
   });
 
   // Only the person who added it or the admin can edit
@@ -35,13 +36,13 @@ module.exports = function register(socket, { io, sessions, userId, username }) {
       if (!exp || (exp.addedBy !== username && g.adminUsername !== username)) return;
       exp.description = description;
       exp.amount      = amount;
-      exp.currency    = currency;
+      exp.currency    = currency || exp.currency;
       exp.paidBy      = paidBy;
       exp.paidByColor = g.members.find(m => m.username === paidBy)?.color || exp.paidByColor;
-      exp.splitAmong  = splitAmong;
+      exp.splitAmong  = splitAmong || exp.splitAmong;
       await g.save();
       await broadcastState(io, sessions, s.code);
-    } catch (e) { console.error('[expense:edit]', e.message); }
+    } catch (e) { console.error('[expense:edit]', (e as Error).message); }
   });
 
   socket.on('expense:remove', async expenseId => {
@@ -55,6 +56,6 @@ module.exports = function register(socket, { io, sessions, userId, username }) {
       exp.deleteOne();
       await g.save();
       io.to(s.code).emit('expense:removed', expenseId);
-    } catch (e) { console.error('[expense:remove]', e.message); }
+    } catch (e) { console.error('[expense:remove]', (e as Error).message); }
   });
-};
+}

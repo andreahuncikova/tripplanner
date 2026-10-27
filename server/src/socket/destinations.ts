@@ -1,7 +1,8 @@
-const Group = require('../models/Group');
-const { ts, serialize, getOnline, broadcastState } = require('./helpers');
+import Group from '../models/Group';
+import { ts, serialize, getOnline, broadcastState } from './helpers';
+import type { AppSocket, Ctx } from '../types';
 
-module.exports = function register(socket, { io, sessions, userId, username }) {
+export default function register(socket: AppSocket, { io, sessions, userId, username }: Ctx) {
   // Any member can suggest a new destination
   socket.on('dest:suggest', async name => {
     try {
@@ -13,7 +14,7 @@ module.exports = function register(socket, { io, sessions, userId, username }) {
       await g.save();
       // Only emit the new destination instead of the full state — more efficient
       io.to(s.code).emit('dest:new', g.destinations.at(-1));
-    } catch (e) { console.error('[dest:suggest]', e.message); }
+    } catch (e) { console.error('[dest:suggest]', (e as Error).message); }
   });
 
   socket.on('dest:vote', async destId => {
@@ -31,7 +32,7 @@ module.exports = function register(socket, { io, sessions, userId, username }) {
       if (!alreadyVoted) d.votes.push(username);
       await g.save();
       io.to(s.code).emit('state', serialize(g, getOnline(sessions, s.code)));
-    } catch (e) { console.error('[dest:vote]', e.message); }
+    } catch (e) { console.error('[dest:vote]', (e as Error).message); }
   });
 
   // Only admin can approve — this also advances the group to the calendar phase
@@ -49,7 +50,7 @@ module.exports = function register(socket, { io, sessions, userId, username }) {
       await g.save();
       await broadcastState(io, sessions, s.code);
       io.to(s.code).emit('msg', g.messages.at(-1));
-    } catch (e) { console.error('[dest:approve]', e.message); }
+    } catch (e) { console.error('[dest:approve]', (e as Error).message); }
   });
 
   // Only the person who suggested it or the admin can edit/remove
@@ -64,7 +65,7 @@ module.exports = function register(socket, { io, sessions, userId, username }) {
       dest.name = name.trim();
       await g.save();
       io.to(s.code).emit('state', serialize(g, getOnline(sessions, s.code)));
-    } catch (e) { console.error('[dest:edit]', e.message); }
+    } catch (e) { console.error('[dest:edit]', (e as Error).message); }
   });
 
   socket.on('dest:remove', async destId => {
@@ -75,9 +76,9 @@ module.exports = function register(socket, { io, sessions, userId, username }) {
       if (!g) return;
       const dest = g.destinations.find(d => String(d._id) === String(destId));
       if (!dest || (dest.by !== username && String(g.adminUserId) !== String(userId))) return;
-      g.destinations = g.destinations.filter(d => String(d._id) !== String(destId));
+      dest.deleteOne();
       await g.save();
       io.to(s.code).emit('state', serialize(g, getOnline(sessions, s.code)));
-    } catch (e) { console.error('[dest:remove]', e.message); }
+    } catch (e) { console.error('[dest:remove]', (e as Error).message); }
   });
-};
+}

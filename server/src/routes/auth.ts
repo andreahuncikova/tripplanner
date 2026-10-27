@@ -1,10 +1,13 @@
-const router = require('express').Router();
-const jwt    = require('jsonwebtoken');
-const User   = require('../models/User');
-const { JWT_SECRET, JWT_EXPIRES, COLORS } = require('../config');
+import { Router, Response } from 'express';
+import jwt from 'jsonwebtoken';
+import User, { SafeUser } from '../models/User';
+import { JWT_SECRET, JWT_EXPIRES, COLORS } from '../config';
+import type { JwtUser } from '../types';
+
+const router = Router();
 
 // Creates a signed JWT and sets it as an httpOnly cookie so the browser stores it automatically and sends it with every request.
-function issueToken(user, res) {
+function issueToken(user: SafeUser, res: Response): string {
   const token = jwt.sign(
     { _id: user._id, email: user.email, username: user.username, color: user.color },
     JWT_SECRET, { expiresIn: JWT_EXPIRES }
@@ -30,7 +33,7 @@ router.post('/register', async (req, res) => {
     const token = issueToken(user, res);
     res.status(201).json({ token, user: user.toSafe() });
   } catch (e) {
-    console.error('[register]', e.message);
+    console.error('[register]', (e as Error).message);
     res.status(500).json({ error: 'Server error — please try again' });
   }
 });
@@ -48,7 +51,7 @@ router.post('/login', async (req, res) => {
     const token = issueToken(user, res);
     res.json({ token, user: user.toSafe() });
   } catch (e) {
-    console.error('[login]', e.message);
+    console.error('[login]', (e as Error).message);
     res.status(500).json({ error: 'Server error — please try again' });
   }
 });
@@ -64,11 +67,11 @@ router.get('/me', async (req, res) => {
   const token = req.cookies?.token || req.headers.authorization?.replace('Bearer ', '');
   if (!token) return res.status(401).json({ error: 'no token' });
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET) as JwtUser;
     const user    = await User.findById(decoded._id);
     if (!user) return res.status(404).json({ error: 'not found' });
     res.json({ user: user.toSafe() });
   } catch { res.status(401).json({ error: 'invalid' }); }
 });
 
-module.exports = router;
+export default router;

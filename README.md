@@ -61,7 +61,7 @@ Invite Friends
 ```
 client/          new React + TypeScript frontend (Vite, Tailwind)
 client-legacy/   old frontend, served by the server until the React app replaces it
-server/          Express + Socket.IO backend
+server/          Express + Socket.IO backend (TypeScript, source in server/src)
 ```
 
 ## Running Locally
@@ -86,3 +86,11 @@ npm run dev
 ```
 
 Open http://localhost:5173. Requests to /api and /socket.io are forwarded to the server on port 3000.
+
+Other scripts (run in `server/`):
+
+```
+npm run typecheck   # check types without building
+npm run build       # compile TypeScript to dist/
+npm start           # run the compiled server (used on Render)
+```
