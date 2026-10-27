@@ -3,7 +3,6 @@ import express      from 'express';
 import http         from 'http';
 import { Server }   from 'socket.io';
 import mongoose     from 'mongoose';
-import cookieParser from 'cookie-parser';
 import cors         from 'cors';
 
 import { MONGO_URI, PORT, CLIENT_URLS } from './config';
@@ -25,9 +24,11 @@ const io     = new Server<ClientToServerEvents, ServerToClientEvents, {}, Socket
 
 // ── REST API ──────────────────────────────────────────
 // The server only serves the API; the frontend is served by Vercel.
+// Render puts one proxy in front of the server, so the real visitor IP (used by the login rate limit)
+// comes from the X-Forwarded-For header that this proxy sets.
+app.set('trust proxy', 1);
 app.use(cors({ origin: CLIENT_URLS }));
 app.use(express.json());
-app.use(cookieParser());
 app.use('/api/auth',   authRoutes);
 app.use('/api/groups', groupRoutes);
 

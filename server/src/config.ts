@@ -9,8 +9,15 @@ export const PORT = Number(process.env.PORT) || 3000;
 export const CLIENT_URLS = (process.env.CLIENT_URL || 'http://localhost:5173')
   .split(',').map(url => url.trim().replace(/\/$/, ''));
 
-// Secret used to sign JWT tokens
-export const JWT_SECRET  = process.env.JWT_SECRET || 'tp-secret-change-me-in-prod';
+// Secret used to sign JWT tokens. There is no default value on purpose: the repository is public,
+// so with a known secret anyone could create a valid token for any user.
+// The server refuses to start without a long enough secret.
+const secret = process.env.JWT_SECRET || '';
+if (secret.length < 32) {
+  throw new Error('JWT_SECRET is missing or shorter than 32 characters. Generate one with: ' +
+    `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`);
+}
+export const JWT_SECRET  = secret;
 export const JWT_EXPIRES = '7d';
 
 // A palette of colors — one is picked randomly when a user registers and used as their avatar color throughout the app

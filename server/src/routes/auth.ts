@@ -1,23 +1,33 @@
-import { Router, Response } from 'express';
+import { Router, Request } from 'express';
 import jwt from 'jsonwebtoken';
+import rateLimit from 'express-rate-limit';
 import User, { SafeUser } from '../models/User';
 import { JWT_SECRET, JWT_EXPIRES, COLORS } from '../config';
-import type { JwtUser } from '../types';
+import { authMiddleware, AuthRequest } from '../middleware/auth';
 
 const router = Router();
 
-// Creates a signed JWT and sets it as an httpOnly cookie so the browser stores it automatically and sends it with every request.
-function issueToken(user: SafeUser, res: Response): string {
-  const token = jwt.sign(
+// Creates a signed JWT. The client keeps it and sends it in the Authorization header (see middleware/auth.ts).
+function issueToken(user: SafeUser): string {
+  return jwt.sign(
     { _id: user._id, email: user.email, username: user.username, color: user.color },
-    JWT_SECRET, { expiresIn: JWT_EXPIRES }
+    JWT_SECRET, { algorithm: 'HS256', expiresIn: JWT_EXPIRES }
   );
-  res.cookie('token', token, { httpOnly: true, sameSite: 'lax', maxAge: 7*24*3600*1000 });
-  return token;
 }
 
+// Max 10 failed attempts per IP address in 15 minutes, so passwords cannot be guessed by trying many times.
+// Successful requests are not counted, so a normal user is never blocked.
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  skipSuccessfulRequests: true,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: { error: 'Too many attempts — please try again in 15 minutes' },
+});
+
 // POST /api/auth/register
-router.post('/register', async (req, res) => {
+router.post('/register', authLimiter, async (req, res) => {
   try {
     const { email, password, username } = req.body;
     if (!email || !password || !username)
@@ -30,7 +40,7 @@ router.post('/register', async (req, res) => {
     // Assign a random color from the palette for this user's avatar
     const color = COLORS[Math.floor(Math.random() * COLORS.length)];
     const user  = await User.create({ email, password, username, color });
-    const token = issueToken(user, res);
+    const token = issueToken(user);
     res.status(201).json({ token, user: user.toSafe() });
   } catch (e) {
     console.error('[register]', (e as Error).message);
@@ -39,7 +49,7 @@ router.post('/register', async (req, res) => {
 });
 
 // POST /api/auth/login
-router.post('/login', async (req, res) => {
+router.post('/login', authLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password)
@@ -48,7 +58,7 @@ router.post('/login', async (req, res) => {
     const user = await User.findOne({ email }).select('+password');
     if (!user || !(await user.comparePassword(password)))
       return res.status(401).json({ error: 'Incorrect email or password' });
-    const token = issueToken(user, res);
+    const token = issueToken(user);
     res.json({ token, user: user.toSafe() });
   } catch (e) {
     console.error('[login]', (e as Error).message);
@@ -56,22 +66,22 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// POST /api/auth/logout — just clears the cookie on the client
+// POST /api/auth/logout — the client deletes its token. A JWT cannot be cancelled on the server,
+// it stays valid until it expires (JWT_EXPIRES), so this route only confirms the logout.
 router.post('/logout', (_req, res) => {
-  res.clearCookie('token');
   res.json({ ok: true });
 });
 
 // GET /api/auth/me — used on page load to restore the session from the stored token
-router.get('/me', async (req, res) => {
-  const token = req.cookies?.token || req.headers.authorization?.replace('Bearer ', '');
-  if (!token) return res.status(401).json({ error: 'no token' });
+router.get('/me', authMiddleware, async (req: Request, res) => {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as JwtUser;
-    const user    = await User.findById(decoded._id);
+    const user = await User.findById((req as AuthRequest).user._id);
     if (!user) return res.status(404).json({ error: 'not found' });
     res.json({ user: user.toSafe() });
-  } catch { res.status(401).json({ error: 'invalid' }); }
+  } catch (e) {
+    console.error('[me]', (e as Error).message);
+    res.status(500).json({ error: 'Server error' });
+  }
 });
 
 export default router;
