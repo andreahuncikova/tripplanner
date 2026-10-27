@@ -1,5 +1,5 @@
 import Group from '../models/Group';
-import { ts, broadcastState } from './helpers';
+import { ts, broadcastState, toClient } from './helpers';
 import { formatTripLabel } from '../utils';
 import type { AppSocket, Ctx } from '../types';
 
@@ -28,7 +28,7 @@ export default function register(socket: AppSocket, { io, sessions, userId, user
       g.dateRanges.forEach(r => { r.votes = r.votes.filter(u => u !== username); });
       if (!alreadyVoted && g.dateRanges[idx]) g.dateRanges[idx].votes.push(username);
       await g.save();
-      io.to(s.code).emit('range:votes', g.dateRanges);
+      io.to(s.code).emit('range:votes', toClient(g.dateRanges));
     } catch (e) { console.error('[range:vote]', (e as Error).message); }
   });
 
@@ -51,7 +51,7 @@ export default function register(socket: AppSocket, { io, sessions, userId, user
       g.messages.push({ username: 'System', text: `Trip confirmed: ${label}! Start adding activities.`, time: ts(), system: true });
       await g.save();
       await broadcastState(io, sessions, s.code);
-      io.to(s.code).emit('msg', g.messages.at(-1));
+      io.to(s.code).emit('msg', toClient(g.messages.at(-1)));
     } catch (e) { console.error('[range:confirm]', (e as Error).message); }
   });
 
@@ -77,7 +77,7 @@ export default function register(socket: AppSocket, { io, sessions, userId, user
       g.messages.push({ username: 'System', text: msg, time: ts(), system: true });
       await g.save();
       await broadcastState(io, sessions, s.code);
-      io.to(s.code).emit('msg', g.messages.at(-1));
+      io.to(s.code).emit('msg', toClient(g.messages.at(-1)));
     } catch (e) { console.error('[phase:back]', (e as Error).message); }
   });
 }

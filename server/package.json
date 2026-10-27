@@ -1,11 +1,11 @@
 {
   "name": "tripplanner-v3",
   "version": "3.0.0",
-  "main": "dist/server.js",
+  "main": "dist/server/src/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
-    "start": "node dist/server.js",
+    "start": "node dist/server/src/server.js",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

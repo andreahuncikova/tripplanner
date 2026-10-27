@@ -21,8 +21,9 @@ const io     = new Server<ClientToServerEvents, ServerToClientEvents, {}, Socket
 
 // ── Static files & REST API ───────────────────────────
 // Serve the old frontend from /client-legacy until the React app on Vercel replaces it.
-// The path goes up two folders, so it works both from src/ (dev) and from dist/ (build).
-app.use(express.static(path.join(__dirname, '..', '..', 'client-legacy')));
+// npm always starts the server from the server/ folder (that is also where dotenv finds .env),
+// so the path works the same for src/ in development and for the compiled code in dist/.
+app.use(express.static(path.resolve('..', 'client-legacy')));
 app.use(express.json());
 app.use(cookieParser());
 app.use('/api/auth',   authRoutes);

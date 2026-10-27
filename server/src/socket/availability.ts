@@ -1,5 +1,5 @@
 import Group from '../models/Group';
-import { ts, serialize, getOnline, broadcastState } from './helpers';
+import { ts, broadcastState, getOnline, serialize, toClient } from './helpers';
 import { snapMonthEnd, computeDateRanges } from '../utils';
 import type { AppSocket, Ctx } from '../types';
 
@@ -67,7 +67,7 @@ export default function register(socket: AppSocket, { io, sessions, userId, user
       g.messages.push({ username: 'System', text: 'Available dates calculated. Time to vote!', time: ts(), system: true });
       await g.save();
       await broadcastState(io, sessions, s.code);
-      io.to(s.code).emit('msg', g.messages.at(-1));
+      io.to(s.code).emit('msg', toClient(g.messages.at(-1)));
     } catch (e) { console.error('[avail:compute]', (e as Error).message); }
   });
 

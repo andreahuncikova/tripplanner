@@ -1,5 +1,5 @@
 import Group from '../models/Group';
-import { broadcastState } from './helpers';
+import { broadcastState, toClient } from './helpers';
 import type { AppSocket, Ctx } from '../types';
 
 export default function register(socket: AppSocket, { io, sessions, userId, username }: Ctx) {
@@ -21,7 +21,7 @@ export default function register(socket: AppSocket, { io, sessions, userId, user
         addedBy:     username,
       });
       await g.save();
-      io.to(s.code).emit('expense:new', g.expenses.at(-1));
+      io.to(s.code).emit('expense:new', toClient(g.expenses.at(-1)));
     } catch (e) { console.error('[expense:add]', (e as Error).message); }
   });
 

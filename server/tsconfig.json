@@ -2,10 +2,10 @@
   "compilerOptions": {
     "target": "ES2022",
     "module": "nodenext",
-    "rootDir": "src",
+    "rootDir": "..",
     "outDir": "dist",
     "strict": true,
     "skipLibCheck": true
   },
-  "include": ["src"]
+  "include": ["src", "../shared"]
 }

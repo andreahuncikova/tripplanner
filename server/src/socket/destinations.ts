@@ -1,5 +1,5 @@
 import Group from '../models/Group';
-import { ts, serialize, getOnline, broadcastState } from './helpers';
+import { ts, broadcastState, getOnline, serialize, toClient } from './helpers';
 import type { AppSocket, Ctx } from '../types';
 
 export default function register(socket: AppSocket, { io, sessions, userId, username }: Ctx) {
@@ -13,7 +13,7 @@ export default function register(socket: AppSocket, { io, sessions, userId, user
       g.destinations.push({ name: name.trim(), by: username, votes: [] });
       await g.save();
       // Only emit the new destination instead of the full state — more efficient
-      io.to(s.code).emit('dest:new', g.destinations.at(-1));
+      io.to(s.code).emit('dest:new', toClient(g.destinations.at(-1)));
     } catch (e) { console.error('[dest:suggest]', (e as Error).message); }
   });
 
@@ -49,7 +49,7 @@ export default function register(socket: AppSocket, { io, sessions, userId, user
       g.messages.push({ username: 'System', text: `Destination approved: ${d.name}.`, time: ts(), system: true });
       await g.save();
       await broadcastState(io, sessions, s.code);
-      io.to(s.code).emit('msg', g.messages.at(-1));
+      io.to(s.code).emit('msg', toClient(g.messages.at(-1)));
     } catch (e) { console.error('[dest:approve]', (e as Error).message); }
   });
 

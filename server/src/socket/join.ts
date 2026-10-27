@@ -1,5 +1,5 @@
 import Group from '../models/Group';
-import { serialize, getOnline } from './helpers';
+import { getOnline, serialize, toClient } from './helpers';
 import type { AppSocket, Ctx } from '../types';
 
 export default function register(socket: AppSocket, { io, sessions, userId, username, color }: Ctx) {
@@ -23,7 +23,7 @@ export default function register(socket: AppSocket, { io, sessions, userId, user
       // Send the full group state + last 60 messages to the joining client
       socket.emit('joined', {
         ...serialize(g, getOnline(sessions, inviteCode)),
-        messages: g.messages.slice(-60),
+        messages: toClient(g.messages.slice(-60)),
       });
 
       // Tell everyone else in the room that someone new joined

@@ -1,5 +1,5 @@
 import Group from '../models/Group';
-import { serialize, getOnline } from './helpers';
+import { getOnline, serialize, toClient } from './helpers';
 import type { AppSocket, Ctx } from '../types';
 
 export default function register(socket: AppSocket, { io, sessions, userId, username }: Ctx) {
@@ -11,7 +11,7 @@ export default function register(socket: AppSocket, { io, sessions, userId, user
       if (!g) return;
       g.activities.push({ text: text.trim(), addedBy: username, userId, calDate: calDate || null, calTime: calTime || null });
       await g.save();
-      io.to(s.code).emit('activity:new', g.activities.at(-1));
+      io.to(s.code).emit('activity:new', toClient(g.activities.at(-1)));
     } catch (e) { console.error('[activity:add]', (e as Error).message); }
   });
 
