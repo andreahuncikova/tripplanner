@@ -4,9 +4,9 @@ import http         from 'http';
 import { Server }   from 'socket.io';
 import mongoose     from 'mongoose';
 import cookieParser from 'cookie-parser';
-import path         from 'path';
+import cors         from 'cors';
 
-import { MONGO_URI, PORT } from './config';
+import { MONGO_URI, PORT, CLIENT_URLS } from './config';
 import { socketAuth }      from './middleware/auth';
 import registerAllHandlers from './socket';
 import authRoutes          from './routes/auth';
@@ -17,13 +17,15 @@ import type { ClientToServerEvents, ServerToClientEvents, SocketData, Sessions }
 // Socket.io needs access to the raw HTTP server, not just Express, so we pass the same server instance to both.
 const app    = express();
 const server = http.createServer(app);
-const io     = new Server<ClientToServerEvents, ServerToClientEvents, {}, SocketData>(server);
+// The React client runs on another domain (Vercel), so the browser only lets it call this server
+// if the server allows that domain (CORS). Only the addresses in CLIENT_URL are allowed.
+const io     = new Server<ClientToServerEvents, ServerToClientEvents, {}, SocketData>(server, {
+  cors: { origin: CLIENT_URLS },
+});
 
-// ── Static files & REST API ───────────────────────────
-// Serve the old frontend from /client-legacy until the React app on Vercel replaces it.
-// npm always starts the server from the server/ folder (that is also where dotenv finds .env),
-// so the path works the same for src/ in development and for the compiled code in dist/.
-app.use(express.static(path.resolve('..', 'client-legacy')));
+// ── REST API ──────────────────────────────────────────
+// The server only serves the API; the frontend is served by Vercel.
+app.use(cors({ origin: CLIENT_URLS }));
 app.use(express.json());
 app.use(cookieParser());
 app.use('/api/auth',   authRoutes);

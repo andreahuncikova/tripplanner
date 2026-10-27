@@ -59,10 +59,12 @@ Invite Friends
 ## Project Structure
 
 ```
-client/          new React + TypeScript frontend (Vite, Tailwind)
-client-legacy/   old frontend, served by the server until the React app replaces it
-server/          Express + Socket.IO backend (TypeScript, source in server/src)
+client/          React + TypeScript frontend (Vite, Tailwind), deployed on Vercel
+server/          Express + Socket.IO backend (TypeScript, source in server/src), deployed on Render
+shared/          types shared by the client and the server
 ```
+
+The app as it was before the bachelor project is kept under the git tag `baseline-pre-bachelor`.
 
 ## Running Locally
 
@@ -75,7 +77,7 @@ npm install
 npm run dev
 ```
 
-The old app runs on http://localhost:3000.
+The server (API only) runs on http://localhost:3000.
 
 Client (in a second terminal):
 
