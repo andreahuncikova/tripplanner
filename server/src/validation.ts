@@ -15,6 +15,12 @@ const normalizeEmail = (v: unknown) => text(v).trim().toLowerCase();
 // A simple shape check: something@something.something, no spaces
 const looksLikeEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
+// Invite codes are 8 capital letters and numbers, e.g. "A3BF92C1" (made in routes/groups.ts)
+export function normalizeInviteCode(v: unknown): string | null {
+  const code = text(v).trim().toUpperCase();
+  return /^[A-Z0-9]{8}$/.test(code) ? code : null;
+}
+
 export function checkRegister(body: unknown): Result<{ email: string; password: string; username: string }> {
   const b = (body ?? {}) as Record<string, unknown>;
   const email = normalizeEmail(b.email);

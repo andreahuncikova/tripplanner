@@ -199,6 +199,9 @@ export interface TripSummary {
   adminUsername: string
   tripWindowStart: string | null
   tripWindowEnd: string | null
+  // Set when the trip dates are confirmed: "YYYY-MM-DD" and a label like "3 – 12 April (10 days)"
+  finalDate: string | null
+  finalDateLabel: string | null
 }
 
 // GET /api/groups/:code, public, also used for the invite preview.
@@ -207,4 +210,7 @@ export interface TripPreview {
   inviteCode: string
   phase: Phase
   memberCount: number
+  // Who organises the trip and when it is, shown before someone joins with the code
+  adminUsername: string
+  finalDateLabel: string | null
 }

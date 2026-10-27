@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Link, NavLink, Outlet, useParams } from 'react-router-dom'
-import type { TripPreview } from '@shared/types'
-import { api } from '../../lib/api'
+import { Link, NavLink, Navigate, Outlet, useParams } from 'react-router-dom'
+import type { TripSummary } from '@shared/types'
+import { ApiError, api } from '../../lib/api'
 import { cn } from '../../lib/cn'
+import { people } from '../../lib/trips'
 import {
   BackIcon, BudgetIcon, ChatIcon, CloseIcon, ItineraryIcon, MoreIcon, PlanIcon, StaysIcon,
 } from '../../components/layout/icons'
@@ -19,12 +20,24 @@ const sections = [
 // Desktop: the sections as tabs under the trip name, and the chat in a window opened from a bubble.
 export default function TripLayout() {
   const { tripId = '' } = useParams()
-  const [trip, setTrip] = useState<TripPreview | null>(null)
+  const [trip, setTrip] = useState<TripSummary | null>(null)
+  const [notMember, setNotMember] = useState(false)
   const [chatOpen, setChatOpen] = useState(false)
 
+  // The trip as its members see it. The public preview is not used here, because it is limited
+  // against guessing codes and could then leave the header without a name.
   useEffect(() => {
-    api<TripPreview>(`/api/groups/${tripId}`).then(setTrip).catch(() => setTrip(null))
+    setNotMember(false)
+    api<TripSummary>(`/api/groups/${tripId}/summary`)
+      .then(setTrip)
+      .catch(err => {
+        setTrip(null)
+        if (err instanceof ApiError && err.status === 404) setNotMember(true)
+      })
   }, [tripId])
+
+  // Someone who opens a trip they are not in (e.g. a shared trip link) gets the "Join a trip" page with the code filled in
+  if (notMember) return <Navigate to={`/join?code=${encodeURIComponent(tripId)}`} replace />
 
   return (
     <div className="flex min-h-dvh flex-col pb-24 lg:pb-0">
@@ -35,11 +48,7 @@ export default function TripLayout() {
           </Link>
           <div className="flex min-w-0 flex-1 flex-col">
             <h1 className="truncate text-lead font-bold lg:text-2xl lg:font-extrabold">{trip?.name ?? 'Trip'}</h1>
-            {trip && (
-              <span className="text-caption text-muted lg:text-sm">
-                {trip.memberCount} {trip.memberCount === 1 ? 'person' : 'people'}
-              </span>
-            )}
+            {trip && <span className="text-caption text-muted lg:text-sm">{people(trip.members.length)}</span>}
           </div>
           <button type="button" className="rounded-md bg-ciel-light px-3.5 py-2.5 text-sm font-bold text-sommet">Invite</button>
           <button type="button" aria-label="Trip settings" className="flex size-11 items-center justify-center rounded-md text-subtle lg:border lg:border-line">

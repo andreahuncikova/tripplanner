@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, NavLink } from 'react-router-dom'
+import { Link, NavLink, useLocation } from 'react-router-dom'
 import type { TripSummary } from '@shared/types'
 import { useAuth } from '../../auth/useAuth'
 import { api } from '../../lib/api'
@@ -18,20 +18,22 @@ const dot = (phase: TripSummary['phase']) => phase === 'done' ? 'bg-faint' : pha
 // The left column on desktop: the user's trips and their profile. Hidden on phones.
 export function Sidebar() {
   const { user } = useAuth()
+  const { pathname } = useLocation()
   const [trips, setTrips] = useState<TripSummary[]>([])
 
+  // Loaded again on every page change, so a trip the user just joined or created shows up right away
   useEffect(() => {
     api<{ groups: TripSummary[] }>('/api/groups')
       .then(r => setTrips(r.groups))
       .catch(() => setTrips([]))
-  }, [])
+  }, [pathname])
 
   return (
     <aside className="sticky top-0 hidden h-dvh w-68 shrink-0 flex-col gap-5 border-r border-line bg-white px-4 py-5 lg:flex">
       <Link to="/dashboard" className="flex items-center gap-2.5 px-2 py-1 text-lg font-extrabold text-roche hover:text-roche">
         <Logo />TripPlanner
       </Link>
-      <Link to="/dashboard" className="rounded-md bg-sommet p-3 text-center font-bold text-white hover:bg-sommet-dark hover:text-white">
+      <Link to="/new-trip" className="rounded-md bg-sommet p-3 text-center font-bold text-white hover:bg-sommet-dark hover:text-white">
         + New trip
       </Link>
 

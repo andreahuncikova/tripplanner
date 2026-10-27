@@ -5,6 +5,7 @@ import AppShell from './components/layout/AppShell'
 import Landing from './pages/Landing'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
+import JoinTrip from './pages/JoinTrip'
 import NotFound from './pages/NotFound'
 import UiGallery from './pages/UiGallery'
 import TripLayout from './pages/trip/TripLayout'
@@ -28,6 +29,8 @@ export const router = createBrowserRouter([
             element: <AppShell />,
             children: [
               { path: 'dashboard', element: <Dashboard /> },
+              // Also the target of invite links: /join?code=A3BF92C1
+              { path: 'join',      element: <JoinTrip /> },
               {
                 path: 'trips/:tripId',
                 element: <TripLayout />,

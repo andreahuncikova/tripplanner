@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { checkLogin, checkPasswordChange, checkRegister } from '../src/validation';
+import { checkLogin, checkPasswordChange, checkRegister, normalizeInviteCode } from '../src/validation';
 
 const valid = { email: 'mia@example.com', password: 'password1', username: 'Mia Novak' };
 
@@ -81,5 +81,19 @@ describe('checkPasswordChange', () => {
 
   it('rejects objects instead of text', () => {
     expect(checkPasswordChange({ currentPassword: { $ne: null }, newPassword: 'new-pass1' }).ok).toBe(false);
+  });
+});
+
+describe('normalizeInviteCode', () => {
+  it('accepts 8 letters and numbers and returns them in capitals', () => {
+    expect(normalizeInviteCode('a3bf92c1')).toBe('A3BF92C1');
+    expect(normalizeInviteCode(' A3BF92C1 ')).toBe('A3BF92C1');
+  });
+
+  it('rejects codes of the wrong length or with other characters', () => {
+    expect(normalizeInviteCode('A3BF92C')).toBeNull();
+    expect(normalizeInviteCode('A3BF92C12')).toBeNull();
+    expect(normalizeInviteCode('A3BF-2C1')).toBeNull();
+    expect(normalizeInviteCode({ $gt: '' })).toBeNull();
   });
 });
