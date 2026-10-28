@@ -38,10 +38,13 @@ export default function Dashboard() {
   const ready = trips?.filter(t => t.phase === 'done') ?? []
   const empty = trips !== null && trips.length === 0
 
+  // Phones get a link to the /join page, desktop a button that opens the window.
+  // max-lg:hidden (not plain "hidden"), because the button styles already contain inline-flex,
+  // and a plain hidden would lose against it and show both buttons on phones.
   const joinButton = (className: string) => (
     <>
       <Link to="/join" className={cn(className, 'lg:hidden')}>Join with code</Link>
-      <button type="button" onClick={() => setJoinOpen(true)} className={cn(className, 'hidden cursor-pointer lg:inline-flex')}>Join with code</button>
+      <button type="button" onClick={() => setJoinOpen(true)} className={cn(className, 'cursor-pointer max-lg:hidden')}>Join with code</button>
     </>
   )
 
