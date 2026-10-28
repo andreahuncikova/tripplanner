@@ -7,6 +7,7 @@ import { cn } from '../lib/cn'
 import { STEPS, countdown, people, phases, tripDates } from '../lib/trips'
 import { Avatar, AvatarGroup, Button, Modal } from '../components/ui'
 import { JoinTripForm } from './JoinTrip'
+import { InstallBanner } from '../components/InstallBanner'
 
 // Link that looks like a button (Button itself is a <button>, these go to another page)
 const primaryLink = 'inline-flex min-h-12 items-center justify-center gap-2 rounded-[14px] bg-sommet px-5 font-bold text-white hover:bg-sommet-dark hover:text-white'
@@ -72,6 +73,7 @@ export default function Dashboard() {
       )}
 
       <main className="flex flex-1 flex-col gap-3.5 p-5 lg:gap-5 lg:px-12 lg:py-7">
+        <InstallBanner />
         {error && (
           <div role="alert" className="flex flex-wrap items-center gap-3 rounded-md bg-danger-light px-4 py-3 text-sm font-semibold text-danger">
             Your trips could not be loaded: {error}
