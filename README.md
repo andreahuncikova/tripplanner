@@ -62,6 +62,7 @@ Invite Friends
 client/          React + TypeScript frontend (Vite, Tailwind), deployed on Vercel
 server/          Express + Socket.IO backend (TypeScript, source in server/src), deployed on Render
 shared/          types shared by the client and the server
+e2e/             end-to-end tests (Playwright)
 ```
 
 The app as it was before the bachelor project is kept under the git tag `baseline-pre-bachelor`.
@@ -97,3 +98,15 @@ npm run typecheck   # check types without building
 npm run build       # compile TypeScript to dist/
 npm start           # run the compiled server (used on Render)
 ```
+
+End-to-end tests (run in `e2e/`):
+
+```
+npm install
+npx playwright install chromium   # once, downloads the test browser
+npm test                          # starts its own server, client and empty database, then runs the tests
+npm run test:ui                   # the same with Playwright's window, to watch the tests step by step
+```
+
+The tests never use the real database: each run starts an empty MongoDB in memory.
+GitHub Actions runs them on every push, on a desktop and a phone screen.
