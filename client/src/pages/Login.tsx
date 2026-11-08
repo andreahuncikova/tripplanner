@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
+import { Logo } from '../components/layout/icons'
 import { Button, Input, Tabs } from '../components/ui'
 
 // Same rule as the server (server/src/validation.ts)
@@ -8,7 +9,7 @@ const PASSWORD_MIN = 8
 
 type Mode = 'login' | 'signup'
 
-const PHOTO_ALT = 'Friends running into the sea on a sunny beach'
+const PHOTO_ALT = 'A city skyline across the water at sunset'
 
 // Log in and sign up on one page, as in the mockups "Log in / sign up" (mobile) and "Desktop · Log in / sign up".
 // The mode is in the address (/login?mode=signup), so other pages can link straight to the sign-up form.
@@ -57,7 +58,7 @@ export default function Login() {
     <div className="min-h-dvh bg-white lg:flex lg:h-dvh lg:gap-3.5 lg:p-3.5">
       {/* Mobile: photo on top, the form slides over it */}
       <div className="relative h-[220px] lg:hidden">
-        <img src="/login-hero.jpg" alt={PHOTO_ALT} className="size-full object-cover object-[50%_60%]" />
+        <img src="/landing-hero.jpg" alt={PHOTO_ALT} className="size-full object-cover object-[60%_55%]" />
         <Link
           to="/"
           aria-label="Back to the home page"
@@ -69,7 +70,7 @@ export default function Login() {
 
       <main className="relative -mt-7 rounded-t-2xl bg-white px-5 pb-7 pt-6.5 lg:mt-0 lg:flex lg:min-h-0 lg:flex-[1_1_460px] lg:flex-col lg:overflow-y-auto lg:rounded-none lg:px-10 lg:py-6">
         <Link to="/" className="hidden items-center gap-2.5 text-xl font-extrabold text-roche hover:text-roche lg:flex">
-          <svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="10" className="fill-sommet" /><path d="M9 20l14-8-5 12-2-5z" fill="none" stroke="#FFFFFF" strokeWidth="2" strokeLinejoin="round" /></svg>
+          <Logo size={32} />
           TripPlanner
         </Link>
 
@@ -109,7 +110,8 @@ export default function Login() {
               <p role="alert" className="rounded-md bg-danger-light px-4 py-3 text-sm font-semibold text-danger">{error}</p>
             )}
 
-            <Button type="submit" size="lg" pill fullWidth disabled={busy} className="mt-1">
+            {/* Large on phones as in the mockup; one size smaller on desktop, where the form sits in a shorter window. */}
+            <Button type="submit" size="lg" pill fullWidth disabled={busy} className="mt-1 lg:min-h-12 lg:text-base">
               {mode === 'login' ? (busy ? 'Logging in…' : 'Log in') : (busy ? 'Creating account…' : 'Create account')}
             </Button>
           </form>
@@ -128,12 +130,12 @@ export default function Login() {
           The message grows and shrinks with the photo: --s is 1% of the photo's width (or less when the photo is low),
           so at the mockup's size (1440 × 900 window) it matches the design, and clamp() keeps it readable on small screens. */}
       <aside className="relative hidden flex-[1_1_520px] overflow-hidden rounded-2xl bg-sommet [container-type:size] [--s:min(1cqw,0.85cqh)] lg:block">
-        <img src="/login-hero.jpg" alt={PHOTO_ALT} className="absolute inset-0 size-full object-cover object-[55%_60%]" />
+        <img src="/landing-hero.jpg" alt={PHOTO_ALT} className="absolute inset-0 size-full object-cover object-[60%_55%]" />
         <div className="absolute inset-x-[clamp(16px,calc(var(--s)*3.8),44px)] bottom-[clamp(16px,calc(var(--s)*3.8),44px)] flex flex-col gap-[clamp(4px,calc(var(--s)*0.8),10px)] rounded-[clamp(12px,calc(var(--s)*2.7),24px)] bg-roche/60 px-[clamp(14px,calc(var(--s)*3),32px)] py-[clamp(12px,calc(var(--s)*2.7),28px)] text-white backdrop-blur-md">
           <strong className="font-display text-[length:clamp(18px,calc(var(--s)*3.25),34px)] leading-tight">Planned in one place.</strong>
           <span className="text-[length:clamp(13px,calc(var(--s)*2),20px)] text-[#E8ECF1]">Destination, dates, stays and costs — decided together with your friends.</span>
         </div>
-        <span className="absolute right-4 top-3 text-[length:clamp(10px,calc(var(--s)*1.5),13px)] text-white/90">Photo: Vidar Nordli-Mathisen / Unsplash</span>
+        <span className="absolute right-4 top-3 text-[length:clamp(10px,calc(var(--s)*1.5),13px)] text-white/90">Photo: Danny Shives / Unsplash</span>
       </aside>
     </div>
   )
