@@ -34,7 +34,8 @@
 
   /* Fonts (loaded in index.html) */
   --font-sans: "Plus Jakarta Sans", system-ui, sans-serif;
-  --font-display: "Bricolage Grotesque", "Plus Jakarta Sans", sans-serif;
+  /* Large headings (landing, log-in): the same font in ExtraBold. Bricolage Grotesque from the mockups looked too playful. */
+  --font-display: "Plus Jakarta Sans", system-ui, sans-serif;
   --font-mono: ui-monospace, Menlo, monospace;
 
   /* Text sizes the mockups use besides Tailwind's own (xs 12, sm 14, base 16, lg 18) */

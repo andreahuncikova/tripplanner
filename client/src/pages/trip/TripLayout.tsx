@@ -107,7 +107,7 @@ export default function TripLayout() {
 
       {/* Desktop: the chat window and the bubble that opens it. */}
       {chatOpen && (
-        <section aria-label="Group chat" className="fixed right-7 bottom-26 z-30 hidden h-150 max-h-[calc(100dvh-140px)] w-95 flex-col overflow-hidden rounded-xl border border-line bg-white shadow-float lg:flex">
+        <section aria-label="Group chat" className="fixed right-7 bottom-26 z-30 hidden h-150 max-h-[calc(100dvh-260px)] w-95 flex-col overflow-hidden rounded-xl border border-line bg-white shadow-float lg:flex">
           <header className="flex items-center gap-3 border-b border-line pt-4 pr-4 pb-3.5 pl-5">
             <div className="flex min-w-0 flex-1 flex-col">
               <strong>Group chat</strong>

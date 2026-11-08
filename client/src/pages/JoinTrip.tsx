@@ -112,8 +112,9 @@ export function JoinTripForm({ initialCode = '' }: { initialCode?: string }) {
         </section>
       )}
 
-      <div className="mt-auto pt-2">
-        <Button type="submit" size="lg" pill fullWidth disabled={status !== 'found' || joining}>
+      {/* Full width on phones; on desktop a normal-sized button on the right, as in the Desk-JoinTrip mockup. */}
+      <div className="mt-auto flex justify-end pt-2">
+        <Button type="submit" size="lg" pill fullWidth disabled={status !== 'found' || joining} className="lg:min-h-12 lg:w-auto lg:max-w-full lg:px-5.5 lg:text-base">
           <span className="truncate">
             {joining ? 'Joining…' : preview && status === 'found' ? `${alreadyIn ? 'Open' : 'Join'} ${preview.name}` : 'Join trip'}
           </span>
