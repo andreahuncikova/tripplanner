@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { cn } from '../../lib/cn'
 import { StepPreview } from './StepPreview'
 import { steps } from './steps'
-import { usePathFlight } from './usePathFlight'
+import { arrival, usePathFlight } from './usePathFlight'
 import type { WalkthroughState } from './useWalkthrough'
 import './timeline.css'
 
@@ -57,6 +57,8 @@ export function Timeline({ w }: { w: WalkthroughState }) {
         const p = stops[i]
         const active = i === w.step
         const done = i < w.step
+        // The stop and its name appear as the plane flies over them while the path draws itself.
+        const appear = { animationDelay: `${arrival(p.x)}s` }
         return (
           // The stop sits on the path and its name right above it (over the skyline); the card opens below the path.
           <li key={step.title} className="contents">
@@ -66,10 +68,10 @@ export function Timeline({ w }: { w: WalkthroughState }) {
               aria-hidden="true"
               onClick={() => w.goTo(i)}
               className={cn(
-                'absolute flex cursor-pointer items-center gap-1.5 rounded-full py-1 pr-3 pl-1 text-2xs font-bold xl:text-caption whitespace-nowrap shadow-[0_6px_16px_-6px_rgb(0_0_0/0.4)] ring-1 backdrop-blur-md transition-colors duration-300',
+                'tl-card absolute flex cursor-pointer items-center gap-1.5 rounded-full py-1 pr-3 pl-1 text-2xs font-bold xl:text-caption whitespace-nowrap shadow-[0_6px_16px_-6px_rgb(0_0_0/0.4)] ring-1 backdrop-blur-md transition-colors duration-300',
                 active ? 'bg-white text-sommet ring-white' : 'bg-white/70 text-roche ring-white/60 hover:bg-white',
               )}
-              style={{ left: `${p.x}%`, top: `calc(${p.y}% - 60px)`, translate: '-50% 0' }}
+              style={{ left: `${p.x}%`, top: `calc(${p.y}% - 60px)`, translate: '-50% 0', ...appear }}
             >
               <span className={cn('flex size-5 items-center justify-center rounded-full text-2xs font-extrabold transition-colors duration-300', active ? 'bg-sommet text-white' : 'bg-roche/10 text-roche')}>{i + 1}</span>
               {step.title}
@@ -83,7 +85,7 @@ export function Timeline({ w }: { w: WalkthroughState }) {
                 'tl-stop absolute -mt-5.5 -ml-5.5 flex size-11 cursor-pointer items-center justify-center rounded-full shadow-[0_6px_18px_-4px_rgb(0_0_0/0.4)] transition-[background-color,color,scale,box-shadow] duration-500 hover:scale-110 motion-reduce:transition-none',
                 active ? 'scale-110 bg-sommet text-white ring-6 ring-white/55' : done ? 'bg-white text-sommet ring-4 ring-white/40' : 'bg-white/80 text-sommet ring-4 ring-white/20 backdrop-blur',
               )}
-              style={{ left: `${p.x}%`, top: `${p.y}%`, animationDelay: `${0.5 + i * 0.3}s` }}
+              style={{ left: `${p.x}%`, top: `${p.y}%`, ...appear }}
             >
               {step.icon}
             </button>
@@ -94,8 +96,9 @@ export function Timeline({ w }: { w: WalkthroughState }) {
       {/* One card that glides from stop to stop; its content fades over when the step changes. */}
       <li
         aria-live="polite"
-        className="absolute z-10 w-64 pt-11 transition-[left,top] xl:w-72 xl:pt-14 duration-700 ease-in-out motion-reduce:transition-none"
-        style={{ left: `${x}%`, top: `${y}%`, translate: '-50% 0' }}
+        className="tl-card absolute z-10 w-64 pt-11 transition-[left,top] xl:w-72 xl:pt-14 duration-700 ease-in-out motion-reduce:transition-none"
+        // Rises in with the first stop, when the plane gets there.
+        style={{ left: `${x}%`, top: `${y}%`, translate: '-50% 0', animationDelay: `${arrival(stops[0].x)}s` }}
       >
         <div data-light className="relative rounded-2xl bg-white/70 px-3 pt-2 pb-3 text-roche shadow-[0_18px_40px_-12px_rgb(0_0_0/0.45)] ring-1 ring-white/70 backdrop-blur-xl">
           {/* In the corner, so it does not push the centred text aside. */}

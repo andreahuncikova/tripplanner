@@ -1,4 +1,4 @@
-/* The landing timeline: the stops appear one after another while the path draws itself (usePathFlight.ts).
+/* The landing timeline: each stop, its name and the card appear as the plane flies over them (arrival in usePathFlight.ts).
    tl-swap fades the card's content over when the step changes (the card itself glides by a CSS transition).
    The sp- classes animate the small preview of the active step (StepPreview.tsx); each runs once when the step starts.
    With reduced motion everything is simply shown in its final state. */

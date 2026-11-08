@@ -15,6 +15,14 @@ type Parts = {
 }
 
 const ease = (t: number) => (t < 0.5 ? 4 * t ** 3 : 1 - (-2 * t + 2) ** 3 / 2)
+// The inverse of ease: how far through the flight (0 to 1) it is when the plane has covered the share v of the way.
+const unease = (v: number) => (v < 0.5 ? Math.cbrt(v / 4) : 1 - Math.cbrt(2 * (1 - v)) / 2)
+
+// The first draw: from just left of the timeline to just right of it, in this many milliseconds.
+const DRAW = { from: -1, to: 101, ms: 2200 }
+// When the plane passes x during the first draw, in seconds, so a stop and its name appear right as it flies over.
+export const arrival = (x: number) => (unease((x - DRAW.from) / (DRAW.to - DRAW.from)) * DRAW.ms) / 1000
+
 const clip = (x: number) => `inset(-20% ${100 - x}% -20% -5%)`
 
 // Puts the plane on the path at x, turned the way the path goes there.
@@ -76,8 +84,8 @@ export function usePathFlight(x: number) {
     if (fill.current) fill.current.style.clipPath = clip(filled.current)
     if (!reveal.current) return
     if (reduced()) return
-    reveal.current.style.clipPath = clip(-1)
-    return fly({ box, path, plane, points, pilot }, -1, 101, 2200, at => { if (reveal.current) reveal.current.style.clipPath = clip(at) })
+    reveal.current.style.clipPath = clip(DRAW.from)
+    return fly({ box, path, plane, points, pilot }, DRAW.from, DRAW.to, DRAW.ms, at => { if (reveal.current) reveal.current.style.clipPath = clip(at) })
   }, [])
 
   // The walkthrough moved on: fill the path up to the new stop.
