@@ -16,11 +16,12 @@ export const StaysSection = () => <Placeholder title="Stays" text="Saved stays, 
 export const ItinerarySection = () => <Placeholder title="Itinerary" text="What happens on each day." />
 export const BudgetSection = () => <Placeholder title="Budget" text="Expenses and who owes whom." />
 
-// On phones the chat is its own tab and fills the screen.
+// On phones the chat is its own tab and fills the screen. Desktop opens it from the bubble instead,
+// but someone who widens the window on this tab still sees it in a card.
 export function ChatSection() {
   const { chat } = useTripOutlet()
   return (
-    <div className="-mx-5 -my-4 flex min-h-[60dvh] flex-col bg-white lg:mx-0 lg:my-0 lg:rounded-xl">
+    <div className="flex min-h-0 flex-1 flex-col lg:h-150 lg:overflow-hidden lg:rounded-xl lg:border lg:border-line">
       <ChatPanel chat={chat} />
     </div>
   )

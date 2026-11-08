@@ -28,7 +28,9 @@
   --color-line-strong: #c9d3dc;   /* input and outline-button borders */
   --color-danger: #9a2e14;        /* errors, delete */
   --color-danger-light: #fde7e1;  /* error background, liked stay */
-  --color-success: #1e6b3a;       /* a rule that is met (password long enough) */
+  --color-success: #1e6b3a;       /* a rule that is met (password long enough), "3 online" */
+  --color-online: #2e8b57;        /* the dot next to "3 online" */
+  --color-chat: #f8fafb;          /* behind the messages in the desktop chat window */
 
   /* Fonts (loaded in index.html) */
   --font-sans: "Plus Jakarta Sans", system-ui, sans-serif;

@@ -13,6 +13,8 @@ export const BackIcon = () => <svg {...base} width={24} height={24}><path d="M15
 export const MoreIcon = () => <svg {...base}><circle cx="12" cy="5" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="12" cy="19" r="1.5" /></svg>
 export const AllTripsIcon = () => <svg {...base} width={18} height={18}><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></svg>
 export const CloseIcon = () => <svg {...base} width={20} height={20}><path d="M6 6l12 12M18 6L6 18" /></svg>
+export const ChevronDownIcon = () => <svg {...base} width={24} height={24} strokeWidth={2.2}><path d="M6 9l6 6 6-6" /></svg>
+export const SendIcon = () => <svg {...base} width={20} height={20}><path d="M5 12h14M13 6l6 6-6 6" /></svg>
 export const Logo = () => (
   <svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true">
     <rect width="32" height="32" rx="10" className="fill-sommet" />

@@ -1,17 +1,22 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
+import type { ChatMessage } from '@shared/types'
 import { useAuth } from '../../auth/useAuth'
-import { AvatarGroup, Button, Input } from '../../components/ui'
+import { Avatar } from '../../components/ui'
+import { SendIcon } from '../../components/layout/icons'
+import { cn } from '../../lib/cn'
 import type { TripChat } from '../../socket/useTripChat'
 
 // Same limit as MESSAGE_MAX on the server.
 const MESSAGE_MAX = 1000
 
-// The group chat, shown as a tab on phones and in the floating window on desktop.
-// A plain working version of the socket events; the chat screen task gives it the mockup design.
-export default function ChatPanel({ chat }: { chat: TripChat }) {
+// The group chat from the Chat and Desk-Chat mockups: a tab that fills the screen on phones,
+// and the floating window on desktop (inWindow), where the messages sit on a lighter background with bordered bubbles.
+// Photos and files come with the chat files task (Sprint 3).
+export default function ChatPanel({ chat, inWindow }: { chat: TripChat; inWindow?: boolean }) {
   const { user } = useAuth()
   const [text, setText] = useState('')
   const list = useRef<HTMLOListElement>(null)
+  const inputId = useId()
 
   // Keep the newest message in view.
   useEffect(() => {
@@ -26,46 +31,82 @@ export default function ChatPanel({ chat }: { chat: TripChat }) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      {chat.online.length > 0 && (
-        <div className="flex items-center gap-2 border-b border-line px-5 py-2.5 text-caption text-muted">
-          <AvatarGroup people={chat.online.map(p => ({ name: p.username, color: p.color }))} size="sm" />
-          {chat.online.length} online
-        </div>
-      )}
+      <div className={cn('flex min-h-0 flex-1 flex-col', inWindow ? 'bg-chat' : 'bg-canvas')}>
+        {/* The first item's mt-auto keeps a short chat at the bottom, next to the message field. */}
+        <ol ref={list} aria-label="Messages" className="flex flex-1 flex-col gap-2.5 overflow-y-auto px-4 pt-4 pb-2 [&>:first-child]:mt-auto">
+          {chat.messages.length === 0 && (
+            <li className="mb-auto text-center text-sm text-muted">No messages yet. Say hi to the group!</li>
+          )}
+          {chat.messages.map((m, i) => (
+            <Message key={i} message={m} mine={!m.system && m.userId === user?._id} inWindow={inWindow} />
+          ))}
+        </ol>
 
-      <ol ref={list} aria-label="Messages" className="flex flex-1 flex-col gap-3 overflow-y-auto px-5 py-4">
-        {chat.messages.length === 0 && <li className="m-auto text-sm text-muted">No messages yet.</li>}
-        {chat.messages.map((m, i) => (
-          m.system
-            ? <li key={i} className="self-center text-caption text-muted">{m.text}</li>
-            : (
-              <li key={i} className={m.userId === user?._id ? 'self-end text-right' : 'self-start'}>
-                <span className="text-caption text-muted">
-                  <strong style={{ color: m.color }}>{m.username}</strong> · {m.time}
-                </span>
-                <p className="break-words whitespace-pre-wrap">{m.text}</p>
-              </li>
-            )
-        ))}
-      </ol>
+        <p aria-live="polite" className="min-h-6 px-4 pb-2 pl-13 text-caption text-muted">
+          {chat.typing.length > 0 && `${chat.typing.join(', ')} ${chat.typing.length === 1 ? 'is' : 'are'} typing…`}
+        </p>
+      </div>
 
-      <p aria-live="polite" className="min-h-5 px-5 text-caption text-muted">
-        {chat.typing.length > 0 && `${chat.typing.join(', ')} ${chat.typing.length === 1 ? 'is' : 'are'} typing…`}
-      </p>
-
-      <form onSubmit={submit} className="flex items-end gap-2 border-t border-line p-3">
-        <div className="flex-1">
-          <Input
-            label="Message"
-            hideLabel
-            placeholder="Write a message"
-            maxLength={MESSAGE_MAX}
-            value={text}
-            onChange={e => { setText(e.target.value); chat.notifyTyping() }}
-          />
-        </div>
-        <Button type="submit" disabled={!text.trim()}>Send</Button>
+      <form onSubmit={submit} className="flex items-center gap-1.5 border-t border-line bg-white px-3 py-2.5">
+        <label htmlFor={inputId} className="sr-only">Message</label>
+        {/* 16px text on phones, so iOS does not zoom in when the field gets focus. */}
+        <input
+          id={inputId}
+          type="text"
+          autoComplete="off"
+          placeholder="Message the group…"
+          maxLength={MESSAGE_MAX}
+          value={text}
+          onChange={e => { setText(e.target.value); chat.notifyTyping() }}
+          className={cn(
+            'min-w-0 flex-1 rounded-full border border-line-strong bg-canvas px-3.5 text-base text-roche placeholder:text-faint lg:text-sm',
+            'focus:border-sommet focus:outline-none focus:ring-1 focus:ring-sommet',
+            inWindow ? 'py-2.75' : 'py-3',
+          )}
+        />
+        <button
+          type="submit"
+          aria-label="Send"
+          disabled={!text.trim()}
+          className={cn(
+            'flex shrink-0 items-center justify-center rounded-full bg-sommet text-white hover:bg-sommet-dark disabled:opacity-50',
+            inWindow ? 'size-10' : 'size-11',
+          )}
+        >
+          <SendIcon />
+        </button>
       </form>
     </div>
+  )
+}
+
+function Message({ message: m, mine, inWindow }: { message: ChatMessage; mine: boolean; inWindow?: boolean }) {
+  // From the server itself, e.g. "Group created" or "Mia left the group".
+  if (m.system) {
+    return (
+      <li className="self-center rounded-full bg-line px-3 py-1.5 text-center text-xs font-semibold text-subtle">{m.text}</li>
+    )
+  }
+
+  const text = cn('break-words whitespace-pre-wrap px-3 py-2.5 leading-snug', inWindow ? 'text-sm' : 'text-md')
+  const meta = <span className="text-xs font-bold text-muted">{mine ? 'You' : m.username} · {m.time}</span>
+
+  if (mine) {
+    return (
+      <li className="flex max-w-[80%] flex-col items-end gap-1 self-end">
+        {meta}
+        <p className={cn(text, 'rounded-lg rounded-br-[4px] bg-sommet text-white')}>{m.text}</p>
+      </li>
+    )
+  }
+
+  return (
+    <li className="flex max-w-[85%] items-end gap-2">
+      <Avatar name={m.username ?? '?'} color={m.color ?? '#5b6676'} size="sm" />
+      <div className="flex min-w-0 flex-col gap-1">
+        {meta}
+        <p className={cn(text, 'rounded-lg rounded-bl-[4px] bg-white', inWindow && 'border border-line')}>{m.text}</p>
+      </div>
+    </li>
   )
 }
