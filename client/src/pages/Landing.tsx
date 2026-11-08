@@ -41,12 +41,13 @@ export default function Landing() {
       <header>
         <nav aria-label="Main" className="flex items-center justify-between gap-3 px-5 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 md:px-8 md:py-4 xl:px-12">
           <Link to="/" className={`flex items-center gap-2 text-lead font-extrabold ${link}`}>
-            <Logo light />TripPlanner
+            {/* Phones: only the logo, so the header buttons fit on one line; screen readers still hear the name. */}
+            <Logo light /><span className="sr-only md:not-sr-only">TripPlanner</span>
           </Link>
           <div className="flex items-center gap-1 md:gap-2">
             <InstallButton />
-            {/* For someone who got an invite from a friend */}
-            {!user && <Link to="/join" className={`px-3 py-1.5 text-sm font-semibold md:text-md ${link} ${underline}`}>Join with a code</Link>}
+            {/* For someone who got an invite from a friend; on phones it sits under the main button instead. */}
+            {!user && <Link to="/join" className={`hidden px-3 py-1.5 text-md font-semibold whitespace-nowrap md:block ${link} ${underline}`}>Join with a code</Link>}
             <StartButton to={start} label={startLabel} small className="hidden md:flex" />
           </div>
         </nav>
@@ -60,6 +61,7 @@ export default function Landing() {
           </h1>
           {/* Phones: the header is too narrow for the button, so it sits here. */}
           <StartButton to={start} label={startLabel} className="mt-6 md:hidden" />
+          {!user && <Link to="/join" className={`mt-2 px-3 py-1.5 text-sm font-semibold md:hidden ${link} ${underline}`}>Got a code? Join a trip</Link>}
         </div>
 
         {/* The steps: a path across the photo on wide screens, one step at a time on phones and tablets. */}

@@ -26,7 +26,7 @@ export function InstallButton() {
         type="button"
         onClick={onClick}
         aria-expanded={ios ? showHelp : undefined}
-        className="flex cursor-pointer items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm font-semibold text-white hover:bg-white/10"
+        className="flex cursor-pointer items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm font-semibold whitespace-nowrap text-white hover:bg-white/10"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M12 4v11M7 10l5 5 5-5" /><path d="M5 20h14" />
