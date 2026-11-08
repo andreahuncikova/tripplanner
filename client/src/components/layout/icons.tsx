@@ -17,7 +17,7 @@ export const ChevronDownIcon = () => <svg {...base} width={24} height={24} strok
 export const SendIcon = () => <svg {...base} width={20} height={20}><path d="M5 12h14M13 6l6 6-6 6" /></svg>
 // The logo: a speech bubble holding a map pin, planning a trip together (also public/logo.svg and the app icons).
 // light: a white bubble with a blue pin, for dark backgrounds such as the landing photo.
-export const Logo = ({ light, size = 28 }: { light?: boolean; size?: number }) => {
+export const Logo = ({ light, size = 32 }: { light?: boolean; size?: number }) => {
   const bubble = light ? '#fff' : '#485978'
   const pin = light ? '#485978' : '#fff'
   return (

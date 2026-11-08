@@ -70,7 +70,7 @@ export default function Login() {
 
       <main className="relative -mt-7 rounded-t-2xl bg-white px-5 pb-7 pt-6.5 lg:mt-0 lg:flex lg:min-h-0 lg:flex-[1_1_460px] lg:flex-col lg:overflow-y-auto lg:rounded-none lg:px-10 lg:py-6">
         <Link to="/" className="hidden items-center gap-2.5 text-xl font-extrabold text-roche hover:text-roche lg:flex">
-          <Logo size={32} />
+          <Logo size={38} />
           TripPlanner
         </Link>
 
