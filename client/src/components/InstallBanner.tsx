@@ -35,7 +35,7 @@ export function InstallBanner() {
   }
 
   return (
-    <section aria-label="Install the app" className="flex items-center gap-3.5 rounded-xl bg-white p-4 shadow-card">
+    <section aria-label="Install the app" className="flex items-center gap-3.5 rounded-xl pointer-fine:hidden bg-white p-4 shadow-card">
       <img src="/icons/icon-192.png" alt="" className="size-11 shrink-0 rounded-[10px]" />
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <strong className="text-md">Install TripPlanner</strong>
