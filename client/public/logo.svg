@@ -1,10 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
   <title>TripPlanner</title>
-  <!-- TP monogram: a T, and a P drawn as a location pin with a dot, both letters the same height, on a sommet square -->
-  <rect width="32" height="32" rx="10" fill="#485978"/>
-  <g fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M5.5 9h8M9.5 9v14"/>
-    <path d="M18 23V9h3a4.75 4.75 0 0 1 4.75 4.75c0 3.2-3.4 5.3-7.75 6.25"/>
-  </g>
-  <circle cx="21.6" cy="13.75" r="1.4" fill="#FFFFFF"/>
+  <!-- A speech bubble holding a map pin: planning a trip together -->
+  <path d="M4 9a6 6 0 0 1 6-6h12a6 6 0 0 1 6 6v9a6 6 0 0 1-6 6h-8l-6 5v-5.3A6 6 0 0 1 4 18z" fill="#485978"/>
+  <path d="M16 20s-5-4.3-5-8.1a5 5 0 0 1 10 0c0 3.8-5 8.1-5 8.1z" fill="#FFFFFF"/>
+  <circle cx="16" cy="11.9" r="1.9" fill="#485978"/>
 </svg>
