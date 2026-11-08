@@ -1,6 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
   <title>TripPlanner</title>
-  <!-- The mark from the design (TripPlanner – App Design): sommet square with a white paper plane -->
+  <!-- TP monogram: a T, and a P drawn as a location pin with a dot, both letters the same height, on a sommet square -->
   <rect width="32" height="32" rx="10" fill="#485978"/>
-  <path d="M9 20l14-8-5 12-2-5z" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linejoin="round"/>
+  <g fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M5.5 9h8M9.5 9v14"/>
+    <path d="M18 23V9h3a4.75 4.75 0 0 1 4.75 4.75c0 3.2-3.4 5.3-7.75 6.25"/>
+  </g>
+  <circle cx="21.6" cy="13.75" r="1.4" fill="#FFFFFF"/>
 </svg>

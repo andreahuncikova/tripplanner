@@ -15,9 +15,18 @@ export const AllTripsIcon = () => <svg {...base} width={18} height={18}><rect x=
 export const CloseIcon = () => <svg {...base} width={20} height={20}><path d="M6 6l12 12M18 6L6 18" /></svg>
 export const ChevronDownIcon = () => <svg {...base} width={24} height={24} strokeWidth={2.2}><path d="M6 9l6 6 6-6" /></svg>
 export const SendIcon = () => <svg {...base} width={20} height={20}><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-export const Logo = () => (
-  <svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true">
-    <rect width="32" height="32" rx="10" className="fill-sommet" />
-    <path d="M9 20l14-8-5 12-2-5z" fill="none" stroke="#fff" strokeWidth="2" strokeLinejoin="round" />
-  </svg>
-)
+// The logo: a TP monogram, the P drawn like a map pin (round head with a dot, tapering into the stem), both letters the same height (also public/logo.svg and the app icons).
+// light: a white square with a blue TP, for dark backgrounds such as the landing photo.
+export const Logo = ({ light, size = 28 }: { light?: boolean; size?: number }) => {
+  const mark = light ? '#485978' : '#fff'
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden="true">
+      <rect width="32" height="32" rx="10" className={light ? 'fill-white' : 'fill-sommet'} />
+      <g fill="none" stroke={mark} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M5.5 9h8M9.5 9v14" />
+        <path d="M18 23V9h3a4.75 4.75 0 0 1 4.75 4.75c0 3.2-3.4 5.3-7.75 6.25" />
+      </g>
+      <circle cx="21.6" cy="13.75" r="1.4" fill={mark} />
+    </svg>
+  )
+}
