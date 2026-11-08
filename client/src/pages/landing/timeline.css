@@ -1,13 +1,11 @@
-/* The landing timeline: the path is revealed from left to right, then the stops appear one after another.
+/* The landing timeline: the stops appear one after another while the path draws itself (usePathFlight.ts).
    tl-swap fades the card's content over when the step changes (the card itself glides by a CSS transition).
    The sp- classes animate the small preview of the active step (StepPreview.tsx); each runs once when the step starts.
    With reduced motion everything is simply shown in its final state. */
-@keyframes tl-reveal { from { clip-path: inset(-20% 100% -20% 0) } to { clip-path: inset(-20% -5% -20% -5%) } }
 @keyframes tl-pop { from { opacity: 0; transform: scale(.5) } to { opacity: 1; transform: none } }
 @keyframes tl-rise { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: none } }
 @keyframes tl-swap { from { opacity: 0; transform: translateY(6px) } to { opacity: 1; transform: none } }
 
-.tl-reveal { animation: tl-reveal 2.2s cubic-bezier(.4, 0, .2, 1) both }
 .tl-stop { animation: tl-pop .45s cubic-bezier(.3, 1.4, .6, 1) both }
 .tl-card { animation: tl-rise .5s ease both }
 .tl-swap { animation: tl-swap .45s ease .25s both }
@@ -25,7 +23,7 @@
 .sp-grow { animation: sp-grow .6s ease both }
 
 @media (prefers-reduced-motion: reduce) {
-  .tl-reveal, .tl-stop, .tl-card, .tl-swap, .sp-show, .sp-pop, .sp-type, .sp-grow { animation: none }
+  .tl-stop, .tl-card, .tl-swap, .sp-show, .sp-pop, .sp-type, .sp-grow { animation: none }
   .sp-hide { display: none }
 }
 

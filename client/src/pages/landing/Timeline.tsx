@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { cn } from '../../lib/cn'
 import { StepPreview } from './StepPreview'
 import { steps } from './steps'
+import { usePathFlight } from './usePathFlight'
 import type { WalkthroughState } from './useWalkthrough'
 import './timeline.css'
 
@@ -30,23 +31,26 @@ export function Timeline({ w }: { w: WalkthroughState }) {
   const s = steps[w.step]
   const { x, y } = stops[w.step]
   const path = curve(stops)
-  const line = (opacity: number) => (
+  const flight = usePathFlight(x)
+  const line = (opacity: number, ref?: typeof flight.path) => (
     <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" className="absolute inset-0 size-full overflow-visible">
-      <path d={path} fill="none" stroke="white" strokeOpacity={opacity} strokeWidth={6} strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+      <path ref={ref} d={path} fill="none" stroke="white" strokeOpacity={opacity} strokeWidth={6} strokeLinecap="round" vectorEffect="non-scaling-stroke" />
     </svg>
   )
 
   return (
-    <ol aria-label="How TripPlanner works, step by step" className="absolute inset-0">
-      {/* The path draws itself from left to right once; then the solid part follows the walkthrough. */}
-      <div aria-hidden="true" className="tl-reveal absolute inset-0">
+    <ol ref={flight.box} aria-label="How TripPlanner works, step by step" className="absolute inset-0">
+      {/* The path draws itself from left to right once; then the solid part follows the walkthrough. A plane flies
+          at the tip of the line while it draws (usePathFlight sets the clipping and the plane's place on every frame). */}
+      <div ref={flight.reveal} aria-hidden="true" className="absolute inset-0">
         {line(0.35)}
-        <div
-          className="absolute inset-0 transition-[clip-path] duration-700 ease-in-out motion-reduce:transition-none"
-          style={{ clipPath: `inset(-20% ${100 - x}% -20% -5%)` }}
-        >
-          {line(1)}
-        </div>
+        <div ref={flight.fill} className="absolute inset-0">{line(1, flight.path)}</div>
+      </div>
+      {/* Under the stops in the page's order, so it lands beneath them. */}
+      <div ref={flight.plane} aria-hidden="true" className="pointer-events-none absolute size-0 opacity-0 transition-opacity duration-300">
+        <svg width="26" height="26" viewBox="0 0 24 24" className="-mt-[13px] -ml-[13px] rotate-90 drop-shadow-[0_3px_6px_rgb(0_0_0/0.45)]">
+          <path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z" fill="white" />
+        </svg>
       </div>
 
       {steps.map((step, i) => {

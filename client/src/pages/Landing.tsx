@@ -47,7 +47,7 @@ export default function Landing() {
             <InstallButton />
             {/* For someone who got an invite from a friend */}
             {!user && <Link to="/join" className={`px-3 py-1.5 text-sm font-semibold md:text-md ${link} ${underline}`}>Join with a code</Link>}
-            <StartButton to={start} label={startLabel} className="hidden md:flex" />
+            <StartButton to={start} label={startLabel} small className="hidden md:flex" />
           </div>
         </nav>
       </header>
@@ -79,14 +79,14 @@ function StartButton({ to, label, small, className }: { to: string; label: strin
       to={to}
       className={cn(
         'group relative isolate flex items-center overflow-hidden rounded-full bg-sommet font-bold text-white shadow-[0_10px_28px_-10px_rgb(0_0_0/0.45)] hover:text-sommet focus-visible:text-sommet',
-        small ? 'gap-2 py-1 pr-1 pl-4 text-sm' : 'gap-3 py-1.5 pr-1.5 pl-5 text-md',
+        small ? 'gap-2.5 py-1 pr-1 pl-4.5 text-md' : 'gap-3 py-1.5 pr-1.5 pl-5 text-md',
         className,
       )}
     >
-      <span aria-hidden="true" className={cn('absolute right-1.5 -z-10 rounded-full bg-white transition-[width] duration-400 ease-out motion-reduce:transition-none', small ? 'inset-y-1 right-1 w-7 group-hover:w-[calc(100%-0.5rem)] group-focus-visible:w-[calc(100%-0.5rem)]' : 'inset-y-1.5 w-9 group-hover:w-[calc(100%-0.75rem)] group-focus-visible:w-[calc(100%-0.75rem)]')} />
+      <span aria-hidden="true" className={cn('absolute right-1.5 -z-10 rounded-full bg-white transition-[width] duration-400 ease-out motion-reduce:transition-none', small ? 'inset-y-1 right-1 w-8.5 group-hover:w-[calc(100%-0.5rem)] group-focus-visible:w-[calc(100%-0.5rem)]' : 'inset-y-1.5 w-9 group-hover:w-[calc(100%-0.75rem)] group-focus-visible:w-[calc(100%-0.75rem)]')} />
       <span className="transition-colors duration-300">{label}</span>
-      <span aria-hidden="true" className={cn('flex items-center justify-center rounded-full text-sommet transition-transform duration-300 group-hover:translate-x-0.5', small ? 'size-7' : 'size-9')}>
-        <svg width={small ? 14 : 16} height={small ? 14 : 16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+      <span aria-hidden="true" className={cn('flex items-center justify-center rounded-full text-sommet transition-transform duration-300 group-hover:translate-x-0.5', small ? 'size-8.5' : 'size-9')}>
+        <svg width={small ? 15 : 16} height={small ? 15 : 16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
       </span>
     </Link>
   )
