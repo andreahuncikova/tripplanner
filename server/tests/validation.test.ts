@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { checkLogin, checkPasswordChange, checkRegister, normalizeInviteCode } from '../src/validation';
+import { MESSAGE_MAX, checkLogin, checkMessage, checkPasswordChange, checkRegister, normalizeInviteCode } from '../src/validation';
 
 const valid = { email: 'mia@example.com', password: 'password1', username: 'Mia Novak' };
 
@@ -95,5 +95,22 @@ describe('normalizeInviteCode', () => {
     expect(normalizeInviteCode('A3BF92C12')).toBeNull();
     expect(normalizeInviteCode('A3BF-2C1')).toBeNull();
     expect(normalizeInviteCode({ $gt: '' })).toBeNull();
+  });
+});
+
+describe('checkMessage', () => {
+  it('accepts a message and trims it', () => {
+    expect(checkMessage('  See you in Lisbon!  ')).toEqual({ ok: true, value: 'See you in Lisbon!' });
+  });
+
+  it('rejects empty messages and anything that is not text', () => {
+    expect(checkMessage('   ').ok).toBe(false);
+    expect(checkMessage(undefined).ok).toBe(false);
+    expect(checkMessage({ $gt: '' }).ok).toBe(false);
+  });
+
+  it('accepts MESSAGE_MAX characters but not one more', () => {
+    expect(checkMessage('a'.repeat(MESSAGE_MAX)).ok).toBe(true);
+    expect(checkMessage('a'.repeat(MESSAGE_MAX + 1)).ok).toBe(false);
   });
 });

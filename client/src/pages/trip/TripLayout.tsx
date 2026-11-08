@@ -4,10 +4,13 @@ import type { TripSummary } from '@shared/types'
 import { ApiError, api } from '../../lib/api'
 import { cn } from '../../lib/cn'
 import { people } from '../../lib/trips'
+import { useJoinTrip } from '../../socket/useJoinTrip'
+import { useTripChat } from '../../socket/useTripChat'
 import {
   BackIcon, BudgetIcon, ChatIcon, CloseIcon, ItineraryIcon, MoreIcon, PlanIcon, StaysIcon,
 } from '../../components/layout/icons'
 import ChatPanel from './ChatPanel'
+import type { TripOutlet } from './tripOutlet'
 
 const sections = [
   { path: 'plan', label: 'Plan', icon: PlanIcon },
@@ -23,6 +26,11 @@ export default function TripLayout() {
   const [trip, setTrip] = useState<TripSummary | null>(null)
   const [notMember, setNotMember] = useState(false)
   const [chatOpen, setChatOpen] = useState(false)
+
+  // Live updates for this trip. The chat lives here and not in ChatPanel, so nothing is missed
+  // while the chat window is closed or another tab is open.
+  useJoinTrip(tripId)
+  const chat = useTripChat(tripId)
 
   // The trip as its members see it. The public preview is not used here, because it is limited
   // against guessing codes and could then leave the header without a name.
@@ -73,7 +81,7 @@ export default function TripLayout() {
       </header>
 
       <main className="flex-1 px-5 py-4 lg:px-8 lg:py-7">
-        <Outlet />
+        <Outlet context={{ chat } satisfies TripOutlet} />
       </main>
 
       {/* Phones: the sections and the chat as tabs at the bottom. */}
@@ -102,7 +110,7 @@ export default function TripLayout() {
               <CloseIcon />
             </button>
           </header>
-          <ChatPanel />
+          <ChatPanel chat={chat} />
         </section>
       )}
       <button

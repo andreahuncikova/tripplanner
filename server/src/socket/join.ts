@@ -1,19 +1,34 @@
 import Group from '../models/Group';
-import { getOnline, serialize, toClient } from './helpers';
+import { normalizeInviteCode } from '../validation';
+import { getOnline, serialize, toClient, toOnline } from './helpers';
 import type { AppSocket, Ctx } from '../types';
 
 export default function register(socket: AppSocket, { io, sessions, userId, username, color }: Ctx) {
-  socket.on('join', async ({ code }) => {
-    try {
-      const inviteCode = code.toUpperCase();
-      const g = await Group.findOne({ inviteCode });
-      if (!g) { socket.emit('err', 'Group not found'); return; }
+  // Counts joins and closes on this socket, so a join that is still loading when the user
+  // has already closed the trip (or opened another one) does not put them back in that room
+  let latest = 0;
 
-      // Auto-join: if this user isn't in the members list yet, add them
-      if (!g.members.find(m => String(m.userId) === String(userId))) {
-        g.members.push({ userId, username, color });
-        await g.save();
-      }
+  // Takes this socket out of the trip it has open, if any, and updates the online list there
+  function leaveRoom() {
+    const s = sessions[socket.id];
+    if (!s) return;
+    delete sessions[socket.id];
+    socket.leave(s.code);
+    io.to(s.code).emit('online', toOnline(getOnline(sessions, s.code)));
+  }
+
+  socket.on('join', async data => {
+    const n = ++latest;
+    try {
+      const inviteCode = normalizeInviteCode(data?.code);
+      // Only members open a trip. New members join through POST /api/groups/:code/join,
+      // which is rate-limited so nobody can try out codes here instead
+      const g = inviteCode && await Group.findOne({ inviteCode, 'members.userId': userId });
+      if (n !== latest) return;
+      if (!g || !inviteCode) { socket.emit('err', 'Trip not found'); return; }
+
+      // One socket serves the whole app, so a trip opened before this one is left first
+      if (sessions[socket.id]?.code !== inviteCode) leaveRoom();
 
       // Store the session so we can find this user's socket later (e.g. to approve back-requests)
       sessions[socket.id] = { userId, username, color, code: inviteCode };
@@ -27,16 +42,15 @@ export default function register(socket: AppSocket, { io, sessions, userId, user
       });
 
       // Tell everyone else in the room that someone new joined
-      io.to(inviteCode).emit('online', getOnline(sessions, inviteCode).map(s => ({ username: s.username, color: s.color })));
+      io.to(inviteCode).emit('online', toOnline(getOnline(sessions, inviteCode)));
     } catch (e) { console.error('[join]', (e as Error).message); }
   });
 
-  socket.on('disconnect', () => {
-    const s = sessions[socket.id];
-    if (s) {
-      // Clean up the session and update the online list for the room
-      delete sessions[socket.id];
-      io.to(s.code).emit('online', getOnline(sessions, s.code).map(x => ({ username: x.username, color: x.color })));
-    }
+  // The user left the trip screen (e.g. went back to the dashboard)
+  socket.on('trip:close', () => {
+    latest++;
+    leaveRoom();
   });
+
+  socket.on('disconnect', leaveRoom);
 }

@@ -1,4 +1,5 @@
 import ChatPanel from './ChatPanel'
+import { useTripOutlet } from './tripOutlet'
 
 // The trip's sections. Each one is a placeholder until its feature is built.
 function Placeholder({ title, text }: { title: string; text: string }) {
@@ -16,8 +17,11 @@ export const ItinerarySection = () => <Placeholder title="Itinerary" text="What 
 export const BudgetSection = () => <Placeholder title="Budget" text="Expenses and who owes whom." />
 
 // On phones the chat is its own tab and fills the screen.
-export const ChatSection = () => (
-  <div className="-mx-5 -my-4 flex min-h-[60dvh] flex-col bg-white lg:mx-0 lg:my-0 lg:rounded-xl">
-    <ChatPanel />
-  </div>
-)
+export function ChatSection() {
+  const { chat } = useTripOutlet()
+  return (
+    <div className="-mx-5 -my-4 flex min-h-[60dvh] flex-col bg-white lg:mx-0 lg:my-0 lg:rounded-xl">
+      <ChatPanel chat={chat} />
+    </div>
+  )
+}

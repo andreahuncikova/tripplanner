@@ -127,9 +127,13 @@ export interface ExpenseInput {
 
 // What the client sends.
 export interface ClientToServerEvents {
+  // Opening a trip screen. Only members get in; anyone else gets 'err'.
   join: (data: { code: string }) => void
+  // Leaving the trip screen: stops its messages and takes the user off its online list.
+  'trip:close': () => void
 
   msg: (text: string) => void
+  // Sent while the user types; the client sends it at most every few seconds.
   typing: () => void
 
   'dest:suggest': (name: string) => void
@@ -169,8 +173,10 @@ export interface ServerToClientEvents {
   state: (data: TripState) => void
   err: (message: string) => void
 
+  // Everyone with the trip open, once per person even with several tabs.
   online: (users: OnlineUser[]) => void
   msg: (message: ChatMessage) => void
+  // Someone else is typing; the client hides it again after a few seconds without a new one.
   typing: (username: string) => void
 
   // Smaller updates sent instead of the whole state.

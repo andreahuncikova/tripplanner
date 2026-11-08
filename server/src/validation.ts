@@ -1,7 +1,8 @@
-// Checks the log-in and sign-up forms before anything touches the database.
+// Checks the log-in and sign-up forms and chat messages before anything touches the database.
 
 export const PASSWORD_MIN = 8;
 const USERNAME_MAX = 30;
+export const MESSAGE_MAX = 1000;
 
 type Result<T> = { ok: true; value: T } | { ok: false; error: string };
 
@@ -52,4 +53,12 @@ export function checkLogin(body: unknown): Result<{ email: string; password: str
 
   if (!email || !password) return { ok: false, error: 'Please enter your email and password' };
   return { ok: true, value: { email, password } };
+}
+
+// A chat message: plain text that is not empty and at most MESSAGE_MAX characters long.
+export function checkMessage(v: unknown): Result<string> {
+  const message = text(v).trim();
+  if (!message) return { ok: false, error: 'The message is empty' };
+  if (message.length > MESSAGE_MAX) return { ok: false, error: `A message can be at most ${MESSAGE_MAX} characters` };
+  return { ok: true, value: message };
 }

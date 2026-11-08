@@ -1,11 +1,19 @@
 import Group, { IGroup } from '../models/Group';
 import { ts } from '../utils';
-import type { IO, Session, Sessions, TripState } from '../types';
+import type { IO, OnlineUser, Session, Sessions, TripState } from '../types';
 
 // Returns the list of users currently connected to a specific group room.
 // We filter the global sessions map by the invite code.
 function getOnline(sessions: Sessions, code: string): Session[] {
   return Object.values(sessions).filter(s => s.code === code);
+}
+
+// What the client sees of the online list: username and colour, once per person,
+// even when someone has the trip open in two tabs (two sockets, so two sessions).
+function toOnline(list: Session[]): OnlineUser[] {
+  const byUser = new Map<string, OnlineUser>();
+  for (const s of list) byUser.set(String(s.userId), { username: s.username, color: s.color });
+  return [...byUser.values()];
 }
 
 // Socket.IO turns every Mongoose document into JSON before it sends it, so ObjectIds and dates
@@ -38,7 +46,7 @@ function serialize(g: IGroup, onlineList?: Session[]): TripState {
     activities:        g.activities,
     expenses:          g.expenses,
     // Only send username and color for online users, not their full session data
-    online:            (onlineList || []).map(s => ({ username: s.username, color: s.color })),
+    online:            toOnline(onlineList || []),
   });
 }
 
@@ -51,4 +59,4 @@ async function broadcastState(io: IO, sessions: Sessions, code: string) {
   io.to(code).emit('state', serialize(g, getOnline(sessions, code)));
 }
 
-export { ts, toClient, getOnline, serialize, broadcastState };
+export { ts, toClient, getOnline, toOnline, serialize, broadcastState };
