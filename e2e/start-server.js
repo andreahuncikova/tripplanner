@@ -7,7 +7,8 @@ import { MongoMemoryServer } from 'mongodb-memory-server'
 
 const mongo = await MongoMemoryServer.create()
 
-const server = spawn('npx', ['tsx', 'src/server.ts'], {
+// Node itself with tsx loaded, not "npx tsx": on Windows npx is npx.cmd and cannot be started without a shell
+const server = spawn(process.execPath, ['--import', 'tsx', 'src/server.ts'], {
   cwd: fileURLToPath(new URL('../server', import.meta.url)),
   stdio: 'inherit',
   env: {
