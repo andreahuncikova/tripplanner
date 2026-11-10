@@ -1,7 +1,7 @@
 // The link preview used by POST /api/preview and by adding a stay (socket/stays.ts):
 // download the page safely, read what it says about itself, remember the answer for an hour.
 import { checkLink, fetchPage, PreviewError } from './fetchPage';
-import { parsePreview, platformOf } from './parse';
+import { detailsFromUrl, parsePreview, platformOf } from './parse';
 import type { LinkPreview } from '../types';
 
 export { checkLink, PreviewError };
@@ -30,13 +30,21 @@ export async function getPreview(link: URL): Promise<LinkPreview> {
     const preview: LinkPreview = page.status >= 200 && page.status < 300 && page.status !== 202
       ? parsePreview(page.html, page.url)
       : { url: page.url, platform: platformOf(page.url), complete: false };
-    remember(key, preview);
-    return preview;
+    const filled = withUrlDetails(preview);
+    remember(key, filled);
+    return filled;
   } catch (e) {
     if (e instanceof PreviewError && e.status === 400) throw e;
     if (!(e instanceof PreviewError)) console.error('[preview]', (e as Error).message);
-    return { url: link.href, platform: platformOf(link.href), complete: false };
+    return withUrlDetails({ url: link.href, platform: platformOf(link.href), complete: false });
   }
+}
+
+// When the page gave no title or location, take what the address tells (only Booking addresses carry them)
+function withUrlDetails(p: LinkPreview): LinkPreview {
+  if (p.title && p.location) return p;
+  const fromUrl = detailsFromUrl(p.url);
+  return { ...fromUrl, ...p, title: p.title ?? fromUrl.title, location: p.location ?? fromUrl.location };
 }
 
 // Every preview downloads someone else's page, so one user may start at most 30 in 10 minutes,

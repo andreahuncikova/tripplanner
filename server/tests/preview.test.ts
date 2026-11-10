@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parsePreview, platformOf, toAmount, decodeEntities } from '../src/preview/parse';
+import { parsePreview, platformOf, toAmount, decodeEntities, detailsFromUrl } from '../src/preview/parse';
 import { checkLink, isBlockedAddress } from '../src/preview/fetchPage';
 
 // A hotel page as booking sites write it for search engines: Open Graph tags and a schema.org Hotel
@@ -114,5 +114,18 @@ describe('checkLink', () => {
       expect(() => checkLink(bad), bad).toThrow();
     }
     expect(() => checkLink(42)).toThrow();
+  });
+});
+
+describe('detailsFromUrl', () => {
+  it('reads the hotel name and country from a Booking address', () => {
+    expect(detailsFromUrl('https://www.booking.com/hotel/vn/freebeach.html')).toEqual({ title: 'Freebeach', location: 'Vietnam' });
+    expect(detailsFromUrl('https://www.booking.com/hotel/pt/lisbon-destination-hostel.en-gb.html?label=x'))
+      .toEqual({ title: 'Lisbon Destination Hostel', location: 'Portugal' });
+  });
+  it('reads nothing from other addresses', () => {
+    expect(detailsFromUrl('https://www.booking.com/Share-gLV8c4')).toEqual({});
+    expect(detailsFromUrl('https://www.airbnb.com/rooms/1')).toEqual({});
+    expect(detailsFromUrl('not a link')).toEqual({});
   });
 });

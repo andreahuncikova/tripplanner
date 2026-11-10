@@ -184,3 +184,21 @@ export function parsePreview(html: string, url: string): LinkPreview {
     complete: !!(title && image && price && location),
   };
 }
+
+// ── What the address itself tells ────────────────────
+// Booking shows servers a bot check instead of the hotel page, but its addresses carry the hotel's name
+// and country: booking.com/hotel/vn/freebeach.html → "Freebeach", "Vietnam". Used when the page gave no title.
+const regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
+
+export function detailsFromUrl(url: string): Pick<LinkPreview, 'title' | 'location'> {
+  let u: URL;
+  try { u = new URL(url); } catch { return {}; }
+  if (platformOf(url) !== 'booking') return {};
+  // /hotel/<country>/<name>.html, sometimes with a language before .html: freebeach.en-gb.html
+  const m = u.pathname.match(/^\/hotel\/([a-z]{2})\/([a-z0-9-]+?)(?:\.[a-z]{2}(?:-[a-z]{2})?)?\.html$/i);
+  if (!m) return {};
+  const title = m[2].split('-').filter(Boolean).map(w => w[0].toUpperCase() + w.slice(1)).join(' ');
+  let location: string | undefined;
+  try { location = regionNames.of(m[1].toUpperCase()); } catch { /* not a country code */ }
+  return { ...(title && { title }), ...(location && location !== m[1].toUpperCase() && { location }) };
+}
