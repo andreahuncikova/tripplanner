@@ -14,7 +14,11 @@ export interface TripChat {
   online: OnlineUser[]
   // Names of the others who are typing right now.
   typing: string[]
-  send: (text: string) => void
+  // True once the server has opened this trip on our socket. Before that (and after a lost connection,
+  // until the trip is joined again) the server would drop a message, so the chat does not send yet.
+  ready: boolean
+  // Returns false when nothing was sent, so the text can stay in the field
+  send: (text: string) => boolean
   // Call on every change in the message field; it only sends now and then.
   notifyTyping: () => void
 }
@@ -27,6 +31,7 @@ export function useTripChat(code: string): TripChat {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [online, setOnline] = useState<OnlineUser[]>([])
   const [typing, setTyping] = useState<string[]>([])
+  const [ready, setReady] = useState(false)
   const typingTimers = useRef(new Map<string, ReturnType<typeof setTimeout>>())
   const lastTypingSent = useRef(0)
   const myName = user?.username
@@ -39,6 +44,7 @@ export function useTripChat(code: string): TripChat {
     setMessages([])
     setOnline([])
     setTyping([])
+    setReady(false)
 
     const stopTyping = (name: string) => {
       clearTimeout(timers.get(name))
@@ -50,7 +56,9 @@ export function useTripChat(code: string): TripChat {
     const onJoined = (data: { messages: ChatMessage[]; online: OnlineUser[] }) => {
       setMessages(data.messages)
       setOnline(data.online)
+      setReady(true)
     }
+    const onDisconnect = () => setReady(false)
     const onMsg = (msg: ChatMessage) => {
       setMessages(list => [...list, msg])
       // Their message arrived, so they have stopped typing it.
@@ -68,7 +76,9 @@ export function useTripChat(code: string): TripChat {
     socket.on('msg', onMsg)
     socket.on('online', setOnline)
     socket.on('typing', onTyping)
+    socket.on('disconnect', onDisconnect)
     return () => {
+      socket.off('disconnect', onDisconnect)
       socket.off('joined', onJoined)
       socket.off('msg', onMsg)
       socket.off('online', setOnline)
@@ -80,11 +90,12 @@ export function useTripChat(code: string): TripChat {
 
   const send = useCallback((text: string) => {
     const message = text.trim()
-    if (!socket || !message) return
+    if (!socket || !message || !ready) return false
     socket.emit('msg', message)
     // The next keystroke starts a new message, so it may tell the others straight away.
     lastTypingSent.current = 0
-  }, [socket])
+    return true
+  }, [socket, ready])
 
   const notifyTyping = useCallback(() => {
     const now = Date.now()
@@ -93,5 +104,5 @@ export function useTripChat(code: string): TripChat {
     socket.emit('typing')
   }, [socket])
 
-  return { messages, online, typing, send, notifyTyping }
+  return { messages, online, typing, ready, send, notifyTyping }
 }

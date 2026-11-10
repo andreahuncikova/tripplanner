@@ -25,8 +25,8 @@ export default function ChatPanel({ chat, inWindow }: { chat: TripChat; inWindow
 
   function submit(e: FormEvent) {
     e.preventDefault()
-    chat.send(text)
-    setText('')
+    // Keep the text when it could not be sent yet (the trip is still opening)
+    if (chat.send(text)) setText('')
   }
 
   return (
@@ -67,7 +67,7 @@ export default function ChatPanel({ chat, inWindow }: { chat: TripChat; inWindow
         <button
           type="submit"
           aria-label="Send"
-          disabled={!text.trim()}
+          disabled={!text.trim() || !chat.ready}
           className={cn(
             'flex shrink-0 items-center justify-center rounded-full bg-sommet text-white hover:bg-sommet-dark disabled:opacity-50',
             inWindow ? 'size-10' : 'size-11',
@@ -88,14 +88,20 @@ function Message({ message: m, mine, inWindow }: { message: ChatMessage; mine: b
     )
   }
 
-  const text = cn('break-words whitespace-pre-wrap px-3 py-2.5 leading-snug', inWindow ? 'text-sm' : 'text-md')
+  // wrap-anywhere also breaks a long word or link without spaces, which break-words leaves sticking out of the bubble
+  const text = cn('max-w-full wrap-anywhere whitespace-pre-wrap px-3 py-2.5 leading-snug', inWindow ? 'text-sm' : 'text-md')
   const meta = <span className="text-xs font-bold text-muted">{mine ? 'You' : m.username} · {m.time}</span>
 
+  // Your own messages on the right, with your avatar beside them as the others have theirs.
+  // The avatar shows the profile photo once profiles have photos (Profile task).
   if (mine) {
     return (
-      <li className="flex max-w-[80%] flex-col items-end gap-1 self-end">
-        {meta}
-        <p className={cn(text, 'rounded-lg rounded-br-[4px] bg-sommet text-white')}>{m.text}</p>
+      <li className="flex max-w-[85%] items-end gap-2 self-end">
+        <div className="flex min-w-0 flex-col items-end gap-1">
+          {meta}
+          <p className={cn(text, 'rounded-lg rounded-br-[4px] bg-sommet text-white')}>{m.text}</p>
+        </div>
+        <Avatar name={m.username ?? '?'} color={m.color ?? '#5b6676'} size="sm" />
       </li>
     )
   }

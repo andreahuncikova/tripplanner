@@ -50,3 +50,18 @@ test('a message reaches the other member right away and is still there after a r
   await expect(messages(theo).getByRole('listitem').last()).toContainText('See you in Bali!')
   await expect(messages(theo).getByText('Theo joined the trip.')).toBeVisible()
 })
+
+test('a long word or link without spaces wraps inside its bubble', async ({ browser }) => {
+  const { mia, code } = await tripWithTwo(browser)
+  await mia.goto(`/trips/${code}/chat`)
+  const long = 'd'.repeat(120)
+  await mia.getByLabel('Message', { exact: true }).fill(long)
+  await mia.getByRole('button', { name: 'Send' }).click()
+
+  const bubble = messages(mia).getByText(long)
+  await expect(bubble).toBeVisible()
+  const list = (await messages(mia).boundingBox())!
+  const box = (await bubble.boundingBox())!
+  expect(box.x).toBeGreaterThanOrEqual(list.x)
+  expect(box.x + box.width).toBeLessThanOrEqual(list.x + list.width)
+})
