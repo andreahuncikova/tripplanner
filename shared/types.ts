@@ -262,3 +262,19 @@ export interface TripPreview {
   adminUsername: string
   finalDateLabel: string | null
 }
+
+// Where a saved stay link comes from, read from its address
+export type StayPlatform = 'booking' | 'airbnb' | 'vrbo' | 'hostelworld' | 'expedia' | 'agoda' | 'other'
+
+// Answer of POST /api/preview: what the server could read from a stay link.
+// Booking and Airbnb often show servers a bot check instead of the page, so any field can be missing;
+// complete is false then and the client offers the form to fill in the details by hand.
+export interface LinkPreview {
+  url: string                 // the link after redirects
+  platform: StayPlatform
+  title?: string
+  image?: string              // absolute https address of the photo
+  price?: { amount: number; currency: string }
+  location?: string           // e.g. "Lisbon, Portugal"
+  complete: boolean           // title, photo, price and location were all found
+}

@@ -10,6 +10,7 @@ import { socketAuth }      from './middleware/auth';
 import registerAllHandlers from './socket';
 import authRoutes          from './routes/auth';
 import groupRoutes         from './routes/groups';
+import previewRoutes       from './routes/preview';
 import type { ClientToServerEvents, ServerToClientEvents, SocketData, Sessions } from './types';
 
 // Create the Express app and wrap it in a plain HTTP server.
@@ -51,6 +52,7 @@ app.get('/api/health', (_req, res) => {
 
 app.use('/api/auth',   requireDb, authRoutes);
 app.use('/api/groups', requireDb, groupRoutes);
+app.use('/api/preview', requireDb, previewRoutes);   // reads photo, title, price and location from a stay link
 
 // ── Currency exchange rates  ─────────────────────
 // fallback data if API fails or returns incomplete data
