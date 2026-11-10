@@ -12,6 +12,8 @@ const StaySchema = new Schema({
   image:    String,
   price:    { type: { amount: Number, currency: String }, default: undefined, _id: false },
   location: String,
+  placeId:  String,                                          // the photo is from Google Maps (preview/places.ts)
+  imageCredit: String,
   complete: { type: Boolean, default: false },
   addedByUserId: { type: Schema.Types.ObjectId, required: true },
   likeUserIds:   { type: [Schema.Types.ObjectId], default: [] },

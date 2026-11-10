@@ -292,6 +292,10 @@ export interface LinkPreview {
   image?: string              // absolute https address of the photo
   price?: { amount: number; currency: string }
   location?: string           // e.g. "Lisbon, Portugal"
+  // When the photo comes from Google Maps instead of the page: image is then our own /api/places/… address,
+  // placeId the Google place, and imageCredit must be shown with the photo
+  placeId?: string
+  imageCredit?: string
   complete: boolean           // title, photo, price and location were all found
 }
 
@@ -313,6 +317,8 @@ export interface Stay {
   image?: string
   price?: { amount: number; currency: string }
   location?: string
+  placeId?: string            // the photo is from Google Maps (see LinkPreview)
+  imageCredit?: string
   complete: boolean           // the preview found title, photo, price and location
   addedByUserId: string       // may remove it, as may the organiser
   likeUserIds: string[]       // members who like it

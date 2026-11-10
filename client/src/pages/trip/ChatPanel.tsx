@@ -6,7 +6,8 @@ import { SendIcon } from '../../components/layout/icons'
 import { cn } from '../../lib/cn'
 import type { TripChat } from '../../socket/useTripChat'
 import type { TripStays } from '../../socket/useTripStays'
-import { formatPrice, platformName } from './stayFormat'
+import { formatPrice, imageSrc, platformName } from './stayFormat'
+import PhotoCredit from './PhotoCredit'
 
 // Same limit as MESSAGE_MAX on the server.
 const MESSAGE_MAX = 1000
@@ -118,7 +119,12 @@ function LinkCard({ preview: p, stays, inWindow }: { preview: LinkPreview; stays
   return (
     <div className={cn('w-64 max-w-full overflow-hidden rounded-lg bg-white', inWindow ? 'border border-line' : 'shadow-card')}>
       <a href={p.url} target="_blank" rel="noopener noreferrer" className="block hover:bg-canvas">
-        {p.image && <img src={p.image} alt="" loading="lazy" referrerPolicy="no-referrer" className="h-32 w-full object-cover" />}
+        {p.image && (
+          <div className="relative">
+            <img src={imageSrc(p.image)} alt="" loading="lazy" referrerPolicy="no-referrer" className="h-32 w-full object-cover" />
+            <PhotoCredit credit={p.imageCredit} />
+          </div>
+        )}
         <div className="flex flex-col gap-0.5 px-3 py-2.5">
           {p.title && <span className="text-2xs font-bold tracking-wider text-muted uppercase">{platformName(p)}</span>}
           <span className="text-sm font-bold wrap-anywhere text-roche">{name}</span>

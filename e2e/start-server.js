@@ -18,6 +18,8 @@ const server = spawn(process.execPath, ['--import', 'tsx', 'src/server.ts'], {
     PORT: '3100',
     JWT_SECRET: 'e2e-tests-only-secret-not-used-anywhere-else',
     CLIENT_URL: 'http://localhost:5180',
+    // Never ask Google from the tests, even when server/.env has a key
+    GOOGLE_PLACES_KEY: '',
   },
 })
 

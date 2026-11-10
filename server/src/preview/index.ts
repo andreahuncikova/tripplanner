@@ -2,6 +2,7 @@
 // download the page safely, read what it says about itself, remember the answer for an hour.
 import { checkLink, fetchPage, PreviewError } from './fetchPage';
 import { detailsFromUrl, parsePreview, platformOf } from './parse';
+import { findPlace, placePhotoPath } from './places';
 import type { LinkPreview } from '../types';
 
 export { checkLink, PreviewError };
@@ -30,14 +31,23 @@ export async function getPreview(link: URL): Promise<LinkPreview> {
     const preview: LinkPreview = page.status >= 200 && page.status < 300 && page.status !== 202
       ? parsePreview(page.html, page.url)
       : { url: page.url, platform: platformOf(page.url), complete: false };
-    const filled = withUrlDetails(preview);
+    const filled = await withPlacePhoto(withUrlDetails(preview));
     remember(key, filled);
     return filled;
   } catch (e) {
     if (e instanceof PreviewError && e.status === 400) throw e;
     if (!(e instanceof PreviewError)) console.error('[preview]', (e as Error).message);
-    return withUrlDetails({ url: link.href, platform: platformOf(link.href), complete: false });
+    return withPlacePhoto(withUrlDetails({ url: link.href, platform: platformOf(link.href), complete: false }));
   }
+}
+
+// No photo on the page (Booking): the photo of the place on Google Maps, found by its name and location.
+// Only when GOOGLE_PLACES_KEY is set; see places.ts for what may be kept.
+async function withPlacePhoto(p: LinkPreview): Promise<LinkPreview> {
+  if (p.image || !p.title || p.platform === 'other') return p;
+  const place = await findPlace([p.title, p.location].filter(Boolean).join(', '));
+  if (!place) return p;
+  return { ...p, image: placePhotoPath(place.placeId), placeId: place.placeId, imageCredit: place.credit };
 }
 
 // When the page gave no title or location, take what the address tells (only Booking addresses carry them)

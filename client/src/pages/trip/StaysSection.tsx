@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import type { Area, Stay, TripSummary } from '@shared/types'
-import { formatPrice, platformName } from './stayFormat'
+import { formatPrice, imageSrc, platformName } from './stayFormat'
+import PhotoCredit from './PhotoCredit'
 import { useAuth } from '../../auth/useAuth'
 import { Button, Card, Input, Modal } from '../../components/ui'
 import { cn } from '../../lib/cn'
@@ -131,7 +132,12 @@ function StayItem({ stay: s, areas, me, canRemove, stays }: {
   return (
     <li>
       <Card flush className={cn('flex h-full flex-col', !s.complete && !s.title && 'border border-dashed border-line-strong shadow-none')}>
-        {s.image && <img src={s.image} alt="" loading="lazy" referrerPolicy="no-referrer" className="h-36 w-full object-cover" />}
+        {s.image && (
+          <div className="relative">
+            <img src={imageSrc(s.image)} alt="" loading="lazy" referrerPolicy="no-referrer" className="h-36 w-full object-cover" />
+            <PhotoCredit credit={s.imageCredit} />
+          </div>
+        )}
         <div className="flex flex-1 flex-col gap-3 p-4.5">
         <div className="flex flex-col gap-1">
           {/* Without a title the name already is the platform, so it is not written twice */}

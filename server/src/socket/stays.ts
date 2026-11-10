@@ -38,7 +38,7 @@ export default function register(socket: AppSocket, { io, sessions, userId }: Ct
       if (await Stay.exists({ groupId: g._id, url: p.url })) return reply({ error: 'This stay is already saved' });
       await Stay.create({
         groupId: g._id, areaId: areaOf(g, data?.areaId), addedByUserId: userId,
-        url: p.url, platform: p.platform, title: p.title, image: p.image, price: p.price, location: p.location,
+        url: p.url, platform: p.platform, title: p.title, image: p.image, price: p.price, location: p.location, placeId: p.placeId, imageCredit: p.imageCredit,
         complete: p.complete,
       });
       reply({ ok: true });

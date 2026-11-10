@@ -23,6 +23,8 @@ export async function staysState(g: Pick<IGroup, 'areas'> & { _id: GroupId }): P
       ...(s.image && { image: s.image }),
       ...(s.price?.amount != null && s.price.currency && { price: { amount: s.price.amount, currency: s.price.currency } }),
       ...(s.location && { location: s.location }),
+      ...(s.placeId && { placeId: s.placeId }),
+      ...(s.imageCredit && { imageCredit: s.imageCredit }),
       complete: s.complete,
       addedByUserId: String(s.addedByUserId),
       likeUserIds: s.likeUserIds.map(String),
