@@ -106,7 +106,7 @@ export default function TripLayout() {
               <CloseIcon />
             </button>
           </header>
-          <ChatPanel chat={chat} inWindow />
+          <ChatPanel chat={chat} stays={stays} inWindow />
         </section>
       )}
       <button

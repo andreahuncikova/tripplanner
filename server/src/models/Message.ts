@@ -10,6 +10,7 @@ const MessageSchema = new Schema({
   text:     { type: String, required: true },
   time:     String,                                           // "HH:MM" shown next to the message
   system:   { type: Boolean, default: false },                // from the server, e.g. "Bali was chosen"
+  preview:  { type: Schema.Types.Mixed, default: undefined },   // LinkPreview of the first link, added after sending
   createdAt: { type: Date, default: Date.now },               // for sorting
 });
 

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { ChatMessage, OnlineUser } from '@shared/types'
+import type { ChatMessage, LinkPreview, OnlineUser } from '@shared/types'
 import { useAuth } from '../auth/useAuth'
 import { useSocket } from './useSocket'
 
@@ -58,6 +58,10 @@ export function useTripChat(code: string): TripChat {
       setOnline(data.online)
       setReady(true)
     }
+    // The card for a link arrives a moment after its message
+    const onPreview = ({ id, preview }: { id: string; preview: LinkPreview }) => {
+      setMessages(list => list.map(m => (m._id === id ? { ...m, preview } : m)))
+    }
     const onDisconnect = () => setReady(false)
     const onMsg = (msg: ChatMessage) => {
       setMessages(list => [...list, msg])
@@ -77,8 +81,10 @@ export function useTripChat(code: string): TripChat {
     socket.on('online', setOnline)
     socket.on('typing', onTyping)
     socket.on('disconnect', onDisconnect)
+    socket.on('msg:preview', onPreview)
     return () => {
       socket.off('disconnect', onDisconnect)
+      socket.off('msg:preview', onPreview)
       socket.off('joined', onJoined)
       socket.off('msg', onMsg)
       socket.off('online', setOnline)

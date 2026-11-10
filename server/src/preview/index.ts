@@ -38,3 +38,24 @@ export async function getPreview(link: URL): Promise<LinkPreview> {
     return { url: link.href, platform: platformOf(link.href), complete: false };
   }
 }
+
+// Every preview downloads someone else's page, so one user may start at most 30 in 10 minutes,
+// counted together for stays added in the Stays tab and links sent in the chat
+const LIMIT_WINDOW_MS = 10 * 60 * 1000;
+const LIMIT = 30;
+const recent = new Map<string, number[]>();
+
+export function allowPreview(userId: string): boolean {
+  const now = Date.now();
+  const list = (recent.get(userId) ?? []).filter(t => now - t < LIMIT_WINDOW_MS);
+  if (list.length >= LIMIT) { recent.set(userId, list); return false; }
+  list.push(now);
+  recent.set(userId, list);
+  return true;
+}
+
+// The first web link in a chat message, without a full stop or bracket right after it
+export function firstLink(text: string): string | null {
+  const m = text.match(/https?:\/\/[^\s<>"']+/i);
+  return m ? m[0].replace(/[.,;:!?)\]]+$/, '') : null;
+}

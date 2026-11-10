@@ -1,25 +1,10 @@
 import { useState, type FormEvent } from 'react'
-import type { Area, Stay, StayPlatform, TripSummary } from '@shared/types'
+import type { Area, Stay, TripSummary } from '@shared/types'
+import { formatPrice, platformName } from './stayFormat'
 import { useAuth } from '../../auth/useAuth'
 import { Button, Card, Input, Modal } from '../../components/ui'
 import { cn } from '../../lib/cn'
 import type { TripStays } from '../../socket/useTripStays'
-
-const PLATFORM: Record<StayPlatform, string> = {
-  booking: 'Booking.com', airbnb: 'Airbnb', vrbo: 'Vrbo', hostelworld: 'Hostelworld',
-  expedia: 'Expedia', agoda: 'Agoda', other: '',
-}
-
-// "Booking.com", or the site's own address for other links, e.g. "smallhotel.pt"
-function platformName(stay: Pick<Stay, 'platform' | 'url'>) {
-  if (PLATFORM[stay.platform]) return PLATFORM[stay.platform]
-  try { return new URL(stay.url).hostname.replace(/^www\./, '') } catch { return 'Link' }
-}
-
-function formatPrice(p: NonNullable<Stay['price']>) {
-  try { return new Intl.NumberFormat('en', { style: 'currency', currency: p.currency, maximumFractionDigits: 0 }).format(p.amount) }
-  catch { return `${p.amount} ${p.currency}` }
-}
 
 // The Stays tab from the Stays and Desk-Stays mockups: paste a link, sort the stays into areas, like them.
 // "All" shows every stay; an area shows only its own. A new stay goes into the area that is open.
@@ -145,7 +130,9 @@ function StayItem({ stay: s, areas, me, canRemove, stays }: {
 
   return (
     <li>
-      <Card className={cn('flex h-full flex-col gap-3', !s.complete && !s.title && 'border border-dashed border-line-strong shadow-none')}>
+      <Card flush className={cn('flex h-full flex-col', !s.complete && !s.title && 'border border-dashed border-line-strong shadow-none')}>
+        {s.image && <img src={s.image} alt="" loading="lazy" referrerPolicy="no-referrer" className="h-36 w-full object-cover" />}
+        <div className="flex flex-1 flex-col gap-3 p-4.5">
         <div className="flex flex-col gap-1">
           {/* Without a title the name already is the platform, so it is not written twice */}
           {s.title && <span className="text-xs font-bold tracking-wider text-muted uppercase">{platformName(s)}</span>}
@@ -193,6 +180,7 @@ function StayItem({ stay: s, areas, me, canRemove, stays }: {
               {likes}
             </button>
           </div>
+        </div>
         </div>
       </Card>
     </li>

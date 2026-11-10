@@ -2,24 +2,10 @@ import { isValidObjectId, Types } from 'mongoose';
 import Group from '../models/Group';
 import Stay from '../models/Stay';
 import { checkAreaName } from '../validation';
-import { checkLink, getPreview, PreviewError } from '../preview';
+import { allowPreview, checkLink, getPreview, PreviewError } from '../preview';
 import { broadcastStays, MAX_AREAS, MAX_STAYS } from '../stays';
 import { sameId } from './helpers';
 import type { AppSocket, Ctx } from '../types';
-
-// Adding a stay downloads someone else's page (like POST /api/preview), so one user may add at most 30 in 10 minutes
-const ADD_WINDOW_MS = 10 * 60 * 1000;
-const ADD_LIMIT = 30;
-const recentAdds = new Map<string, number[]>();
-
-function tooManyAdds(userId: string): boolean {
-  const now = Date.now();
-  const list = (recentAdds.get(userId) ?? []).filter(t => now - t < ADD_WINDOW_MS);
-  if (list.length >= ADD_LIMIT) { recentAdds.set(userId, list); return true; }
-  list.push(now);
-  recentAdds.set(userId, list);
-  return false;
-}
 
 // Stays tab: save stay links, like them, sort them into areas. Every member may do all of it,
 // because in most groups the planning is shared; only removing a stay is for whoever added it and the organiser.
@@ -46,7 +32,7 @@ export default function register(socket: AppSocket, { io, sessions, userId }: Ct
       if (await Stay.countDocuments({ groupId: g._id }) >= MAX_STAYS) {
         return reply({ error: `A trip can have at most ${MAX_STAYS} stays` });
       }
-      if (tooManyAdds(userId)) return reply({ error: 'Too many links at once — please try again in a few minutes' });
+      if (!allowPreview(userId)) return reply({ error: 'Too many links at once — please try again in a few minutes' });
 
       const p = await getPreview(link);
       if (await Stay.exists({ groupId: g._id, url: p.url })) return reply({ error: 'This stay is already saved' });

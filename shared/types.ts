@@ -31,8 +31,11 @@ export interface ChatMessage {
   color?: string
   text: string
   time: string
+  _id?: string
   // Messages from the server itself, e.g. "Bali was chosen".
   system?: boolean
+  // Filled in by the server a moment after a message with a link was sent ('msg:preview')
+  preview?: LinkPreview
 }
 
 // People are identified by user id, because two members can have the same name.
@@ -201,6 +204,8 @@ export interface ServerToClientEvents {
   // Everyone with the trip open, once per person even with several tabs.
   online: (users: OnlineUser[]) => void
   msg: (message: ChatMessage) => void
+  // The link preview of a message that was just sent, once the server has read the page
+  'msg:preview': (data: { id: string; preview: LinkPreview }) => void
   // Someone else is typing; the client hides it again after a few seconds without a new one.
   typing: (username: string) => void
 

@@ -34,10 +34,10 @@ describe('messagesToMove', () => {
 });
 
 describe('toChat', () => {
-  it('sends the client only the message fields, user id as text', () => {
+  it('sends the client only the message fields, ids as text', () => {
     const fromDb = { _id: 'm1', groupId: 'g1', userId: { toString: () => 'u-mia' }, username: 'Mia', color: '#000',
       text: 'Hi', time: '9:30', system: false, createdAt: new Date() };
-    expect(toChat(fromDb)).toEqual({ userId: 'u-mia', username: 'Mia', color: '#000', text: 'Hi', time: '9:30' });
+    expect(toChat(fromDb)).toEqual({ _id: 'm1', userId: 'u-mia', username: 'Mia', color: '#000', text: 'Hi', time: '9:30' });
   });
 
   it('marks system messages', () => {

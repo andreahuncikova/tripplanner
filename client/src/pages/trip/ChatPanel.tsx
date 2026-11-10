@@ -1,10 +1,12 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
-import type { ChatMessage } from '@shared/types'
+import type { ChatMessage, LinkPreview } from '@shared/types'
 import { useAuth } from '../../auth/useAuth'
-import { Avatar } from '../../components/ui'
+import { Avatar, useToast } from '../../components/ui'
 import { SendIcon } from '../../components/layout/icons'
 import { cn } from '../../lib/cn'
 import type { TripChat } from '../../socket/useTripChat'
+import type { TripStays } from '../../socket/useTripStays'
+import { formatPrice, platformName } from './stayFormat'
 
 // Same limit as MESSAGE_MAX on the server.
 const MESSAGE_MAX = 1000
@@ -12,7 +14,8 @@ const MESSAGE_MAX = 1000
 // The group chat from the Chat and Desk-Chat mockups: a tab that fills the screen on phones,
 // and the floating window on desktop (inWindow), where the messages sit on a lighter background with bordered bubbles.
 // Photos and files come with the chat files task (Sprint 3).
-export default function ChatPanel({ chat, inWindow }: { chat: TripChat; inWindow?: boolean }) {
+// stays: lets a link card save its link to the Stays tab
+export default function ChatPanel({ chat, inWindow, stays }: { chat: TripChat; inWindow?: boolean; stays?: TripStays }) {
   const { user } = useAuth()
   const [text, setText] = useState('')
   const list = useRef<HTMLOListElement>(null)
@@ -38,7 +41,7 @@ export default function ChatPanel({ chat, inWindow }: { chat: TripChat; inWindow
             <li className="mb-auto text-center text-sm text-muted">No messages yet. Say hi to the group!</li>
           )}
           {chat.messages.map((m, i) => (
-            <Message key={i} message={m} mine={!m.system && m.userId === user?._id} inWindow={inWindow} />
+            <Message key={m._id ?? i} message={m} mine={!m.system && m.userId === user?._id} inWindow={inWindow} stays={stays} />
           ))}
         </ol>
 
@@ -80,7 +83,65 @@ export default function ChatPanel({ chat, inWindow }: { chat: TripChat; inWindow
   )
 }
 
-function Message({ message: m, mine, inWindow }: { message: ChatMessage; mine: boolean; inWindow?: boolean }) {
+// The text of a message with its links clickable. Links open in a new tab, so the trip stays open.
+const LINK = /(https?:\/\/[^\s<>"']+)/gi
+function Linked({ text }: { text: string }) {
+  return (
+    <>
+      {text.split(LINK).map((part, i) =>
+        i % 2 === 1
+          ? <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-current underline underline-offset-2 hover:text-current">{part}</a>
+          : part,
+      )}
+    </>
+  )
+}
+
+// The card under a message with a link, filled in by the server a moment after sending ('msg:preview').
+// A link from a booking site, or with a price, can go to the Stays tab with one tap.
+function LinkCard({ preview: p, stays, inWindow }: { preview: LinkPreview; stays?: TripStays; inWindow?: boolean }) {
+  const toast = useToast()
+  const [busy, setBusy] = useState(false)
+  const name = p.title ?? platformName(p)
+  const details = [p.location, p.price && formatPrice(p.price)].filter(Boolean).join(' · ')
+  const saved = !!stays?.stays.some(s => s.url === p.url)
+  const canSave = !!stays && (p.platform !== 'other' || !!p.price)
+
+  async function save() {
+    if (!stays || busy) return
+    setBusy(true)
+    const problem = await stays.add(p.url, null)
+    setBusy(false)
+    toast(problem ?? 'Saved to Stays')
+  }
+
+  return (
+    <div className={cn('w-64 max-w-full overflow-hidden rounded-lg bg-white', inWindow ? 'border border-line' : 'shadow-card')}>
+      <a href={p.url} target="_blank" rel="noopener noreferrer" className="block hover:bg-canvas">
+        {p.image && <img src={p.image} alt="" loading="lazy" referrerPolicy="no-referrer" className="h-32 w-full object-cover" />}
+        <div className="flex flex-col gap-0.5 px-3 py-2.5">
+          {p.title && <span className="text-2xs font-bold tracking-wider text-muted uppercase">{platformName(p)}</span>}
+          <span className="text-sm font-bold wrap-anywhere text-roche">{name}</span>
+          {details && <span className="text-xs text-muted">{details}</span>}
+        </div>
+      </a>
+      {canSave && (
+        <div className="border-t border-line px-3 py-1.5">
+          <button
+            type="button"
+            onClick={save}
+            disabled={saved || busy || !stays.loaded}
+            className="min-h-9 text-sm font-bold text-sommet hover:text-sommet-dark disabled:text-muted"
+          >
+            {saved ? 'In Stays ✓' : busy ? 'Saving…' : '+ Add to Stays'}
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function Message({ message: m, mine, inWindow, stays }: { message: ChatMessage; mine: boolean; inWindow?: boolean; stays?: TripStays }) {
   // From the server itself, e.g. "Group created" or "Mia left the group".
   if (m.system) {
     return (
@@ -91,6 +152,7 @@ function Message({ message: m, mine, inWindow }: { message: ChatMessage; mine: b
   // wrap-anywhere also breaks a long word or link without spaces, which break-words leaves sticking out of the bubble
   const text = cn('max-w-full wrap-anywhere whitespace-pre-wrap px-3 py-2.5 leading-snug', inWindow ? 'text-sm' : 'text-md')
   const meta = <span className="text-xs font-bold text-muted">{mine ? 'You' : m.username} · {m.time}</span>
+  const card = m.preview && <LinkCard preview={m.preview} stays={stays} inWindow={inWindow} />
 
   // Your own messages on the right, with your avatar beside them as the others have theirs.
   // The avatar shows the profile photo once profiles have photos (Profile task).
@@ -99,7 +161,8 @@ function Message({ message: m, mine, inWindow }: { message: ChatMessage; mine: b
       <li className="flex max-w-[85%] items-end gap-2 self-end">
         <div className="flex min-w-0 flex-col items-end gap-1">
           {meta}
-          <p className={cn(text, 'rounded-lg rounded-br-[4px] bg-sommet text-white')}>{m.text}</p>
+          <p className={cn(text, 'rounded-lg rounded-br-[4px] bg-sommet text-white')}><Linked text={m.text} /></p>
+          {card}
         </div>
         <Avatar name={m.username ?? '?'} color={m.color ?? '#5b6676'} size="sm" />
       </li>
@@ -111,7 +174,8 @@ function Message({ message: m, mine, inWindow }: { message: ChatMessage; mine: b
       <Avatar name={m.username ?? '?'} color={m.color ?? '#5b6676'} size="sm" />
       <div className="flex min-w-0 flex-col gap-1">
         {meta}
-        <p className={cn(text, 'rounded-lg rounded-bl-[4px] bg-white', inWindow && 'border border-line')}>{m.text}</p>
+        <p className={cn(text, 'rounded-lg rounded-bl-[4px] bg-white', inWindow && 'border border-line')}><Linked text={m.text} /></p>
+        {card}
       </div>
     </li>
   )

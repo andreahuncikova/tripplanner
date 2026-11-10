@@ -23,10 +23,10 @@ export const BudgetSection = () => <Placeholder title="Budget" text="Expenses an
 // On phones the chat is its own tab and fills the screen. Desktop opens it from the bubble instead,
 // but someone who widens the window on this tab still sees it in a card.
 export function ChatSection() {
-  const { chat } = useTripOutlet()
+  const { chat, stays } = useTripOutlet()
   return (
     <div className="flex min-h-0 flex-1 flex-col lg:h-150 lg:overflow-hidden lg:rounded-xl lg:border lg:border-line">
-      <ChatPanel chat={chat} />
+      <ChatPanel chat={chat} stays={stays} />
     </div>
   )
 }

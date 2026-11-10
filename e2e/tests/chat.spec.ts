@@ -65,3 +65,17 @@ test('a long word or link without spaces wraps inside its bubble', async ({ brow
   expect(box.x).toBeGreaterThanOrEqual(list.x)
   expect(box.x + box.width).toBeLessThanOrEqual(list.x + list.width)
 })
+
+test('a link in a message can be clicked and is readable on your own blue bubble', async ({ browser }) => {
+  const { mia, code } = await tripWithTwo(browser)
+  await mia.goto(`/trips/${code}/chat`)
+  await mia.getByLabel('Message', { exact: true }).fill('Look at this one https://stay.invalid/rooms/1?check_in=2026-11-13')
+  await mia.getByRole('button', { name: 'Send' }).click()
+
+  const link = messages(mia).getByRole('link', { name: 'https://stay.invalid/rooms/1?check_in=2026-11-13' })
+  await expect(link).toHaveAttribute('href', 'https://stay.invalid/rooms/1?check_in=2026-11-13')
+  await expect(link).toHaveAttribute('target', '_blank')
+  // The link takes the bubble's white text, not the blue link colour of the page
+  const [color, background] = await link.evaluate(a => [getComputedStyle(a).color, getComputedStyle(a.closest('p')!).backgroundColor])
+  expect(color).not.toBe(background)
+})
