@@ -44,7 +44,7 @@ export default function PhotoCarousel({ images, credits, label }: { images: stri
         <>
           <ArrowButton side="left" label="Previous photo" onClick={() => go(i - 1)} />
           <ArrowButton side="right" label="Next photo" onClick={() => go(i + 1)} />
-          <div className="absolute inset-x-0 top-[42%] flex justify-center gap-1.5" aria-hidden="true">
+          <div className="absolute inset-x-0 top-3 flex justify-center gap-1.5" aria-hidden="true">
             {images.map((_, n) => (
               <span key={n} className={cn('size-1.5 rounded-full', n === i ? 'bg-white' : 'bg-white/50')} />
             ))}
@@ -62,7 +62,7 @@ function ArrowButton({ side, label, onClick }: { side: 'left' | 'right'; label: 
       aria-label={label}
       onClick={onClick}
       className={cn(
-        'absolute top-[22%] flex size-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/85 text-roche shadow-raised hover:bg-white',
+        'absolute top-[40%] flex size-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/85 text-roche shadow-raised hover:bg-white',
         side === 'left' ? 'left-2' : 'right-2',
       )}
     >
