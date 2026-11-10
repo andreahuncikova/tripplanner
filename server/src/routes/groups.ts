@@ -5,6 +5,7 @@ import Group from '../models/Group';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { ts, snapMonthEnd } from '../utils';
 import { normalizeInviteCode } from '../validation';
+import { removeMemberTraces } from '../socket/helpers';
 
 const router = Router();
 
@@ -117,6 +118,7 @@ router.post('/:code/leave', authMiddleware, async (req, res) => {
     const uid   = String(userOf(req)._id);
     const isAdm = String(g.adminUserId) === uid;
     g.set('members', g.members.filter(m => String(m.userId) !== uid));
+    removeMemberTraces(g, uid);
     if (isAdm && g.members.length > 0) {
       // Promote the next member to admin if the admin leaves
       g.adminUserId   = g.members[0].userId;

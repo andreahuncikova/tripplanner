@@ -39,7 +39,7 @@ describe('computeDateRanges', () => {
 
   it('starts every range with no votes and not selected', () => {
     const [range] = computeDateRanges(['Anna'], {}, '2027-05-01', '2027-05-31');
-    expect(range.votes).toEqual([]);
+    expect(range.voterIds).toEqual([]);
     expect(range.selected).toBe(false);
   });
 

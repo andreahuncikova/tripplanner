@@ -8,7 +8,8 @@
     "start": "node dist/server/src/server.js",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "migrate:user-ids": "tsx scripts/migrate-user-ids.ts"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

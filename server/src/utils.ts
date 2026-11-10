@@ -3,7 +3,7 @@ export interface DateRange {
   label: string;
   start: string;
   end: string;
-  votes: string[];
+  voterIds: string[];   // user ids of the members who voted for this window
   selected: boolean;
 }
 
@@ -56,7 +56,7 @@ export function formatTripLabel(startKey: string, dur: number): string {
 
 // Core algorithm: finds all consecutive date windows where NOBODY in the group has marked themselves as unavailable.
 export function computeDateRanges(
-  memberNames: string[],
+  memberIds: string[],                      // user ids of the trip's members
   unavailMap: Record<string, string[]>,
   windowStart?: string | null,
   windowEnd?: string | null,
@@ -64,8 +64,8 @@ export function computeDateRanges(
   // Build a set of all days that at least one member can't travel
   const blocked        = new Set<string>();
   const allUnavailKeys: string[] = [];
-  memberNames.forEach(name => {
-    (unavailMap[name] || []).forEach(d => {
+  memberIds.forEach(id => {
+    (unavailMap[id] || []).forEach(d => {
       blocked.add(d);
       allUnavailKeys.push(d);
     });
@@ -104,7 +104,7 @@ export function computeDateRanges(
           label: formatRange(windowStart_, prev),
           start: toKey(windowStart_),
           end:   toKey(prev),
-          votes: [],
+          voterIds: [],
           selected: false
         });
         windowStart_ = null;
@@ -122,7 +122,7 @@ export function computeDateRanges(
       label: formatRange(windowStart_, scanEnd),
       start: toKey(windowStart_),
       end:   toKey(scanEnd),
-      votes: [],
+      voterIds: [],
       selected: false
     });
   }

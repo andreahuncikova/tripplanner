@@ -1,9 +1,9 @@
 import Group from '../models/Group';
-import { ts, broadcastState, toClient } from './helpers';
+import { ts, broadcastState, toClient, sameId, hasId, objectId } from './helpers';
 import { formatTripLabel } from '../utils';
 import type { AppSocket, Ctx } from '../types';
 
-export default function register(socket: AppSocket, { io, sessions, userId, username }: Ctx) {
+export default function register(socket: AppSocket, { io, sessions, userId }: Ctx) {
   // Admin sets how many days the trip will last — this filters the date windows shown
   socket.on('trip:setDuration', async dur => {
     try {
@@ -23,10 +23,11 @@ export default function register(socket: AppSocket, { io, sessions, userId, user
       if (!s) return;
       const g = await Group.findOne({ inviteCode: s.code });
       if (!g || !['date_vote', 'done'].includes(g.phase)) return;
-      const alreadyVoted = g.dateRanges[idx]?.votes.includes(username);
+      const range = g.dateRanges[idx];
+      const alreadyVoted = range ? hasId(range.voterIds, userId) : false;
       // Clear the user's previous vote across all ranges — one vote at a time
-      g.dateRanges.forEach(r => { r.votes = r.votes.filter(u => u !== username); });
-      if (!alreadyVoted && g.dateRanges[idx]) g.dateRanges[idx].votes.push(username);
+      g.dateRanges.forEach(r => { r.set('voterIds', r.voterIds.filter(v => !sameId(v, userId))); });
+      if (!alreadyVoted && range) range.voterIds.push(objectId(userId));
       await g.save();
       io.to(s.code).emit('range:votes', toClient(g.dateRanges));
     } catch (e) { console.error('[range:vote]', (e as Error).message); }

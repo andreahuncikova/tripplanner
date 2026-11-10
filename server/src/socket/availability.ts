@@ -1,5 +1,5 @@
 import Group from '../models/Group';
-import { ts, broadcastState, getOnline, serialize, toClient } from './helpers';
+import { ts, broadcastState, getOnline, serialize, toClient, sameId, hasId, objectId } from './helpers';
 import { snapMonthEnd, computeDateRanges } from '../utils';
 import type { AppSocket, Ctx } from '../types';
 
@@ -22,7 +22,7 @@ export default function register(socket: AppSocket, { io, sessions, userId, user
       else g.availability.push({ userId, username, color, unavailableDates: filtered });
       await g.save();
       // Only emit the changed member's data, not the full state
-      io.to(s.code).emit('avail:update', { username, color, unavailableDates: filtered });
+      io.to(s.code).emit('avail:update', { userId, username, color, unavailableDates: filtered });
     } catch (e) { console.error('[avail:set]', (e as Error).message); }
   });
 
@@ -33,7 +33,7 @@ export default function register(socket: AppSocket, { io, sessions, userId, user
       if (!s) return;
       const g = await Group.findOne({ inviteCode: s.code });
       if (!g) return;
-      if (!g.availabilityReady.includes(username)) g.availabilityReady.push(username);
+      if (!hasId(g.readyUserIds, userId)) g.readyUserIds.push(objectId(userId));
       await g.save();
       io.to(s.code).emit('state', serialize(g, getOnline(sessions, s.code)));
     } catch (e) { console.error('[avail:ready]', (e as Error).message); }
@@ -45,7 +45,7 @@ export default function register(socket: AppSocket, { io, sessions, userId, user
       if (!s) return;
       const g = await Group.findOne({ inviteCode: s.code });
       if (!g) return;
-      g.availabilityReady = g.availabilityReady.filter(u => u !== username);
+      g.set('readyUserIds', g.readyUserIds.filter(id => !sameId(id, userId)));
       await g.save();
       io.to(s.code).emit('state', serialize(g, getOnline(sessions, s.code)));
     } catch (e) { console.error('[avail:unready]', (e as Error).message); }
@@ -58,11 +58,11 @@ export default function register(socket: AppSocket, { io, sessions, userId, user
       if (!s) return;
       const g = await Group.findOne({ inviteCode: s.code });
       if (!g || String(g.adminUserId) !== String(userId) || !['calendar', 'date_vote', 'done'].includes(g.phase)) return;
-      // Build a lookup map: { username: ['2026-05-03', ...] }
+      // Build a lookup map by user id: { '64b0…': ['2026-05-03', ...] }
       const unavailMap: Record<string, string[]> = {};
-      g.availability.forEach(a => { if (a.username) unavailMap[a.username] = a.unavailableDates; });
-      const memberNames = g.members.flatMap(m => m.username ? [m.username] : []);
-      g.set('dateRanges', computeDateRanges(memberNames, unavailMap, g.tripWindowStart, g.tripWindowEnd));
+      g.availability.forEach(a => { if (a.userId) unavailMap[String(a.userId)] = a.unavailableDates; });
+      const memberIds = g.members.flatMap(m => m.userId ? [String(m.userId)] : []);
+      g.set('dateRanges', computeDateRanges(memberIds, unavailMap, g.tripWindowStart, g.tripWindowEnd));
       if (g.phase === 'calendar') g.phase = 'date_vote'; // advance phase on first calculation
       g.messages.push({ username: 'System', text: 'Available dates calculated. Time to vote!', time: ts(), system: true });
       await g.save();

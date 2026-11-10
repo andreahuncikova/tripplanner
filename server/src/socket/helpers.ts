@@ -1,3 +1,4 @@
+import { Types } from 'mongoose';
 import Group, { IGroup } from '../models/Group';
 import { ts } from '../utils';
 import type { IO, OnlineUser, Session, Sessions, TripState } from '../types';
@@ -14,6 +15,29 @@ function toOnline(list: Session[]): OnlineUser[] {
   const byUser = new Map<string, OnlineUser>();
   for (const s of list) byUser.set(String(s.userId), { username: s.username, color: s.color });
   return [...byUser.values()];
+}
+
+// User ids come as ObjectIds from the database and as strings from the token, so they are compared as text
+type Id = { toString(): string } | null | undefined;
+const sameId = (a: Id, b: Id) => a != null && b != null && String(a) === String(b);
+const hasId  = (list: Id[], id: Id) => list.some(x => sameId(x, id));
+// The user id from the token is text; lists in the database hold ObjectIds
+const objectId = (id: string) => new Types.ObjectId(id);
+
+// Keeps only the ids of people who are members of the trip, each once (e.g. who shares an expense)
+function memberIds(g: Pick<IGroup, 'members'>, ids: unknown): string[] {
+  if (!Array.isArray(ids)) return [];
+  const members = new Set(g.members.map(m => String(m.userId)));
+  return [...new Set(ids.map(String))].filter(id => members.has(id));
+}
+
+// When someone leaves a trip, their votes and "I'm done" no longer count.
+// Expenses stay, because money they paid or owe is still part of the trip.
+function removeMemberTraces(g: IGroup, userId: Id) {
+  const without = (list: Id[]) => list.filter(x => !sameId(x, userId));
+  g.destinations.forEach(d => { d.voterIds = without(d.voterIds) as typeof d.voterIds; });
+  g.dateRanges.forEach(r => { r.voterIds = without(r.voterIds) as typeof r.voterIds; });
+  g.readyUserIds = without(g.readyUserIds) as typeof g.readyUserIds;
 }
 
 // Socket.IO turns every Mongoose document into JSON before it sends it, so ObjectIds and dates
@@ -39,7 +63,7 @@ function serialize(g: IGroup, onlineList?: Session[]): TripState {
     destinations:      g.destinations,
     approvedDest:      g.approvedDest,
     availability:      g.availability,
-    availabilityReady: g.availabilityReady,
+    readyUserIds:      g.readyUserIds,
     dateRanges:        g.dateRanges,
     finalDate:         g.finalDate,
     finalDateLabel:    g.finalDateLabel,
@@ -59,4 +83,4 @@ async function broadcastState(io: IO, sessions: Sessions, code: string) {
   io.to(code).emit('state', serialize(g, getOnline(sessions, code)));
 }
 
-export { ts, toClient, getOnline, toOnline, serialize, broadcastState };
+export { ts, toClient, getOnline, toOnline, serialize, broadcastState, sameId, hasId, objectId, memberIds, removeMemberTraces };

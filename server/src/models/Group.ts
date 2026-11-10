@@ -7,10 +7,13 @@ const MsgSchema = new Schema({
   system: { type: Boolean, default: false }, // system messages come from the server, not a user
 }, { _id: false });
 
+// People are stored by user id, not by username: two members can have the same name,
+// and a name can change. The name fields (by, addedBy, username) are only for display.
 const DestSchema = new Schema({
-  name:  { type: String, required: true },
-  by:    String,
-  votes: { type: [String], default: [] }, // array of usernames who voted for this destination
+  name:     { type: String, required: true },
+  by:       String,                                            // name of who suggested it, for display
+  byUserId: Schema.Types.ObjectId,                             // who suggested it (may edit or remove it)
+  voterIds: { type: [Schema.Types.ObjectId], default: [] },    // members who voted for this destination
 });
 
 const AvailSchema = new Schema({
@@ -20,7 +23,7 @@ const AvailSchema = new Schema({
 
 const RangeSchema = new Schema({
   label: String, start: String, end: String,
-  votes:    { type: [String],  default: [] },
+  voterIds: { type: [Schema.Types.ObjectId], default: [] },    // members who voted for this window
   selected: { type: Boolean,   default: false }, // true once admin confirms this window
 }, { _id: false });
 
@@ -30,11 +33,13 @@ const ActivitySchema = new Schema({
   createdAt: { type: Date, default: Date.now },
 });
 
+// Names and colours of the payer and the others come from the members list on the client
 const ExpenseSchema = new Schema({
   description: String, amount: Number,
   currency:    { type: String, default: 'EUR' },
-  paidBy: String, paidByColor: String, // color stored here so we don't need a separate join
-  splitAmong: [String], addedBy: String,
+  paidByUserId:      Schema.Types.ObjectId,                    // who paid
+  splitAmongUserIds: { type: [Schema.Types.ObjectId], default: [] }, // who shares the cost
+  addedByUserId:     Schema.Types.ObjectId,                    // who added it (may edit or remove it)
   createdAt: { type: Date, default: Date.now },
 });
 
@@ -61,7 +66,7 @@ const GroupSchema = new Schema({
   destinations:      { type: [DestSchema],     default: [] },
   approvedDest:      { type: String,           default: null },
   availability:      { type: [AvailSchema],    default: [] },
-  availabilityReady: { type: [String],         default: [] }, // usernames who confirmed they're done marking days
+  readyUserIds:      { type: [Schema.Types.ObjectId], default: [] }, // members who confirmed they're done marking days
   dateRanges:        { type: [RangeSchema],    default: [] }, // computed free windows, filled by avail:compute
   finalDate:         { type: String,           default: null },
   finalDateLabel:    { type: String,           default: null },

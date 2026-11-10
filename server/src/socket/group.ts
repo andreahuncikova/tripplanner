@@ -1,5 +1,5 @@
 import Group from '../models/Group';
-import { ts, serialize, getOnline } from './helpers';
+import { ts, serialize, getOnline, removeMemberTraces } from './helpers';
 import type { AppSocket, Ctx } from '../types';
 
 export default function register(socket: AppSocket, { io, sessions, username }: Ctx) {
@@ -11,6 +11,7 @@ export default function register(socket: AppSocket, { io, sessions, username }: 
       if (!g) return;
       const isAdm = String(g.adminUserId) === String(s.userId);
       g.set('members', g.members.filter(m => String(m.userId) !== String(s.userId)));
+      removeMemberTraces(g, s.userId);
       if (isAdm && g.members.length > 0) {
         // Automatically promote the next member to admin
         g.adminUserId   = g.members[0].userId;

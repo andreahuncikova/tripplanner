@@ -35,12 +35,17 @@ export interface ChatMessage {
   system?: boolean
 }
 
+// People are identified by user id, because two members can have the same name.
+// Names and colours for the screen come from TripState.members (find the member with that userId).
+
 export interface Destination {
   _id: string
   name: string
+  // Name of who suggested it, for display; byUserId is who it really is (may edit or remove it).
   by: string
-  // Usernames of the people who voted for it.
-  votes: string[]
+  byUserId: string
+  // User ids of the members who voted for it.
+  voterIds: string[]
 }
 
 export interface Availability {
@@ -56,7 +61,8 @@ export interface DateRange {
   label: string
   start: string
   end: string
-  votes: string[]
+  // User ids of the members who voted for this window.
+  voterIds: string[]
   selected: boolean
 }
 
@@ -76,10 +82,10 @@ export interface Expense {
   description: string
   amount: number
   currency: string
-  paidBy: string
-  paidByColor: string
-  splitAmong: string[]
-  addedBy: string
+  // User ids: who paid, who shares the cost, and who added it (may edit or remove it).
+  paidByUserId: string
+  splitAmongUserIds: string[]
+  addedByUserId: string
   createdAt: string
 }
 
@@ -98,7 +104,8 @@ export interface TripState {
   destinations: Destination[]
   approvedDest: string | null
   availability: Availability[]
-  availabilityReady: string[]
+  // User ids of the members who said they are done marking days.
+  readyUserIds: string[]
   dateRanges: DateRange[]
   finalDate: string | null
   finalDateLabel: string | null
@@ -121,8 +128,9 @@ export interface ExpenseInput {
   description: string
   amount: number
   currency: string
-  paidBy: string
-  splitAmong: string[]
+  // User ids of members of the trip. An empty split means the whole group.
+  paidByUserId: string
+  splitAmongUserIds: string[]
 }
 
 // What the client sends.
@@ -181,7 +189,7 @@ export interface ServerToClientEvents {
 
   // Smaller updates sent instead of the whole state.
   'dest:new': (destination: Destination) => void
-  'avail:update': (data: Pick<Availability, 'username' | 'color' | 'unavailableDates'>) => void
+  'avail:update': (data: Pick<Availability, 'userId' | 'username' | 'color' | 'unavailableDates'>) => void
   'range:votes': (ranges: DateRange[]) => void
   'activity:new': (activity: Activity) => void
   'expense:new': (expense: Expense) => void

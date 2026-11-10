@@ -24,7 +24,20 @@ async function offerInstall(page: Page) {
 
 const banner = (page: Page) => page.getByRole('region', { name: 'Install the app' })
 
-test.describe('install banner (Android and desktop Chrome)', () => {
+// The banner is only for phones and tablets (Tailwind pointer-fine:hidden hides it where there is a mouse)
+test.describe('install banner on a computer', () => {
+  test.skip(({ isMobile }) => isMobile, 'computer only')
+
+  test('stays hidden even when the browser offers installation', async ({ page }) => {
+    await signUp(page)
+    await offerInstall(page)
+    await expect(banner(page)).toBeHidden()
+  })
+})
+
+test.describe('install banner (Android Chrome)', () => {
+  test.skip(({ isMobile }) => !isMobile, 'phones and tablets only')
+
   test('shows nothing when the browser does not offer installation', async ({ page }) => {
     await signUp(page)
     await expect(banner(page)).toHaveCount(0)
@@ -53,6 +66,7 @@ test.describe('install banner (Android and desktop Chrome)', () => {
 })
 
 test.describe('install banner (iPhone)', () => {
+  test.skip(({ isMobile }) => !isMobile, 'phones and tablets only')
   test.use({
     userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1',
   })
