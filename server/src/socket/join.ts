@@ -1,6 +1,7 @@
 import Group from '../models/Group';
 import { normalizeInviteCode } from '../validation';
-import { getOnline, serialize, toClient, toOnline } from './helpers';
+import { getOnline, serialize, toOnline } from './helpers';
+import { lastMessages } from '../messages';
 import type { AppSocket, Ctx } from '../types';
 
 export default function register(socket: AppSocket, { io, sessions, userId, username, color }: Ctx) {
@@ -26,20 +27,19 @@ export default function register(socket: AppSocket, { io, sessions, userId, user
       const g = inviteCode && await Group.findOne({ inviteCode, 'members.userId': userId });
       if (n !== latest) return;
       if (!g || !inviteCode) { socket.emit('err', 'Trip not found'); return; }
+      const messages = await lastMessages(g._id);
+      if (n !== latest) return;
 
       // One socket serves the whole app, so a trip opened before this one is left first
       if (sessions[socket.id]?.code !== inviteCode) leaveRoom();
 
       // Store the session so we can find this user's socket later (e.g. to approve back-requests)
-      sessions[socket.id] = { userId, username, color, code: inviteCode };
+      sessions[socket.id] = { userId, username, color, code: inviteCode, groupId: String(g._id) };
       // Join the Socket.io room so broadcasts to this group reach this socket
       socket.join(inviteCode);
 
-      // Send the full group state + last 60 messages to the joining client
-      socket.emit('joined', {
-        ...serialize(g, getOnline(sessions, inviteCode)),
-        messages: toClient(g.messages.slice(-60)),
-      });
+      // Send the full group state + the newest messages to the joining client
+      socket.emit('joined', { ...serialize(g, getOnline(sessions, inviteCode)), messages });
 
       // Tell everyone else in the room that someone new joined
       io.to(inviteCode).emit('online', toOnline(getOnline(sessions, inviteCode)));

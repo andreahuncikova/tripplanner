@@ -3,10 +3,11 @@ import { v4 as uuidv4 } from 'uuid';
 import rateLimit from 'express-rate-limit';
 import Group, { GroupDoc } from '../models/Group';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
-import { ts, snapMonthEnd, formatTripLabel } from '../utils';
+import { snapMonthEnd, formatTripLabel } from '../utils';
 import { checkNewTrip, checkTripChanges, normalizeInviteCode } from '../validation';
-import { closeRoom, getOnline, leaveTrip, sameId, serialize, toClient } from '../socket/helpers';
-import type { IO, Sessions } from '../types';
+import { closeRoom, deleteTrip, getOnline, leaveTrip, sameId, serialize } from '../socket/helpers';
+import { addSystemMessage } from '../messages';
+import type { ChatMessage, IO, Sessions } from '../types';
 
 const router = Router();
 
@@ -34,10 +35,10 @@ async function findMyTrip(req: Request) {
   return code ? Group.findOne({ inviteCode: code, 'members.userId': userOf(req)._id }) : null;
 }
 
-// Sends the trip and its newest chat message (the system message about the change) to everyone who has it open
-function sendChange(req: Request, g: GroupDoc) {
+// Sends the trip and the chat message about the change to everyone who has it open
+function sendChange(req: Request, g: GroupDoc, msg: ChatMessage) {
   const { io, sessions } = live(req);
-  io.to(g.inviteCode).emit('msg', toClient(g.messages.at(-1)));
+  io.to(g.inviteCode).emit('msg', msg);
   io.to(g.inviteCode).emit('state', serialize(g, getOnline(sessions, g.inviteCode)));
 }
 
@@ -77,8 +78,8 @@ router.post('/', authMiddleware, async (req, res) => {
       tripWindowStart:  window?.start ?? null,
       tripWindowEnd:    window?.end ?? null,
       phase,
-      messages: [{ username:'System', text:`Trip "${name}" created! Code: ${inviteCode}`, time: ts(), system: true }]
     });
+    await addSystemMessage(group._id, `Trip "${name}" created! Code: ${inviteCode}`);
     res.status(201).json({ inviteCode, groupId: group._id });
   } catch (e) {
     console.error('[groups:create]', (e as Error).message);
@@ -142,8 +143,8 @@ router.post('/:code/join', codeLimiter, authMiddleware, async (req, res) => {
       return res.json({ inviteCode: g.inviteCode, alreadyMember: true });
 
     g.members.push({ userId, username, color });
-    g.messages.push({ username: 'System', text: `${username} joined the trip.`, time: ts(), system: true });
     await g.save();
+    await addSystemMessage(g._id, `${username} joined the trip.`);
     res.json({ inviteCode: g.inviteCode, alreadyMember: false });
   } catch (e) {
     console.error('[groups:join]', (e as Error).message);
@@ -158,12 +159,12 @@ router.post('/:code/leave', authMiddleware, async (req, res) => {
     const g = await findMyTrip(req);
     if (!g) return res.status(404).json({ error: 'Trip not found' });
     const { _id: userId, username } = userOf(req);
-    const result = await leaveTrip(g, userId, username);
+    const msg = await leaveTrip(g, userId, username);
     // Their open tabs stop getting the trip's messages
     const { io, sessions } = live(req);
     closeRoom(io, sessions, g.inviteCode, userId);
-    if (result === 'left') sendChange(req, g);
-    res.json({ ok: true, deleted: result === 'deleted' });
+    if (msg) sendChange(req, g, msg);
+    res.json({ ok: true, deleted: !msg });
   } catch (e) {
     console.error('[groups:leave]', (e as Error).message);
     res.status(500).json({ error: 'Server error — please try again' });
@@ -220,9 +221,8 @@ router.patch('/:code', authMiddleware, async (req, res) => {
       }
     }
     if (changed.length) {
-      g.messages.push({ username: 'System', text: `${me.username} ${changed.join(' and ')}.`, time: ts(), system: true });
       await g.save();
-      sendChange(req, g);
+      sendChange(req, g, await addSystemMessage(g._id, `${me.username} ${changed.join(' and ')}.`));
     }
     res.json({ ok: true });
   } catch (e) {
@@ -237,7 +237,7 @@ router.delete('/:code', authMiddleware, async (req, res) => {
     const g = await findMyTrip(req);
     if (!g) return res.status(404).json({ error: 'Trip not found' });
     if (!sameId(g.adminUserId, userOf(req)._id)) return res.status(403).json({ error: 'Only the organiser can delete the trip' });
-    await g.deleteOne();
+    await deleteTrip(g);
     // The organiser is taken out first: they already see "Trip deleted" on their own screen
     const { io, sessions } = live(req);
     closeRoom(io, sessions, g.inviteCode, userOf(req)._id);

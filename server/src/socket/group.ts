@@ -1,5 +1,5 @@
 import Group from '../models/Group';
-import { serialize, getOnline, toClient, sameId, leaveTrip, closeRoom } from './helpers';
+import { serialize, getOnline, sameId, leaveTrip, deleteTrip, closeRoom } from './helpers';
 import type { AppSocket, Ctx } from '../types';
 
 // Leaving and deleting a trip over the socket (the old app). The new client uses the REST routes
@@ -11,11 +11,11 @@ export default function register(socket: AppSocket, { io, sessions }: Ctx) {
       if (!s) return;
       const g = await Group.findOne({ inviteCode: s.code });
       if (!g) return;
-      const result = await leaveTrip(g, s.userId, s.username);
+      const msg = await leaveTrip(g, s.userId, s.username);
       closeRoom(io, sessions, s.code, s.userId);
       socket.emit('group:left');
-      if (result === 'left') {
-        io.to(s.code).emit('msg', toClient(g.messages.at(-1)));
+      if (msg) {
+        io.to(s.code).emit('msg', msg);
         io.to(s.code).emit('state', serialize(g, getOnline(sessions, s.code)));
       }
     } catch (e) { console.error('[group:leave]', (e as Error).message); }
@@ -27,7 +27,7 @@ export default function register(socket: AppSocket, { io, sessions }: Ctx) {
       if (!s) return;
       const g = await Group.findOne({ inviteCode: s.code });
       if (!g || !sameId(g.adminUserId, s.userId)) return;
-      await g.deleteOne();
+      await deleteTrip(g);
       io.to(s.code).emit('group:deleted');
       closeRoom(io, sessions, s.code);
     } catch (e) { console.error('[group:delete]', (e as Error).message); }

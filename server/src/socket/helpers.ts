@@ -1,7 +1,8 @@
 import { Types } from 'mongoose';
 import Group, { GroupDoc, IGroup } from '../models/Group';
 import { ts } from '../utils';
-import type { IO, OnlineUser, Session, Sessions, TripState } from '../types';
+import { addSystemMessage, deleteMessages } from '../messages';
+import type { ChatMessage, IO, OnlineUser, Session, Sessions, TripState } from '../types';
 
 // Returns the list of users currently connected to a specific group room.
 // We filter the global sessions map by the invite code.
@@ -40,25 +41,31 @@ function removeMemberTraces(g: IGroup, userId: Id) {
   g.readyUserIds = without(g.readyUserIds) as typeof g.readyUserIds;
 }
 
+// Deletes a trip together with its chat messages
+async function deleteTrip(g: GroupDoc) {
+  await g.deleteOne();
+  await deleteMessages(g._id);
+}
+
 // Takes someone out of a trip and saves it. When the organiser leaves, the next member becomes the organiser;
 // the last one out deletes the trip. Used by "Leave trip" in Trip settings and by the old socket event.
-async function leaveTrip(g: GroupDoc, userId: Id, username: string): Promise<'left' | 'deleted'> {
+// Returns the chat message about it for the others, or null when the trip was deleted.
+async function leaveTrip(g: GroupDoc, userId: Id, username: string): Promise<ChatMessage | null> {
   const wasAdmin = sameId(g.adminUserId, userId);
   g.set('members', g.members.filter(m => !sameId(m.userId, userId)));
   removeMemberTraces(g, userId);
   if (!g.members.length) {
-    await g.deleteOne();
-    return 'deleted';
+    await deleteTrip(g);
+    return null;
   }
   if (wasAdmin) {
     g.adminUserId   = g.members[0].userId;
     g.adminUsername = g.members[0].username;
-    g.messages.push({ username: 'System', text: `${username} left. ${g.adminUsername} is now the organiser.`, time: ts(), system: true });
-  } else {
-    g.messages.push({ username: 'System', text: `${username} left the trip.`, time: ts(), system: true });
   }
   await g.save();
-  return 'left';
+  return addSystemMessage(g._id, wasAdmin
+    ? `${username} left. ${g.adminUsername} is now the organiser.`
+    : `${username} left the trip.`);
 }
 
 // Takes sockets out of a trip's room, so they get no more of its messages and cannot send to it:
@@ -119,4 +126,4 @@ async function broadcastState(io: IO, sessions: Sessions, code: string) {
   io.to(code).emit('state', serialize(g, getOnline(sessions, code)));
 }
 
-export { ts, toClient, getOnline, toOnline, serialize, broadcastState, sameId, hasId, objectId, memberIds, removeMemberTraces, leaveTrip, closeRoom };
+export { ts, toClient, getOnline, toOnline, serialize, broadcastState, sameId, hasId, objectId, memberIds, removeMemberTraces, leaveTrip, deleteTrip, closeRoom };

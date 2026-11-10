@@ -15,7 +15,8 @@ export interface Session {
   userId: string;
   username: string;
   color: string;
-  code: string;
+  code: string;      // invite code of the open trip, also the name of its Socket.IO room
+  groupId: string;   // _id of that trip, to find its chat messages
 }
 
 // All connected sockets, keyed by socket.id

@@ -1,5 +1,6 @@
 import Group from '../models/Group';
-import { ts, broadcastState, getOnline, serialize, toClient, sameId, hasId, objectId } from './helpers';
+import { broadcastState, getOnline, serialize, sameId, hasId, objectId } from './helpers';
+import { addSystemMessage } from '../messages';
 import { snapMonthEnd, computeDateRanges } from '../utils';
 import type { AppSocket, Ctx } from '../types';
 
@@ -65,10 +66,9 @@ export default function register(socket: AppSocket, { io, sessions, userId, user
       const memberIds = g.members.flatMap(m => m.userId ? [String(m.userId)] : []);
       g.set('dateRanges', computeDateRanges(memberIds, unavailMap, g.tripWindowStart, g.tripWindowEnd));
       if (g.phase === 'calendar') g.phase = 'date_vote'; // advance phase on first calculation
-      g.messages.push({ username: 'System', text: 'Available dates calculated. Time to vote!', time: ts(), system: true });
       await g.save();
       await broadcastState(io, sessions, s.code);
-      io.to(s.code).emit('msg', toClient(g.messages.at(-1)));
+      io.to(s.code).emit('msg', await addSystemMessage(g._id, 'Available dates calculated. Time to vote!'));
     } catch (e) { console.error('[avail:compute]', (e as Error).message); }
   });
 

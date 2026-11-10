@@ -9,7 +9,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "migrate:user-ids": "tsx scripts/migrate-user-ids.ts"
+    "migrate:user-ids": "tsx scripts/migrate-user-ids.ts",
+    "migrate:messages": "tsx scripts/migrate-messages.ts"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

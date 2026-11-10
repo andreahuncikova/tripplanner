@@ -1,11 +1,7 @@
 import { Schema, model, InferSchemaType, HydratedDocument } from 'mongoose';
 
-// _id: false means Mongoose won't add an _id to these sub-documents
-const MsgSchema = new Schema({
-  userId: Schema.Types.ObjectId, username: String, color: String,
-  text: String, time: String,
-  system: { type: Boolean, default: false }, // system messages come from the server, not a user
-}, { _id: false });
+// Chat messages are not stored here but in their own collection (models/Message.ts).
+// _id: false means Mongoose won't add an _id to these sub-documents.
 
 // People are stored by user id, not by username: two members can have the same name,
 // and a name can change. The name fields (by, addedBy, username) are only for display.
@@ -77,7 +73,6 @@ const GroupSchema = new Schema({
   finalDateLabel:    { type: String,           default: null },
   activities:        { type: [ActivitySchema], default: [] },
   expenses:          { type: [ExpenseSchema],  default: [] },
-  messages:          { type: [MsgSchema],      default: [] },
   createdAt:         { type: Date,             default: Date.now },
 });
 

@@ -1,6 +1,5 @@
-import Group from '../models/Group';
 import { checkMessage } from '../validation';
-import { ts } from './helpers';
+import { addMessage } from '../messages';
 import type { AppSocket, Ctx } from '../types';
 
 export default function register(socket: AppSocket, { io, sessions, userId, username, color }: Ctx) {
@@ -11,9 +10,8 @@ export default function register(socket: AppSocket, { io, sessions, userId, user
       if (!s) return;
       const check = checkMessage(text);
       if (!check.ok) { socket.emit('err', check.error); return; }
-      const msg = { userId, username, color, text: check.value, time: ts() };
-      // $push appends to the messages array without loading the whole document
-      await Group.updateOne({ inviteCode: s.code }, { $push: { messages: msg } });
+      // Saved in the messages collection; the trip document itself does not change
+      const msg = await addMessage(s.groupId, { userId, username, color }, check.value);
       io.to(s.code).emit('msg', msg);
     } catch (e) { console.error('[msg]', (e as Error).message); }
   });

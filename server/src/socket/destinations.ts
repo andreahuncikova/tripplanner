@@ -1,5 +1,6 @@
 import Group from '../models/Group';
-import { ts, broadcastState, getOnline, serialize, toClient, sameId, hasId, objectId } from './helpers';
+import { broadcastState, getOnline, serialize, toClient, sameId, hasId, objectId } from './helpers';
+import { addSystemMessage } from '../messages';
 import type { AppSocket, Ctx } from '../types';
 
 export default function register(socket: AppSocket, { io, sessions, userId, username }: Ctx) {
@@ -47,10 +48,9 @@ export default function register(socket: AppSocket, { io, sessions, userId, user
       g.approvedDest = d.name;
       // With dates known from the start, there is no availability step: the trip is ready
       if (g.phase === 'destinations') g.phase = g.datesKnown ? 'done' : 'calendar';
-      g.messages.push({ username: 'System', text: `Destination approved: ${d.name}.`, time: ts(), system: true });
       await g.save();
       await broadcastState(io, sessions, s.code);
-      io.to(s.code).emit('msg', toClient(g.messages.at(-1)));
+      io.to(s.code).emit('msg', await addSystemMessage(g._id, `Destination approved: ${d.name}.`));
     } catch (e) { console.error('[dest:approve]', (e as Error).message); }
   });
 

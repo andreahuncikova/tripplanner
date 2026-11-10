@@ -1,5 +1,6 @@
 import Group from '../models/Group';
-import { ts, broadcastState, toClient, sameId, hasId, objectId } from './helpers';
+import { broadcastState, toClient, sameId, hasId, objectId } from './helpers';
+import { addSystemMessage } from '../messages';
 import { formatTripLabel } from '../utils';
 import type { AppSocket, Ctx } from '../types';
 
@@ -50,10 +51,9 @@ export default function register(socket: AppSocket, { io, sessions, userId }: Ct
       g.finalDate      = chosenStart;
       g.finalDateLabel = label;
       g.phase          = 'done';
-      g.messages.push({ username: 'System', text: `Trip confirmed: ${label}! Start adding activities.`, time: ts(), system: true });
       await g.save();
       await broadcastState(io, sessions, s.code);
-      io.to(s.code).emit('msg', toClient(g.messages.at(-1)));
+      io.to(s.code).emit('msg', await addSystemMessage(g._id, `Trip confirmed: ${label}! Start adding activities.`));
     } catch (e) { console.error('[range:confirm]', (e as Error).message); }
   });
 
@@ -83,10 +83,9 @@ export default function register(socket: AppSocket, { io, sessions, userId }: Ct
         g.phase = 'destinations'; g.set('availability', []);
         msg = 'Back to destination selection.';
       } else { return; }
-      g.messages.push({ username: 'System', text: msg, time: ts(), system: true });
       await g.save();
       await broadcastState(io, sessions, s.code);
-      io.to(s.code).emit('msg', toClient(g.messages.at(-1)));
+      io.to(s.code).emit('msg', await addSystemMessage(g._id, msg));
     } catch (e) { console.error('[phase:back]', (e as Error).message); }
   });
 }
