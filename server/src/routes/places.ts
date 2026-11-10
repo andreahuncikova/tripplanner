@@ -2,7 +2,7 @@ import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import Stay from '../models/Stay';
 import Message from '../models/Message';
-import { isPlaceId, photoUri } from '../preview/places';
+import { isPlaceId, MAX_PLACE_PHOTOS, photoUri } from '../preview/places';
 
 const router = Router();
 
@@ -16,14 +16,15 @@ const photoLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// GET /api/places/:placeId/photo → redirect to the photo on Google's servers (see preview/places.ts)
-router.get('/:placeId/photo', photoLimiter, async (req, res) => {
+// GET /api/places/:placeId/photo/:n → redirect to photo n of the place on Google's servers (see preview/places.ts)
+router.get('/:placeId/photo/:n', photoLimiter, async (req, res) => {
   try {
     const { placeId } = req.params;
-    if (!isPlaceId(placeId)) return res.status(404).end();
+    const n = Number(req.params.n);
+    if (!isPlaceId(placeId) || !Number.isInteger(n) || n < 0 || n >= MAX_PLACE_PHOTOS) return res.status(404).end();
     const used = await Stay.exists({ placeId }) || await Message.exists({ 'preview.placeId': placeId });
     if (!used) return res.status(404).end();
-    const uri = await photoUri(placeId);
+    const uri = await photoUri(placeId, n);
     if (!uri) return res.status(404).end();
     // The browser may keep the redirect for an hour, the same time we keep the address
     res.set('Cache-Control', 'private, max-age=3600');

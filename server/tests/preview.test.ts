@@ -32,6 +32,7 @@ describe('parsePreview', () => {
       platform: 'booking',
       title: 'Casa Azul & Garden',
       image: 'https://cf.example-cdn.com/images/casa-azul.jpg',
+      images: ['https://cf.example-cdn.com/images/casa-azul.jpg'],
       price: { amount: 1234.5, currency: 'EUR' },
       location: 'Lisbon, Portugal',
       complete: true,
@@ -127,5 +128,16 @@ describe('detailsFromUrl', () => {
     expect(detailsFromUrl('https://www.booking.com/Share-gLV8c4')).toEqual({});
     expect(detailsFromUrl('https://www.airbnb.com/rooms/1')).toEqual({});
     expect(detailsFromUrl('not a link')).toEqual({});
+  });
+});
+
+describe('several photos', () => {
+  it('collects every og:image and JSON-LD photo, the main one first, each once', () => {
+    const html = `<meta property="og:image" content="https://img.example.com/1.jpg">
+      <meta property="og:image" content="https://img.example.com/2.jpg">
+      <script type="application/ld+json">{"@type":"Hotel","name":"Casa","image":["https://img.example.com/2.jpg",{"url":"https://img.example.com/3.jpg"}]}</script>`;
+    const p = parsePreview(html, 'https://www.booking.com/hotel/pt/casa.html');
+    expect(p.image).toBe('https://img.example.com/1.jpg');
+    expect(p.images).toEqual(['https://img.example.com/1.jpg', 'https://img.example.com/2.jpg', 'https://img.example.com/3.jpg']);
   });
 });

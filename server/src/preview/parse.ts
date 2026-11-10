@@ -92,12 +92,27 @@ function absolute(src: string | undefined, base: string): string | undefined {
   } catch { return undefined; }
 }
 
-function imageOf(v: unknown): string | undefined {
-  if (typeof v === 'string') return v;
-  if (Array.isArray(v)) return imageOf(v[0]);
-  if (v && typeof v === 'object') return imageOf((v as Json).url ?? (v as Json).contentUrl);
-  return undefined;
+// All photo addresses in a JSON-LD image field: a text, a list, or ImageObjects
+function imagesOf(v: unknown): string[] {
+  if (typeof v === 'string') return [v];
+  if (Array.isArray(v)) return v.flatMap(imagesOf);
+  if (v && typeof v === 'object') return imagesOf((v as Json).url ?? (v as Json).contentUrl);
+  return [];
 }
+
+// Every value of the given meta tags, e.g. all og:image tags of a page with several photos
+function metaAll(html: string, keys: string[]): string[] {
+  const out: string[] = [];
+  for (const m of html.matchAll(/<meta\b[^>]*>/gi)) {
+    const a = attributes(m[0]);
+    const key = (a.property || a.name || a.itemprop || '').toLowerCase();
+    if (keys.includes(key) && a.content) out.push(a.content);
+  }
+  return out;
+}
+
+// A stay card shows at most this many photos
+export const MAX_IMAGES = 6;
 
 // "1.234,50", "1,234.50", "€ 120", 120 → a number; undefined when it is not one
 export function toAmount(v: unknown): number | undefined {
@@ -169,8 +184,13 @@ export function parsePreview(html: string, url: string): LinkPreview {
 
   const titleTag = html.match(/<title\b[^>]*>([\s\S]*?)<\/title>/i)?.[1];
   const title = clean(meta.get('og:title')) ?? clean(meta.get('twitter:title')) ?? clean(main?.name) ?? clean(titleTag);
-  const image = absolute(meta.get('og:image:secure_url') ?? meta.get('og:image') ?? meta.get('twitter:image')
-    ?? imageOf(main?.image), url);
+  // Every photo the page names, the main one first, each once, at most MAX_IMAGES
+  const images = [...new Set([
+    ...metaAll(html, ['og:image:secure_url', 'og:image', 'og:image:url']),
+    ...metaAll(html, ['twitter:image', 'twitter:image:src']),
+    ...imagesOf(main?.image),
+  ].map(src => absolute(src, url)).filter((src): src is string => !!src))].slice(0, MAX_IMAGES);
+  const image = images[0];
   const price = priceFrom(meta, stay.length ? stay : ld);
   const location = locationFrom(meta, stay.length ? stay : ld);
 
@@ -178,7 +198,7 @@ export function parsePreview(html: string, url: string): LinkPreview {
     url,
     platform: platformOf(url),
     ...(title && { title }),
-    ...(image && { image }),
+    ...(image && { image, images }),
     ...(price && { price }),
     ...(location && { location }),
     complete: !!(title && image && price && location),

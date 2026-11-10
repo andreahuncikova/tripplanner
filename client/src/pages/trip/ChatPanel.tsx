@@ -122,7 +122,7 @@ function LinkCard({ preview: p, stays, inWindow }: { preview: LinkPreview; stays
         {p.image && (
           <div className="relative">
             <img src={imageSrc(p.image)} alt="" loading="lazy" referrerPolicy="no-referrer" className="h-32 w-full object-cover" />
-            <PhotoCredit credit={p.imageCredit} />
+            <PhotoCredit credit={p.imageCredits?.[0]} />
           </div>
         )}
         <div className="flex flex-col gap-0.5 px-3 py-2.5">

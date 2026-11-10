@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import type { Area, Stay, TripSummary } from '@shared/types'
-import { formatPrice, imageSrc, platformName } from './stayFormat'
-import PhotoCredit from './PhotoCredit'
+import { formatPrice, platformName } from './stayFormat'
+import PhotoCarousel from './PhotoCarousel'
 import { useAuth } from '../../auth/useAuth'
 import { Button, Card, Input, Modal } from '../../components/ui'
 import { cn } from '../../lib/cn'
@@ -124,21 +124,34 @@ function AddStayForm({ stays, areaId }: { stays: TripStays; areaId: string | nul
 function StayItem({ stay: s, areas, me, canRemove, stays }: {
   stay: Stay; areas: Area[]; me?: string; canRemove: boolean; stays: TripStays
 }) {
-  const liked = !!me && s.likeUserIds.includes(me)
-  const likes = s.likeUserIds.length
   const name = s.title ?? platformName(s)
   const details = [s.location, s.price && formatPrice(s.price)].filter(Boolean).join(' · ')
+  const photos = s.images?.length ? s.images : s.image ? [s.image] : []
+  const controls = <StayControls stay={s} areas={areas} me={me} canRemove={canRemove} stays={stays} name={name} onPhoto={photos.length > 0} />
+
+  // With photos: the photos fill the whole card and the text sits on them, white on a dark fade at the bottom
+  if (photos.length) {
+    return (
+      <li>
+        <article className="relative isolate flex h-80 flex-col justify-end overflow-hidden rounded-xl bg-roche shadow-card">
+          <PhotoCarousel images={photos} credits={s.imageCredits} label={name} />
+          <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-3/5 bg-linear-to-t from-black/85 via-black/45 to-transparent" />
+          <div className="relative flex flex-col gap-3 p-4 text-white">
+            <div className="flex flex-col gap-0.5">
+              {s.title && <span className="text-xs font-bold tracking-wider text-white/80 uppercase">{platformName(s)}</span>}
+              <a href={s.url} target="_blank" rel="noopener noreferrer" className="line-clamp-2 font-bold text-white hover:text-white hover:underline">{name}</a>
+              {details && <span className="text-sm text-white/85">{details}</span>}
+            </div>
+            {controls}
+          </div>
+        </article>
+      </li>
+    )
+  }
 
   return (
     <li>
-      <Card flush className={cn('flex h-full flex-col', !s.complete && !s.title && 'border border-dashed border-line-strong shadow-none')}>
-        {s.image && (
-          <div className="relative">
-            <img src={imageSrc(s.image)} alt="" loading="lazy" referrerPolicy="no-referrer" className="h-36 w-full object-cover" />
-            <PhotoCredit credit={s.imageCredit} />
-          </div>
-        )}
-        <div className="flex flex-1 flex-col gap-3 p-4.5">
+      <Card className={cn('flex h-full flex-col gap-3', !s.title && 'border border-dashed border-line-strong shadow-none')}>
         <div className="flex flex-col gap-1">
           {/* Without a title the name already is the platform, so it is not written twice */}
           {s.title && <span className="text-xs font-bold tracking-wider text-muted uppercase">{platformName(s)}</span>}
@@ -146,50 +159,64 @@ function StayItem({ stay: s, areas, me, canRemove, stays }: {
           {details && <span className="text-sm text-muted">{details}</span>}
           {!s.complete && <span className="text-sm text-muted">The site did not share all details. You can add them later.</span>}
         </div>
-
-        <div className="mt-auto flex flex-wrap items-center justify-between gap-2">
-          <label className="flex items-center gap-2 text-sm text-subtle">
-            <span className="sr-only">Area for {name}</span>
-            <select
-              value={s.areaId ?? ''}
-              onChange={e => stays.move(s._id, e.target.value || null)}
-              className="min-h-10 rounded-md border border-line-strong bg-white px-2.5 text-sm text-roche"
-            >
-              <option value="">No area</option>
-              {areas.map(a => <option key={a._id} value={a._id}>{a.name}</option>)}
-            </select>
-          </label>
-          <div className="flex items-center gap-2">
-            {canRemove && (
-              <button
-                type="button"
-                onClick={() => stays.remove(s._id)}
-                aria-label={`Remove ${name}`}
-                className="min-h-10 px-2 text-sm font-semibold text-muted hover:text-danger"
-              >
-                Remove
-              </button>
-            )}
-            <button
-              type="button"
-              aria-pressed={liked}
-              aria-label={`${liked ? 'Liked by you' : 'Like'}, ${likes} ${likes === 1 ? 'like' : 'likes'}`}
-              onClick={() => stays.like(s._id)}
-              className={cn(
-                'flex min-h-10 items-center gap-1.5 rounded-[10px] px-3 text-sm font-bold',
-                liked ? 'bg-[#FDE7E1] text-[#9A2E14]' : 'border border-line-strong bg-white text-subtle hover:bg-canvas',
-              )}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill={liked ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                <path d="M12 21s-8-5.3-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 5.7-8 11-8 11z" />
-              </svg>
-              {likes}
-            </button>
-          </div>
-        </div>
-        </div>
+        <div className="mt-auto">{controls}</div>
       </Card>
     </li>
+  )
+}
+
+// Area, Remove and Like under a stay; light versions when they sit on its photos
+function StayControls({ stay: s, areas, me, canRemove, stays, name, onPhoto }: {
+  stay: Stay; areas: Area[]; me?: string; canRemove: boolean; stays: TripStays; name: string; onPhoto: boolean
+}) {
+  const liked = !!me && s.likeUserIds.includes(me)
+  const likes = s.likeUserIds.length
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-2">
+      <label className="flex items-center gap-2 text-sm">
+        <span className="sr-only">Area for {name}</span>
+        <select
+          value={s.areaId ?? ''}
+          onChange={e => stays.move(s._id, e.target.value || null)}
+          className={cn(
+            'min-h-10 rounded-md px-2.5 text-sm',
+            onPhoto ? 'border border-white/40 bg-white/15 text-white backdrop-blur-sm [&>option]:text-roche' : 'border border-line-strong bg-white text-roche',
+          )}
+        >
+          <option value="">No area</option>
+          {areas.map(a => <option key={a._id} value={a._id}>{a.name}</option>)}
+        </select>
+      </label>
+      <div className="flex items-center gap-2">
+        {canRemove && (
+          <button
+            type="button"
+            onClick={() => stays.remove(s._id)}
+            aria-label={`Remove ${name}`}
+            className={cn('min-h-10 px-2 text-sm font-semibold', onPhoto ? 'text-white/80 hover:text-white' : 'text-muted hover:text-danger')}
+          >
+            Remove
+          </button>
+        )}
+        <button
+          type="button"
+          aria-pressed={liked}
+          aria-label={`${liked ? 'Liked by you' : 'Like'}, ${likes} ${likes === 1 ? 'like' : 'likes'}`}
+          onClick={() => stays.like(s._id)}
+          className={cn(
+            'flex min-h-10 items-center gap-1.5 rounded-[10px] px-3 text-sm font-bold',
+            liked ? 'bg-[#FDE7E1] text-[#9A2E14]'
+              : onPhoto ? 'border border-white/40 bg-white/15 text-white backdrop-blur-sm hover:bg-white/25'
+              : 'border border-line-strong bg-white text-subtle hover:bg-canvas',
+          )}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill={liked ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" aria-hidden="true">
+            <path d="M12 21s-8-5.3-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 5.7-8 11-8 11z" />
+          </svg>
+          {likes}
+        </button>
+      </div>
+    </div>
   )
 }
 

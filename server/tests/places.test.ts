@@ -22,7 +22,7 @@ describe('Google Maps photos', () => {
 
   it('finds the place by name and country and names the photo author', async () => {
     vi.stubGlobal('fetch', fakeGoogle());
-    expect(await findPlace('Freebeach, Vietnam')).toEqual({ placeId: PLACE, credit: 'Photo: Lan Nguyen · Google Maps' });
+    expect(await findPlace('Freebeach, Vietnam')).toEqual({ placeId: PLACE, credits: ['Photo: Lan Nguyen · Google Maps'] });
   });
 
   it('gets a fresh photo address only when asked, and keeps it for a while', async () => {
@@ -52,6 +52,6 @@ describe('Google Maps photos', () => {
     expect(isPlaceId(PLACE)).toBe(true);
     expect(isPlaceId('../../etc/passwd')).toBe(false);
     expect(isPlaceId('x')).toBe(false);
-    expect(placePhotoPath(PLACE)).toBe(`/api/places/${PLACE}/photo`);
+    expect(placePhotoPath(PLACE, 2)).toBe(`/api/places/${PLACE}/photo/2`);
   });
 });

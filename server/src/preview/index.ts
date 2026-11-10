@@ -47,7 +47,8 @@ async function withPlacePhoto(p: LinkPreview): Promise<LinkPreview> {
   if (p.image || !p.title || p.platform === 'other') return p;
   const place = await findPlace([p.title, p.location].filter(Boolean).join(', '));
   if (!place) return p;
-  return { ...p, image: placePhotoPath(place.placeId), placeId: place.placeId, imageCredit: place.credit };
+  const images = place.credits.map((_, n) => placePhotoPath(place.placeId, n));
+  return { ...p, image: images[0], images, placeId: place.placeId, imageCredits: place.credits };
 }
 
 // When the page gave no title or location, take what the address tells (only Booking addresses carry them)

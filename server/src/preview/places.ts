@@ -12,8 +12,11 @@ const key = () => process.env.GOOGLE_PLACES_KEY;
 
 export const placesEnabled = () => !!key();
 
-// The address the client shows the photo from; it adds the server's own address in front (API_URL)
-export const placePhotoPath = (placeId: string) => `/api/places/${encodeURIComponent(placeId)}/photo`;
+// The address the client shows photo n of a place from; it adds the server's own address in front (API_URL)
+export const placePhotoPath = (placeId: string, n = 0) => `/api/places/${encodeURIComponent(placeId)}/photo/${n}`;
+
+// At most this many photos of one place, like the photos read from a page (parse.ts)
+export const MAX_PLACE_PHOTOS = 6;
 
 // Place ids from Google look like "ChIJN1t_tDeuEmsRUsoyG83frY4"
 export const isPlaceId = (v: unknown): v is string => typeof v === 'string' && /^[A-Za-z0-9_-]{10,300}$/.test(v);
@@ -30,8 +33,13 @@ async function google<T>(path: string, init: RequestInit = {}): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-// The best match for "Freebeach, Vietnam" that has a photo, or null
-export async function findPlace(query: string): Promise<{ placeId: string; credit: string } | null> {
+const creditOf = (photo: Photo) => {
+  const author = photo.authorAttributions?.[0]?.displayName;
+  return author ? `Photo: ${author} · Google Maps` : 'Photo: Google Maps';
+};
+
+// The best match for "Freebeach, Vietnam" that has photos: its id and the credit for each photo, or null
+export async function findPlace(query: string): Promise<{ placeId: string; credits: string[] } | null> {
   if (!placesEnabled() || !query.trim()) return null;
   try {
     const data = await google<{ places?: { id: string; photos?: Photo[] }[] }>('/places:searchText', {
@@ -40,35 +48,35 @@ export async function findPlace(query: string): Promise<{ placeId: string; credi
       body: JSON.stringify({ textQuery: query.slice(0, 200), maxResultCount: 1 }),
     });
     const place = data.places?.[0];
-    const photo = place?.photos?.[0];
-    if (!place || !photo) return null;
-    const author = photo.authorAttributions?.[0]?.displayName;
-    return { placeId: place.id, credit: author ? `Photo: ${author} · Google Maps` : 'Photo: Google Maps' };
+    const photos = (place?.photos ?? []).slice(0, MAX_PLACE_PHOTOS);
+    if (!place || !photos.length) return null;
+    return { placeId: place.id, credits: photos.map(creditOf) };
   } catch (e) {
     console.error('[places:search]', (e as Error).message);
     return null;
   }
 }
 
-// placeId → a short-lived photo address from Google, kept for an hour
+// "placeId/n" → a short-lived photo address from Google, kept for an hour
 const PHOTO_CACHE_MS = 60 * 60 * 1000;
 const photoCache = new Map<string, { at: number; uri: string }>();
 
-export async function photoUri(placeId: string): Promise<string | null> {
-  if (!placesEnabled() || !isPlaceId(placeId)) return null;
-  const hit = photoCache.get(placeId);
+export async function photoUri(placeId: string, n = 0): Promise<string | null> {
+  if (!placesEnabled() || !isPlaceId(placeId) || !Number.isInteger(n) || n < 0 || n >= MAX_PLACE_PHOTOS) return null;
+  const cacheKey = `${placeId}/${n}`;
+  const hit = photoCache.get(cacheKey);
   if (hit && Date.now() - hit.at < PHOTO_CACHE_MS) return hit.uri;
   try {
     const place = await google<{ photos?: Photo[] }>(`/places/${encodeURIComponent(placeId)}`, {
       headers: { 'X-Goog-FieldMask': 'photos' },
     });
-    const name = place.photos?.[0]?.name;
+    const name = place.photos?.[n]?.name;
     if (!name) return null;
     // skipHttpRedirect: Google answers with the photo's address instead of the photo, so the key is not in it
-    const media = await google<{ photoUri?: string }>(`/${name}/media?maxWidthPx=800&skipHttpRedirect=true`);
+    const media = await google<{ photoUri?: string }>(`/${name}/media?maxWidthPx=1200&skipHttpRedirect=true`);
     if (!media.photoUri) return null;
     if (photoCache.size >= 1000) photoCache.delete(photoCache.keys().next().value!);
-    photoCache.set(placeId, { at: Date.now(), uri: media.photoUri });
+    photoCache.set(cacheKey, { at: Date.now(), uri: media.photoUri });
     return media.photoUri;
   } catch (e) {
     console.error('[places:photo]', (e as Error).message);

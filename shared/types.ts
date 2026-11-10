@@ -289,13 +289,14 @@ export interface LinkPreview {
   url: string                 // the link after redirects
   platform: StayPlatform
   title?: string
-  image?: string              // absolute https address of the photo
+  image?: string              // the main photo: an absolute https address, the same as images[0]
+  images?: string[]           // every photo found, at most 6, for the photo browser on the stay card
   price?: { amount: number; currency: string }
   location?: string           // e.g. "Lisbon, Portugal"
-  // When the photo comes from Google Maps instead of the page: image is then our own /api/places/… address,
-  // placeId the Google place, and imageCredit must be shown with the photo
+  // When the photos come from Google Maps instead of the page: they are then our own /api/places/… addresses,
+  // placeId is the Google place, and imageCredits[i] must be shown with images[i]
   placeId?: string
-  imageCredit?: string
+  imageCredits?: string[]
   complete: boolean           // title, photo, price and location were all found
 }
 
@@ -315,10 +316,11 @@ export interface Stay {
   platform: StayPlatform
   title?: string
   image?: string
+  images?: string[]           // see LinkPreview
   price?: { amount: number; currency: string }
   location?: string
-  placeId?: string            // the photo is from Google Maps (see LinkPreview)
-  imageCredit?: string
+  placeId?: string            // the photos are from Google Maps (see LinkPreview)
+  imageCredits?: string[]
   complete: boolean           // the preview found title, photo, price and location
   addedByUserId: string       // may remove it, as may the organiser
   likeUserIds: string[]       // members who like it
