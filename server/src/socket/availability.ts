@@ -57,7 +57,8 @@ export default function register(socket: AppSocket, { io, sessions, userId, user
       const s = sessions[socket.id];
       if (!s) return;
       const g = await Group.findOne({ inviteCode: s.code });
-      if (!g || String(g.adminUserId) !== String(userId) || !['calendar', 'date_vote', 'done'].includes(g.phase)) return;
+      // A trip whose dates were known from the start has no free windows to compute
+      if (!g || String(g.adminUserId) !== String(userId) || g.datesKnown || !['calendar', 'date_vote', 'done'].includes(g.phase)) return;
       // Build a lookup map by user id: { '64b0…': ['2026-05-03', ...] }
       const unavailMap: Record<string, string[]> = {};
       g.availability.forEach(a => { if (a.userId) unavailMap[String(a.userId)] = a.unavailableDates; });

@@ -58,6 +58,11 @@ const GroupSchema = new Schema({
   tripDuration:  { type: Number, default: null },
   tripWindowStart: { type: String, default: null }, // "YYYY-MM-DD" — first day of the allowed travel period
   tripWindowEnd:   { type: String, default: null }, // "YYYY-MM-DD" — last day of the allowed travel period
+  // Set when the trip is created. The group skips the steps it does not need:
+  // a known destination skips the destination poll, known dates skip availability and the date vote.
+  destinationKnown: { type: Boolean, default: false },
+  datesKnown:       { type: Boolean, default: false },
+  currency:         { type: String,  default: 'EUR' },  // the group's currency for the budget
   phase: {
     type: String, default: 'destinations',
     enum: ['destinations', 'calendar', 'date_vote', 'done'] as const,

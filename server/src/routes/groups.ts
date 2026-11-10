@@ -3,8 +3,8 @@ import { v4 as uuidv4 } from 'uuid';
 import rateLimit from 'express-rate-limit';
 import Group from '../models/Group';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
-import { ts, snapMonthEnd } from '../utils';
-import { normalizeInviteCode } from '../validation';
+import { ts, snapMonthEnd, formatTripLabel } from '../utils';
+import { checkNewTrip, normalizeInviteCode } from '../validation';
 import { removeMemberTraces } from '../socket/helpers';
 
 const router = Router();
@@ -23,19 +23,34 @@ const codeLimiter = rateLimit({
 // Routes behind authMiddleware can safely read req.user
 const userOf = (req: Request) => (req as AuthRequest).user;
 
-// Create a new group
+// Create a new trip ("New trip" screen).
+// The old app always started with the destination poll; now the trip starts at the first step it still needs:
+// destination known + dates known = ready to go, destination known = mark free days, otherwise the destination poll.
 router.post('/', authMiddleware, async (req, res) => {
   try {
-    const { name } = req.body;
-    if (!name?.trim()) return res.status(400).json({ error: 'Group name is required' });
+    const input = checkNewTrip(req.body);
+    if (!input.ok) return res.status(400).json({ error: input.error });
+    const { name, destination, knownDates, window, currency } = input.value;
     const { _id: userId, username, color } = userOf(req);
     // Generate a short random invite code, e.g. "A3BF92C1"
     const inviteCode = uuidv4().slice(0,8).toUpperCase();
+    const days = knownDates ? Math.round((Date.parse(knownDates.end) - Date.parse(knownDates.start)) / 86_400_000) + 1 : null;
+    const phase = destination ? (knownDates ? 'done' : 'calendar') : 'destinations';
     const group = await Group.create({
-      inviteCode, name: name.trim(),
+      inviteCode, name,
       adminUserId: userId, adminUsername: username,
       members:  [{ userId, username, color }],
-      messages: [{ username:'System', text:`Group "${name.trim()}" created! Code: ${inviteCode}`, time: ts(), system: true }]
+      currency,
+      destinationKnown: !!destination,
+      approvedDest:     destination,
+      datesKnown:       !!knownDates,
+      finalDate:        knownDates?.start ?? null,
+      finalDateLabel:   knownDates && days ? formatTripLabel(knownDates.start, days) : null,
+      tripDuration:     days,
+      tripWindowStart:  window?.start ?? null,
+      tripWindowEnd:    window?.end ?? null,
+      phase,
+      messages: [{ username:'System', text:`Trip "${name}" created! Code: ${inviteCode}`, time: ts(), system: true }]
     });
     res.status(201).json({ inviteCode, groupId: group._id });
   } catch (e) {
@@ -66,7 +81,7 @@ router.get('/', authMiddleware, async (req, res) => {
   try {
     // .select() limits which fields are returned
     const groups = await Group.find({ 'members.userId': userOf(req)._id })
-      .select('name inviteCode phase members createdAt tripDuration adminUsername tripWindowStart tripWindowEnd finalDate finalDateLabel')
+      .select('name inviteCode phase members createdAt tripDuration adminUsername tripWindowStart tripWindowEnd finalDate finalDateLabel currency approvedDest')
       .sort('-createdAt').limit(20);
     res.json({ groups });
   } catch (e) {
@@ -81,7 +96,7 @@ router.get('/:code/summary', authMiddleware, async (req, res) => {
   try {
     const code = normalizeInviteCode(req.params.code);
     const g = code && await Group.findOne({ inviteCode: code, 'members.userId': userOf(req)._id })
-      .select('name inviteCode phase members createdAt tripDuration adminUsername tripWindowStart tripWindowEnd finalDate finalDateLabel');
+      .select('name inviteCode phase members createdAt tripDuration adminUsername tripWindowStart tripWindowEnd finalDate finalDateLabel currency approvedDest');
     if (!g) return res.status(404).json({ error: 'Trip not found' });
     res.json(g);
   } catch (e) {

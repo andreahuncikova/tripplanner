@@ -10,7 +10,8 @@ export default function register(socket: AppSocket, { io, sessions, userId }: Ct
       const s = sessions[socket.id];
       if (!s) return;
       const g = await Group.findOne({ inviteCode: s.code });
-      if (!g || String(g.adminUserId) !== String(userId) || !['date_vote', 'done'].includes(g.phase)) return;
+      // Known dates already fix the length of the trip
+      if (!g || String(g.adminUserId) !== String(userId) || g.datesKnown || !['date_vote', 'done'].includes(g.phase)) return;
       g.tripDuration = Math.max(1, Math.floor(Number(dur)) || 1);
       await g.save();
       await broadcastState(io, sessions, s.code);
@@ -64,7 +65,14 @@ export default function register(socket: AppSocket, { io, sessions, userId }: Ct
       const g = await Group.findOne({ inviteCode: s.code });
       if (!g || String(g.adminUserId) !== String(userId)) return;
       let msg = '';
-      if (g.phase === 'done') {
+      // Steps the group skipped when the trip was created (known destination, known dates) are skipped going back too
+      if (g.phase === 'done' && g.datesKnown) {
+        if (g.destinationKnown) return;                       // nothing to go back to
+        g.phase = 'destinations'; g.set('activities', []);
+        msg = 'Back to destination selection.';
+      } else if (g.phase === 'calendar' && g.destinationKnown) {
+        return;
+      } else if (g.phase === 'done') {
         g.phase = 'date_vote'; g.finalDate = null; g.finalDateLabel = null;
         g.set('activities', []); g.dateRanges.forEach(r => { r.selected = false; });
         msg = 'Trip unconfirmed — back to date voting.';

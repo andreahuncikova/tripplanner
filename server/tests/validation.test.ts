@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { MESSAGE_MAX, checkLogin, checkMessage, checkPasswordChange, checkRegister, normalizeInviteCode } from '../src/validation';
+import { MESSAGE_MAX, checkLogin, checkMessage, checkNewTrip, checkPasswordChange, checkRegister, normalizeInviteCode } from '../src/validation';
 
 const valid = { email: 'mia@example.com', password: 'password1', username: 'Mia Novak' };
 
@@ -112,5 +112,62 @@ describe('checkMessage', () => {
   it('accepts MESSAGE_MAX characters but not one more', () => {
     expect(checkMessage('a'.repeat(MESSAGE_MAX)).ok).toBe(true);
     expect(checkMessage('a'.repeat(MESSAGE_MAX + 1)).ok).toBe(false);
+  });
+});
+
+describe('checkNewTrip', () => {
+  const today = '2026-11-10';
+  const base = { name: 'Bali with friends', currency: 'eur' };
+
+  it('accepts known dates', () => {
+    const r = checkNewTrip({ ...base, destination: ' Bali ', dates: { mode: 'known', start: '2027-03-12', end: '2027-03-22' } }, today);
+    expect(r).toEqual({ ok: true, value: {
+      name: 'Bali with friends', destination: 'Bali', currency: 'EUR',
+      knownDates: { start: '2027-03-12', end: '2027-03-22' }, window: null,
+    } });
+  });
+
+  it('turns the chosen months into a window from the first to the last day', () => {
+    const r = checkNewTrip({ ...base, dates: { mode: 'find', fromMonth: '2027-02', toMonth: '2027-04' } }, today);
+    expect(r.ok && r.value.window).toEqual({ start: '2027-02-01', end: '2027-04-30' });
+    expect(r.ok && r.value.destination).toBeNull();
+  });
+
+  it('knows that February 2028 has 29 days', () => {
+    const r = checkNewTrip({ ...base, dates: { mode: 'find', fromMonth: '2028-02', toMonth: '2028-02' } }, today);
+    expect(r.ok && r.value.window?.end).toBe('2028-02-29');
+  });
+
+  it('allows no dates at all, like the old app', () => {
+    const r = checkNewTrip({ name: 'Trip' }, today);
+    expect(r.ok && r.value).toMatchObject({ knownDates: null, window: null, currency: 'EUR' });
+  });
+
+  it('needs a name', () => {
+    expect(checkNewTrip({ ...base, name: '  ' }, today).ok).toBe(false);
+    expect(checkNewTrip({ ...base, name: 'x'.repeat(61) }, today).ok).toBe(false);
+  });
+
+  it('rejects wrong or impossible dates', () => {
+    const known = (start: string, end: string) => checkNewTrip({ ...base, dates: { mode: 'known', start, end } }, today).ok;
+    expect(known('2027-02-30', '2027-03-02')).toBe(false);     // there is no 30 February
+    expect(known('2027-03-22', '2027-03-12')).toBe(false);     // end before start
+    expect(known('2026-11-01', '2026-11-05')).toBe(false);     // in the past
+    expect(known('2027-01-01', '2027-04-30')).toBe(false);     // longer than 90 days
+    expect(known('2026-11-09', '2026-11-12')).toBe(true);      // yesterday is fine (time zones)
+  });
+
+  it('rejects wrong months', () => {
+    const find = (fromMonth: string, toMonth: string) => checkNewTrip({ ...base, dates: { mode: 'find', fromMonth, toMonth } }, today).ok;
+    expect(find('2027-05', '2027-03')).toBe(false);            // last before first
+    expect(find('2026-10', '2026-12')).toBe(false);            // starts in the past
+    expect(find('2027-01', '2028-01')).toBe(false);            // 13 months
+    expect(find('2027-13', '2027-13')).toBe(false);            // no month 13
+    expect(find('2026-11', '2026-11')).toBe(true);             // this month is fine
+  });
+
+  it('rejects a currency that is not three letters and objects instead of text', () => {
+    expect(checkNewTrip({ ...base, currency: 'EURO' }, today).ok).toBe(false);
+    expect(checkNewTrip({ ...base, name: { $gt: '' } }, today).ok).toBe(false);
   });
 });

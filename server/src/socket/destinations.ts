@@ -45,7 +45,8 @@ export default function register(socket: AppSocket, { io, sessions, userId, user
       const d = g.destinations.id(destId);
       if (!d) return;
       g.approvedDest = d.name;
-      if (g.phase === 'destinations') g.phase = 'calendar';
+      // With dates known from the start, there is no availability step: the trip is ready
+      if (g.phase === 'destinations') g.phase = g.datesKnown ? 'done' : 'calendar';
       g.messages.push({ username: 'System', text: `Destination approved: ${d.name}.`, time: ts(), system: true });
       await g.save();
       await broadcastState(io, sessions, s.code);

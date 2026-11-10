@@ -1,4 +1,4 @@
-// Checks the log-in and sign-up forms and chat messages before anything touches the database.
+// Checks the log-in and sign-up forms, chat messages and new trips before anything touches the database.
 
 export const PASSWORD_MIN = 8;
 const USERNAME_MAX = 30;
@@ -61,4 +61,64 @@ export function checkMessage(v: unknown): Result<string> {
   if (!message) return { ok: false, error: 'The message is empty' };
   if (message.length > MESSAGE_MAX) return { ok: false, error: `A message can be at most ${MESSAGE_MAX} characters` };
   return { ok: true, value: message };
+}
+
+// ── Creating a trip ───────────────────────────────────
+const TRIP_NAME_MAX = 60;
+const DESTINATION_MAX = 60;
+const MAX_TRIP_DAYS = 90;      // "we know our dates": at most a 90-day trip
+const MAX_WINDOW_MONTHS = 12;  // "help us find dates": at most 12 months to choose from
+
+export interface NewTrip {
+  name: string;
+  destination: string | null;                // filled in = no destination poll
+  knownDates: { start: string; end: string } | null;   // filled in = no availability and date vote
+  window: { start: string; end: string } | null;       // months to find dates in, "YYYY-MM-01" … last day
+  currency: string;
+}
+
+// "YYYY-MM-DD" that is a real day (not 2027-02-30)
+const isDay = (v: string) => /^\d{4}-\d{2}-\d{2}$/.test(v) && new Date(v + 'T12:00:00Z').toISOString().slice(0, 10) === v;
+const isMonth = (v: string) => /^\d{4}-(0[1-9]|1[0-2])$/.test(v);
+const dayDiff = (a: string, b: string) => Math.round((Date.parse(b) - Date.parse(a)) / 86_400_000);
+const lastDayOf = (month: string) => {
+  const [y, m] = month.split('-').map(Number);
+  return `${month}-${String(new Date(Date.UTC(y, m, 0)).getUTCDate()).padStart(2, '0')}`;
+};
+
+export function checkNewTrip(body: unknown, today = new Date().toISOString().slice(0, 10)): Result<NewTrip> {
+  const b = (body ?? {}) as Record<string, unknown>;
+  const name = text(b.name).trim();
+  const destination = text(b.destination).trim();
+  const currency = (text(b.currency).trim() || 'EUR').toUpperCase();
+  const dates = (b.dates ?? {}) as Record<string, unknown>;
+
+  if (!name) return { ok: false, error: 'Please give the trip a name' };
+  if (name.length > TRIP_NAME_MAX) return { ok: false, error: `The trip name can be at most ${TRIP_NAME_MAX} characters` };
+  if (destination.length > DESTINATION_MAX) return { ok: false, error: `The destination can be at most ${DESTINATION_MAX} characters` };
+  if (!/^[A-Z]{3}$/.test(currency)) return { ok: false, error: 'Please choose a currency' };
+
+  let knownDates: NewTrip['knownDates'] = null;
+  let window: NewTrip['window'] = null;
+
+  if (dates.mode === 'known') {
+    const start = text(dates.start), end = text(dates.end);
+    if (!isDay(start) || !isDay(end)) return { ok: false, error: 'Please choose the first and the last day of the trip' };
+    // One day of tolerance, because "today" on the server can be yesterday in the user's time zone
+    if (dayDiff(today, start) < -1) return { ok: false, error: 'The trip cannot start in the past' };
+    if (end < start) return { ok: false, error: 'The last day cannot be before the first day' };
+    if (dayDiff(start, end) + 1 > MAX_TRIP_DAYS) return { ok: false, error: `A trip can be at most ${MAX_TRIP_DAYS} days long` };
+    knownDates = { start, end };
+  } else if (dates.mode === 'find') {
+    const from = text(dates.fromMonth), to = text(dates.toMonth);
+    if (!isMonth(from) || !isMonth(to)) return { ok: false, error: 'Please choose the months the trip could happen in' };
+    if (from < today.slice(0, 7)) return { ok: false, error: 'The months cannot be in the past' };
+    if (to < from) return { ok: false, error: 'The last month cannot be before the first month' };
+    const months = (Number(to.slice(0, 4)) - Number(from.slice(0, 4))) * 12 + Number(to.slice(5)) - Number(from.slice(5)) + 1;
+    if (months > MAX_WINDOW_MONTHS) return { ok: false, error: `Please choose at most ${MAX_WINDOW_MONTHS} months` };
+    window = { start: `${from}-01`, end: lastDayOf(to) };
+  }
+  // No dates at all (older clients): the group sets the months later, as in the old app
+
+  return { ok: true, value: { name, destination: destination || null, knownDates, window, currency } };
 }

@@ -99,6 +99,12 @@ export interface TripState {
   tripDuration: number | null
   tripWindowStart: string | null
   tripWindowEnd: string | null
+  // Chosen when the trip was created: a known destination skips the destination poll,
+  // known dates skip availability and the date vote.
+  destinationKnown: boolean
+  datesKnown: boolean
+  // The group's currency for the budget, e.g. "EUR"
+  currency: string
   adminUsername: string
   members: Member[]
   destinations: Destination[]
@@ -216,6 +222,19 @@ export interface TripSummary {
   // Set when the trip dates are confirmed: "YYYY-MM-DD" and a label like "3 – 12 April (10 days)"
   finalDate: string | null
   finalDateLabel: string | null
+  currency: string
+  approvedDest: string | null
+}
+
+// POST /api/groups, the "New trip" screen. Answer: { inviteCode }.
+export interface NewTripInput {
+  name: string
+  // Empty: the group suggests places and votes
+  destination?: string
+  dates:
+    | { mode: 'known'; start: string; end: string }          // "YYYY-MM-DD", first and last day
+    | { mode: 'find'; fromMonth: string; toMonth: string }   // "YYYY-MM", the months the trip could happen in
+  currency: string
 }
 
 // GET /api/groups/:code, public, also used for the invite preview.

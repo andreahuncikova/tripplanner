@@ -16,7 +16,7 @@ export default function register(socket: AppSocket, { io, sessions, userId }: Ct
       g.expenses.push({
         description:       description.trim(),
         amount:            Number(amount),
-        currency:          currency || 'EUR',
+        currency:          currency || g.currency || 'EUR',
         paidByUserId:      payer,
         // Nobody chosen: the cost is shared by the whole group
         splitAmongUserIds: split.length ? split : memberIds(g, g.members.map(m => m.userId)),
