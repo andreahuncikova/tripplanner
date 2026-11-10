@@ -6,8 +6,8 @@ import { SendIcon } from '../../components/layout/icons'
 import { cn } from '../../lib/cn'
 import type { TripChat } from '../../socket/useTripChat'
 import type { TripStays } from '../../socket/useTripStays'
-import { formatPrice, imageSrc, platformName } from './stayFormat'
-import PhotoCredit from './PhotoCredit'
+import { formatPrice, platformName } from './stayFormat'
+import PhotoCarousel from './PhotoCarousel'
 
 // Same limit as MESSAGE_MAX on the server.
 const MESSAGE_MAX = 1000
@@ -116,33 +116,51 @@ function LinkCard({ preview: p, stays, inWindow }: { preview: LinkPreview; stays
     toast(problem ?? 'Saved to Stays')
   }
 
+  const photos = p.images?.length ? p.images : p.image ? [p.image] : []
+  const saveButton = canSave && (
+    <button
+      type="button"
+      onClick={save}
+      disabled={saved || busy || !stays.loaded}
+      className={cn(
+        'min-h-9 self-start rounded-[10px] px-3 text-sm font-bold',
+        photos.length
+          ? 'border border-white/40 bg-white/15 text-white backdrop-blur-sm hover:bg-white/25 disabled:opacity-80'
+          : 'px-0 text-sommet hover:text-sommet-dark disabled:text-muted',
+      )}
+    >
+      {saved ? 'In Stays ✓' : busy ? 'Saving…' : '+ Add to Stays'}
+    </button>
+  )
+
+  // With photos: the same look as the stay cards in the Stays tab, only smaller
+  if (photos.length) {
+    return (
+      <article className="relative isolate flex h-64 w-64 max-w-full flex-col justify-end overflow-hidden rounded-xl bg-roche shadow-card">
+        <PhotoCarousel images={photos} credits={p.imageCredits} label={name} />
+        <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-3/5 bg-linear-to-t from-black/85 via-black/45 to-transparent" />
+        <div className="relative flex flex-col gap-2 p-3 text-white">
+          <a href={p.url} target="_blank" rel="noopener noreferrer" className="flex flex-col gap-0.5 text-white hover:text-white">
+            {p.title && <span className="text-2xs font-bold tracking-wider text-white/80 uppercase">{platformName(p)}</span>}
+            <span className="line-clamp-2 text-sm font-bold wrap-anywhere hover:underline">{name}</span>
+            {details && <span className="text-xs text-white/85">{details}</span>}
+          </a>
+          {saveButton}
+        </div>
+      </article>
+    )
+  }
+
   return (
-    <div className={cn('w-64 max-w-full overflow-hidden rounded-lg bg-white', inWindow ? 'border border-line' : 'shadow-card')}>
+    <div className={cn('w-64 max-w-full overflow-hidden rounded-xl bg-white', inWindow ? 'border border-line' : 'shadow-card')}>
       <a href={p.url} target="_blank" rel="noopener noreferrer" className="block hover:bg-canvas">
-        {p.image && (
-          <div className="relative">
-            <img src={imageSrc(p.image)} alt="" loading="lazy" referrerPolicy="no-referrer" className="h-32 w-full object-cover" />
-            <PhotoCredit credit={p.imageCredits?.[0]} />
-          </div>
-        )}
         <div className="flex flex-col gap-0.5 px-3 py-2.5">
           {p.title && <span className="text-2xs font-bold tracking-wider text-muted uppercase">{platformName(p)}</span>}
           <span className="text-sm font-bold wrap-anywhere text-roche">{name}</span>
           {details && <span className="text-xs text-muted">{details}</span>}
         </div>
       </a>
-      {canSave && (
-        <div className="border-t border-line px-3 py-1.5">
-          <button
-            type="button"
-            onClick={save}
-            disabled={saved || busy || !stays.loaded}
-            className="min-h-9 text-sm font-bold text-sommet hover:text-sommet-dark disabled:text-muted"
-          >
-            {saved ? 'In Stays ✓' : busy ? 'Saving…' : '+ Add to Stays'}
-          </button>
-        </div>
-      )}
+      {saveButton && <div className="border-t border-line px-3 py-1">{saveButton}</div>}
     </div>
   )
 }
