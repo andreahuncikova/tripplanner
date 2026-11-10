@@ -2,6 +2,7 @@ import { Types } from 'mongoose';
 import Group, { GroupDoc, IGroup } from '../models/Group';
 import { ts } from '../utils';
 import { addSystemMessage, deleteMessages } from '../messages';
+import { deleteStays, removeLikes } from '../stays';
 import type { ChatMessage, IO, OnlineUser, Session, Sessions, TripState } from '../types';
 
 // Returns the list of users currently connected to a specific group room.
@@ -41,10 +42,11 @@ function removeMemberTraces(g: IGroup, userId: Id) {
   g.readyUserIds = without(g.readyUserIds) as typeof g.readyUserIds;
 }
 
-// Deletes a trip together with its chat messages
+// Deletes a trip together with its chat messages and stays
 async function deleteTrip(g: GroupDoc) {
   await g.deleteOne();
   await deleteMessages(g._id);
+  await deleteStays(g._id);
 }
 
 // Takes someone out of a trip and saves it. When the organiser leaves, the next member becomes the organiser;
@@ -54,6 +56,7 @@ async function leaveTrip(g: GroupDoc, userId: Id, username: string): Promise<Cha
   const wasAdmin = sameId(g.adminUserId, userId);
   g.set('members', g.members.filter(m => !sameId(m.userId, userId)));
   removeMemberTraces(g, userId);
+  await removeLikes(g._id, userId);
   if (!g.members.length) {
     await deleteTrip(g);
     return null;

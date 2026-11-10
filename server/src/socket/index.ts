@@ -6,6 +6,7 @@ import registerDatevote from './datevote';
 import registerActivities from './activities';
 import registerExpenses from './expenses';
 import registerGroup from './group';
+import registerStays from './stays';
 import type { Ctx, IO, Sessions } from '../types';
 
 // This function is called once when the server starts.
@@ -30,5 +31,6 @@ export default function registerAllHandlers(io: IO, sessions: Sessions) {
     registerActivities(socket, ctx);     // add/edit/remove itinerary activities
     registerExpenses(socket, ctx);       // add/edit/remove shared expenses
     registerGroup(socket, ctx);          // leave/delete group
+    registerStays(socket, ctx);          // stays tab: save links, like, areas
   });
 }

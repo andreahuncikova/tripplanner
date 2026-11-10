@@ -2,6 +2,7 @@ import Group from '../models/Group';
 import { normalizeInviteCode } from '../validation';
 import { getOnline, serialize, toOnline } from './helpers';
 import { lastMessages } from '../messages';
+import { staysState } from '../stays';
 import type { AppSocket, Ctx } from '../types';
 
 export default function register(socket: AppSocket, { io, sessions, userId, username, color }: Ctx) {
@@ -27,7 +28,7 @@ export default function register(socket: AppSocket, { io, sessions, userId, user
       const g = inviteCode && await Group.findOne({ inviteCode, 'members.userId': userId });
       if (n !== latest) return;
       if (!g || !inviteCode) { socket.emit('err', 'Trip not found'); return; }
-      const messages = await lastMessages(g._id);
+      const [messages, stays] = await Promise.all([lastMessages(g._id), staysState(g)]);
       if (n !== latest) return;
 
       // One socket serves the whole app, so a trip opened before this one is left first
@@ -40,6 +41,7 @@ export default function register(socket: AppSocket, { io, sessions, userId, user
 
       // Send the full group state + the newest messages to the joining client
       socket.emit('joined', { ...serialize(g, getOnline(sessions, inviteCode)), messages });
+      socket.emit('stays', stays);
 
       // Tell everyone else in the room that someone new joined
       io.to(inviteCode).emit('online', toOnline(getOnline(sessions, inviteCode)));

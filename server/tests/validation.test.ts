@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { checkAreaName } from '../src/validation';
 import { MESSAGE_MAX, checkLogin, checkMessage, checkNewTrip, checkPasswordChange, checkTripChanges, checkRegister, normalizeInviteCode } from '../src/validation';
 
 const valid = { email: 'mia@example.com', password: 'password1', username: 'Mia Novak' };
@@ -194,5 +195,17 @@ describe('checkTripChanges', () => {
     expect(checkTripChanges({ dates: { start: '2027-02-30', end: '2027-03-02' } }, today).ok).toBe(false);
     expect(checkTripChanges({ dates: { start: '2026-11-01', end: '2026-11-05' } }, today).ok).toBe(false);
     expect(checkTripChanges({ name: { $gt: '' } }, today).ok).toBe(false);
+  });
+});
+
+describe('checkAreaName', () => {
+  it('keeps a normal name and tidies the spaces', () => {
+    expect(checkAreaName('  Nusa   Penida ')).toEqual({ ok: true, value: 'Nusa Penida' });
+  });
+  it('refuses empty names, names over 40 characters and anything that is not text', () => {
+    expect(checkAreaName('   ').ok).toBe(false);
+    expect(checkAreaName('x'.repeat(41)).ok).toBe(false);
+    expect(checkAreaName({ $gt: '' }).ok).toBe(false);
+    expect(checkAreaName(undefined).ok).toBe(false);
   });
 });

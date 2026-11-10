@@ -39,6 +39,10 @@ const ExpenseSchema = new Schema({
   createdAt: { type: Date, default: Date.now },
 });
 
+const AreaSchema = new Schema({
+  name: { type: String, required: true },
+});
+
 const MemberSchema = new Schema({
   userId: Schema.Types.ObjectId, username: String, color: String,
   joinedAt: { type: Date, default: Date.now },
@@ -73,6 +77,8 @@ const GroupSchema = new Schema({
   finalDateLabel:    { type: String,           default: null },
   activities:        { type: [ActivitySchema], default: [] },
   expenses:          { type: [ExpenseSchema],  default: [] },
+  // Parts of the destination for the Stays tab, e.g. Ubud and Uluwatu. The stays themselves are in models/Stay.ts.
+  areas:             { type: [AreaSchema],     default: [] },
   createdAt:         { type: Date,             default: Date.now },
 });
 

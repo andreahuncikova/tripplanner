@@ -63,6 +63,15 @@ export function checkMessage(v: unknown): Result<string> {
   return { ok: true, value: message };
 }
 
+// The name of an area in the Stays tab, e.g. "Ubud": text, not empty, at most AREA_NAME_MAX characters
+export const AREA_NAME_MAX = 40;
+export function checkAreaName(v: unknown): Result<string> {
+  const name = text(v).replace(/\s+/g, ' ').trim();
+  if (!name) return { ok: false, error: 'Give the area a name' };
+  if (name.length > AREA_NAME_MAX) return { ok: false, error: `An area name can be at most ${AREA_NAME_MAX} characters` };
+  return { ok: true, value: name };
+}
+
 // ── Creating a trip ───────────────────────────────────
 const TRIP_NAME_MAX = 60;
 const DESTINATION_MAX = 60;

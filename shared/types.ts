@@ -178,6 +178,14 @@ export interface ClientToServerEvents {
   'expense:edit': (data: ExpenseInput & { id: string }) => void
   'expense:remove': (expenseId: string) => void
 
+  // Stays tab. The server answers stay:add when the stay is saved, or with the reason it was not.
+  'stay:add': (data: { url: string; areaId: string | null }, done: (result: { ok: true } | { error: string }) => void) => void
+  'stay:like': (stayId: string) => void
+  'stay:move': (data: { id: string; areaId: string | null }) => void
+  'stay:remove': (stayId: string) => void
+  'area:add': (name: string, done: (result: { ok: true; id: string } | { error: string }) => void) => void
+  'area:rename': (data: { id: string; name: string }) => void
+
   'group:leave': () => void
   'group:delete': () => void
 }
@@ -203,6 +211,9 @@ export interface ServerToClientEvents {
   'activity:new': (activity: Activity) => void
   'expense:new': (expense: Expense) => void
   'expense:removed': (expenseId: string) => void
+
+  // All stays and areas of the trip, after joining and after every change to them
+  stays: (data: StaysState) => void
 
   'group:left': () => void
   'group:deleted': () => void
@@ -277,4 +288,33 @@ export interface LinkPreview {
   price?: { amount: number; currency: string }
   location?: string           // e.g. "Lisbon, Portugal"
   complete: boolean           // title, photo, price and location were all found
+}
+
+// ── Stays ─────────────────────────────────────────────
+
+// A part of the destination the group may stay in, e.g. Ubud or Uluwatu in Bali
+export interface Area {
+  _id: string
+  name: string
+}
+
+// One saved stay link. The details come from the link preview (LinkPreview), so any of them can be missing.
+export interface Stay {
+  _id: string
+  areaId: string | null       // null: not in an area yet
+  url: string
+  platform: StayPlatform
+  title?: string
+  image?: string
+  price?: { amount: number; currency: string }
+  location?: string
+  complete: boolean           // the preview found title, photo, price and location
+  addedByUserId: string       // may remove it, as may the organiser
+  likeUserIds: string[]       // members who like it
+  createdAt: string
+}
+
+export interface StaysState {
+  areas: Area[]
+  stays: Stay[]               // newest first
 }

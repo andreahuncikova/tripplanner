@@ -3,6 +3,7 @@ import { Link, NavLink, Outlet, useLocation, useMatch, useParams } from 'react-r
 import { cn } from '../../lib/cn'
 import { people } from '../../lib/trips'
 import { useTripChat } from '../../socket/useTripChat'
+import { useTripStays } from '../../socket/useTripStays'
 import {
   BackIcon, BudgetIcon, ChatIcon, ChevronDownIcon, CloseIcon, ItineraryIcon, MoreIcon, PlanIcon, StaysIcon,
 } from '../../components/layout/icons'
@@ -34,6 +35,7 @@ export default function TripLayout() {
   // so nothing is missed while the chat window is closed or another tab is open.
   const { trip } = useTripSummary(tripId)
   const chat = useTripChat(tripId)
+  const stays = useTripStays(tripId)
 
   return (
     <div className={cn('flex flex-col pb-24 lg:min-h-dvh lg:pb-0', onChatTab ? 'h-dvh lg:h-auto' : 'min-h-dvh')}>
@@ -70,7 +72,7 @@ export default function TripLayout() {
       </header>
 
       <main className={cn('flex-1 lg:px-8 lg:py-7', onChatTab ? 'flex min-h-0 flex-col lg:block' : 'px-5 py-4')}>
-        <Outlet context={{ chat } satisfies TripOutlet} />
+        <Outlet context={{ chat, stays, trip } satisfies TripOutlet} />
       </main>
 
       {/* Phones: the sections and the chat as tabs at the bottom. */}

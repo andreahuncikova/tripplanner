@@ -1,4 +1,5 @@
 import ChatPanel from './ChatPanel'
+import StaysView from './StaysSection'
 import { useTripOutlet } from './tripOutlet'
 
 // The trip's sections. Each one is a placeholder until its feature is built.
@@ -12,7 +13,10 @@ function Placeholder({ title, text }: { title: string; text: string }) {
 }
 
 export const PlanSection = () => <Placeholder title="Plan" text="Destination, dates and votes." />
-export const StaysSection = () => <Placeholder title="Stays" text="Saved stays, grouped into areas." />
+export function StaysSection() {
+  const { stays, trip } = useTripOutlet()
+  return <StaysView stays={stays} trip={trip} />
+}
 export const ItinerarySection = () => <Placeholder title="Itinerary" text="What happens on each day." />
 export const BudgetSection = () => <Placeholder title="Budget" text="Expenses and who owes whom." />
 
