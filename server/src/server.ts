@@ -22,6 +22,12 @@ const io     = new Server<ClientToServerEvents, ServerToClientEvents, {}, Socket
   cors: { origin: CLIENT_URLS },
 });
 
+// sessions keeps track of which socket belongs to which user and group,
+// so we can route messages to the correct room.
+const sessions: Sessions = {};
+// The REST routes need them too, so a change made in Trip settings reaches everyone who has the trip open
+app.locals.live = { io, sessions };
+
 // ── REST API ──────────────────────────────────────────
 // The server only serves the API; the frontend is served by Vercel.
 // Render puts one proxy in front of the server, so the real visitor IP (used by the login rate limit)
@@ -82,9 +88,6 @@ connectWithRetry();
 // socketAuth runs before every new connection — it checks the JWT token and rejects unauthenticated sockets before they can send any events.
 io.use(socketAuth);
 
-// sessions keeps track of which socket belongs to which user and group,
-// so we can route messages to the correct room.
-const sessions: Sessions = {};
 registerAllHandlers(io, sessions);
 
 // ── Global error handler ──────────────────────────────

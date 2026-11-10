@@ -94,6 +94,8 @@ export type Phase = 'destinations' | 'calendar' | 'date_vote' | 'done'
 
 // The whole trip as the server sends it in 'state' (serialize() in socket/helpers.js).
 export interface TripState {
+  // Which trip this is, so a screen can ignore an update meant for a trip it just closed
+  inviteCode: string
   name: string
   phase: Phase
   tripDuration: number | null
@@ -105,6 +107,7 @@ export interface TripState {
   datesKnown: boolean
   // The group's currency for the budget, e.g. "EUR"
   currency: string
+  adminUserId: string
   adminUsername: string
   members: Member[]
   destinations: Destination[]
@@ -216,6 +219,8 @@ export interface TripSummary {
   members: Member[]
   createdAt: string
   tripDuration: number | null
+  // The organiser: may change the trip in Trip settings and delete it
+  adminUserId: string
   adminUsername: string
   tripWindowStart: string | null
   tripWindowEnd: string | null
@@ -224,6 +229,16 @@ export interface TripSummary {
   finalDateLabel: string | null
   currency: string
   approvedDest: string | null
+  // The dates were entered when the trip was created, so the organiser can change them in Trip settings
+  datesKnown: boolean
+}
+
+// PATCH /api/groups/:code, Trip settings (organiser only). Only the fields that are sent change.
+export interface TripChangesInput {
+  name?: string
+  currency?: string
+  // Only for trips whose dates were known when they were created
+  dates?: { start: string; end: string }
 }
 
 // POST /api/groups, the "New trip" screen. Answer: { inviteCode }.

@@ -9,6 +9,9 @@ export const phases: Record<Phase, { label: string; now: string; step: number }>
 }
 export const STEPS = 4
 
+// Sent on window after a trip was changed in Trip settings, so the sidebar loads the trips again
+export const TRIPS_CHANGED = 'trips:changed'
+
 export const people = (n: number) => `${n} ${n === 1 ? 'person' : 'people'}`
 
 // "YYYY-MM-DD" read at noon local time, so the time zone cannot move it to another day

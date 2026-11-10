@@ -10,6 +10,7 @@ import NewTrip from './pages/NewTrip'
 import NotFound from './pages/NotFound'
 import UiGallery from './pages/UiGallery'
 import TripLayout from './pages/trip/TripLayout'
+import TripSettings from './pages/trip/TripSettings'
 import { BudgetSection, ChatSection, ItinerarySection, PlanSection, StaysSection } from './pages/trip/sections'
 
 // Every page of the app. App wraps them all and renders the current one in its <Outlet />.
@@ -33,6 +34,8 @@ export const router = createBrowserRouter([
               // Also the target of invite links: /join?code=A3BF92C1
               { path: 'join',      element: <JoinTrip /> },
               { path: 'new-trip',  element: <NewTrip /> },
+              // Its own screen without the trip's tabs, as in the mockups
+              { path: 'trips/:tripId/settings', element: <TripSettings /> },
               {
                 path: 'trips/:tripId',
                 element: <TripLayout />,

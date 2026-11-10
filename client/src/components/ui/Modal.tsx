@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useId, useRef, type ReactNode } from 'react'
 import { cn } from '../../lib/cn'
 
 export interface ModalProps {
@@ -14,6 +14,8 @@ export interface ModalProps {
 // and closes it with Escape.
 export function Modal({ open, onClose, title, description, children }: ModalProps) {
   const ref = useRef<HTMLDialogElement>(null)
+  // Its own id, because a screen can have several dialogs (e.g. Trip settings)
+  const titleId = useId()
 
   useEffect(() => {
     const dialog = ref.current
@@ -28,7 +30,7 @@ export function Modal({ open, onClose, title, description, children }: ModalProp
       onClose={onClose}
       // A click on the dark backdrop lands on the <dialog> itself, not on its content.
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
-      aria-labelledby="modal-title"
+      aria-labelledby={titleId}
       className={cn(
         'fixed inset-x-0 top-auto bottom-0 m-0 w-full max-w-none rounded-t-2xl bg-white text-roche',
         'md:inset-0 md:m-auto md:h-fit md:max-w-lg md:rounded-2xl',
@@ -39,7 +41,7 @@ export function Modal({ open, onClose, title, description, children }: ModalProp
         <div aria-hidden="true" className="h-1.25 w-10 self-center rounded-full bg-line-strong md:hidden" />
         <div className="flex items-start justify-between gap-4">
           <div className="flex flex-col gap-1">
-            <h2 id="modal-title" className="text-title font-extrabold">{title}</h2>
+            <h2 id={titleId} className="text-title font-extrabold">{title}</h2>
             {description && <p className="text-sm text-muted">{description}</p>}
           </div>
           <button

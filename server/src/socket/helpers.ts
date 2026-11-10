@@ -1,5 +1,5 @@
 import { Types } from 'mongoose';
-import Group, { IGroup } from '../models/Group';
+import Group, { GroupDoc, IGroup } from '../models/Group';
 import { ts } from '../utils';
 import type { IO, OnlineUser, Session, Sessions, TripState } from '../types';
 
@@ -40,6 +40,37 @@ function removeMemberTraces(g: IGroup, userId: Id) {
   g.readyUserIds = without(g.readyUserIds) as typeof g.readyUserIds;
 }
 
+// Takes someone out of a trip and saves it. When the organiser leaves, the next member becomes the organiser;
+// the last one out deletes the trip. Used by "Leave trip" in Trip settings and by the old socket event.
+async function leaveTrip(g: GroupDoc, userId: Id, username: string): Promise<'left' | 'deleted'> {
+  const wasAdmin = sameId(g.adminUserId, userId);
+  g.set('members', g.members.filter(m => !sameId(m.userId, userId)));
+  removeMemberTraces(g, userId);
+  if (!g.members.length) {
+    await g.deleteOne();
+    return 'deleted';
+  }
+  if (wasAdmin) {
+    g.adminUserId   = g.members[0].userId;
+    g.adminUsername = g.members[0].username;
+    g.messages.push({ username: 'System', text: `${username} left. ${g.adminUsername} is now the organiser.`, time: ts(), system: true });
+  } else {
+    g.messages.push({ username: 'System', text: `${username} left the trip.`, time: ts(), system: true });
+  }
+  await g.save();
+  return 'left';
+}
+
+// Takes sockets out of a trip's room, so they get no more of its messages and cannot send to it:
+// one person's sockets after they left, or everyone's (no userId) after the trip was deleted.
+function closeRoom(io: IO, sessions: Sessions, code: string, userId?: Id) {
+  for (const [socketId, s] of Object.entries(sessions)) {
+    if (s.code !== code || (userId != null && !sameId(s.userId, userId))) continue;
+    delete sessions[socketId];
+    io.in(socketId).socketsLeave(code);
+  }
+}
+
 // Socket.IO turns every Mongoose document into JSON before it sends it, so ObjectIds and dates
 // arrive at the client as strings. shared/types.ts describes that JSON.
 // Our schemas still allow empty fields, so TypeScript cannot prove that a document matches the shared type.
@@ -53,6 +84,7 @@ function toClient<T>(doc: unknown): T {
 // like _id, __v, or raw MongoDB ObjectIds.
 function serialize(g: IGroup, onlineList?: Session[]): TripState {
   return toClient<TripState>({
+    inviteCode:        g.inviteCode,
     name:              g.name,
     phase:             g.phase,
     tripDuration:      g.tripDuration,
@@ -61,6 +93,7 @@ function serialize(g: IGroup, onlineList?: Session[]): TripState {
     destinationKnown:  g.destinationKnown,
     datesKnown:        g.datesKnown,
     currency:          g.currency,
+    adminUserId:       g.adminUserId,
     adminUsername:     g.adminUsername,
     members:           g.members,
     destinations:      g.destinations,
@@ -86,4 +119,4 @@ async function broadcastState(io: IO, sessions: Sessions, code: string) {
   io.to(code).emit('state', serialize(g, getOnline(sessions, code)));
 }
 
-export { ts, toClient, getOnline, toOnline, serialize, broadcastState, sameId, hasId, objectId, memberIds, removeMemberTraces };
+export { ts, toClient, getOnline, toOnline, serialize, broadcastState, sameId, hasId, objectId, memberIds, removeMemberTraces, leaveTrip, closeRoom };

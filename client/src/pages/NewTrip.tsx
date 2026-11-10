@@ -1,7 +1,8 @@
-import { useEffect, useId, useMemo, useState, type FormEvent, type ReactNode } from 'react'
+import { useId, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import type { NewTripInput } from '@shared/types'
 import { api } from '../lib/api'
+import { useCurrencies } from '../lib/currencies'
 import { cn } from '../lib/cn'
 import { Button, Input } from '../components/ui'
 import { BackIcon } from '../components/layout/icons'
@@ -10,8 +11,6 @@ type DatesMode = NewTripInput['dates']['mode']
 
 // Same limit as the server (server/src/validation.ts)
 const MAX_WINDOW_MONTHS = 12
-// Used when the server's currency list cannot be loaded
-const FALLBACK_CURRENCIES = ['EUR', 'DKK', 'USD', 'GBP', 'SEK', 'NOK', 'CHF', 'CZK', 'PLN', 'HUF', 'JPY', 'CAD', 'AUD']
 
 const pad = (n: number) => String(n).padStart(2, '0')
 const todayKey = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` }
@@ -27,20 +26,6 @@ function nextMonths(count: number) {
 }
 const monthsBetween = (from: string, to: string) =>
   (Number(to.slice(0, 4)) - Number(from.slice(0, 4))) * 12 + Number(to.slice(5)) - Number(from.slice(5)) + 1
-
-// The currencies the server has exchange rates for, so the budget can convert every one of them
-function useCurrencies() {
-  const [codes, setCodes] = useState<string[]>(FALLBACK_CURRENCIES)
-  useEffect(() => {
-    api<Record<string, number>>('/api/fx-rates')
-      .then(rates => setCodes(Object.keys(rates).sort()))
-      .catch(() => setCodes(FALLBACK_CURRENCIES))
-  }, [])
-  return useMemo(() => {
-    const names = new Intl.DisplayNames(['en'], { type: 'currency' })
-    return codes.map(code => ({ code, label: `${code} — ${names.of(code) ?? code}` }))
-  }, [codes])
-}
 
 // "New trip" from the mockups. Known dates skip availability and the date vote, an empty destination
 // starts with the destination poll, and the group's currency is used in the budget.
@@ -81,7 +66,8 @@ export default function NewTrip() {
     setBusy(true)
     try {
       const { inviteCode } = await api<{ inviteCode: string }>('/api/groups', { method: 'POST', body: JSON.stringify(body) })
-      navigate(`/trips/${inviteCode}`)
+      // The trip opens with "Invite friends", as in the mockups
+      navigate(`/trips/${inviteCode}`, { state: { invite: true } })
     } catch (err) {
       setError((err as Error).message)
       setBusy(false)

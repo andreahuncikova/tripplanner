@@ -1,17 +1,16 @@
-import { useEffect, useState } from 'react'
-import { Link, NavLink, Navigate, Outlet, useMatch, useParams } from 'react-router-dom'
-import type { TripSummary } from '@shared/types'
-import { ApiError, api } from '../../lib/api'
+import { useState } from 'react'
+import { Link, NavLink, Outlet, useLocation, useMatch, useParams } from 'react-router-dom'
 import { cn } from '../../lib/cn'
 import { people } from '../../lib/trips'
-import { useJoinTrip } from '../../socket/useJoinTrip'
 import { useTripChat } from '../../socket/useTripChat'
 import {
   BackIcon, BudgetIcon, ChatIcon, ChevronDownIcon, CloseIcon, ItineraryIcon, MoreIcon, PlanIcon, StaysIcon,
 } from '../../components/layout/icons'
 import ChatPanel from './ChatPanel'
+import InviteModal from './InviteModal'
 import OnlineStatus from './OnlineStatus'
 import type { TripOutlet } from './tripOutlet'
+import { useTripSummary } from './useTripSummary'
 
 const sections = [
   { path: 'plan', label: 'Plan', icon: PlanIcon },
@@ -24,31 +23,17 @@ const sections = [
 // Desktop: the sections as tabs under the trip name, and the chat in a window opened from a bubble.
 export default function TripLayout() {
   const { tripId = '' } = useParams()
-  const [trip, setTrip] = useState<TripSummary | null>(null)
-  const [notMember, setNotMember] = useState(false)
   const [chatOpen, setChatOpen] = useState(false)
+  // A trip that was just created opens with "Invite friends" (NewTrip sends { invite: true })
+  const location = useLocation()
+  const [inviteOpen, setInviteOpen] = useState(() => (location.state as { invite?: boolean } | null)?.invite === true)
   // The phone chat tab fills the screen between the header and the tabs, and only its messages scroll.
   const onChatTab = useMatch('/trips/:tripId/chat') !== null
 
-  // Live updates for this trip. The chat lives here and not in ChatPanel, so nothing is missed
-  // while the chat window is closed or another tab is open.
-  useJoinTrip(tripId)
+  // Live updates for this trip (it also opens the trip on the socket). The chat lives here and not in ChatPanel,
+  // so nothing is missed while the chat window is closed or another tab is open.
+  const { trip } = useTripSummary(tripId)
   const chat = useTripChat(tripId)
-
-  // The trip as its members see it. The public preview is not used here, because it is limited
-  // against guessing codes and could then leave the header without a name.
-  useEffect(() => {
-    setNotMember(false)
-    api<TripSummary>(`/api/groups/${tripId}/summary`)
-      .then(setTrip)
-      .catch(err => {
-        setTrip(null)
-        if (err instanceof ApiError && err.status === 404) setNotMember(true)
-      })
-  }, [tripId])
-
-  // Someone who opens a trip they are not in (e.g. a shared trip link) gets the "Join a trip" page with the code filled in
-  if (notMember) return <Navigate to={`/join?code=${encodeURIComponent(tripId)}`} replace />
 
   return (
     <div className={cn('flex flex-col pb-24 lg:min-h-dvh lg:pb-0', onChatTab ? 'h-dvh lg:h-auto' : 'min-h-dvh')}>
@@ -62,10 +47,10 @@ export default function TripLayout() {
             {onChatTab && <span className="lg:hidden"><OnlineStatus online={chat.online} /></span>}
             {trip && <span className={cn('text-caption text-muted lg:text-sm', onChatTab && 'hidden lg:inline')}>{people(trip.members.length)}</span>}
           </div>
-          <button type="button" className="rounded-md bg-ciel-light px-3.5 py-2.5 text-sm font-bold text-sommet">Invite</button>
-          <button type="button" aria-label="Trip settings" className="flex size-11 items-center justify-center rounded-md text-subtle lg:border lg:border-line">
+          <button type="button" onClick={() => setInviteOpen(true)} className="rounded-md bg-ciel-light px-3.5 py-2.5 text-sm font-bold text-sommet hover:bg-ciel/40">Invite</button>
+          <Link to={`/trips/${tripId}/settings`} aria-label="Trip settings" className="flex size-11 items-center justify-center rounded-md text-subtle hover:text-roche lg:border lg:border-line">
             <MoreIcon />
-          </button>
+          </Link>
         </div>
 
         <nav aria-label="Trip sections" className="hidden gap-7 lg:flex">
@@ -104,6 +89,8 @@ export default function TripLayout() {
           </NavLink>
         ))}
       </nav>
+
+      {trip && <InviteModal open={inviteOpen} onClose={() => setInviteOpen(false)} trip={trip} />}
 
       {/* Desktop: the chat window and the bubble that opens it. */}
       {chatOpen && (

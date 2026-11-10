@@ -1,4 +1,4 @@
-// Checks the log-in and sign-up forms, chat messages and new trips before anything touches the database.
+// Checks the log-in and sign-up forms, chat messages, new trips and trip settings before anything touches the database.
 
 export const PASSWORD_MIN = 8;
 const USERNAME_MAX = 30;
@@ -86,6 +86,17 @@ const lastDayOf = (month: string) => {
   return `${month}-${String(new Date(Date.UTC(y, m, 0)).getUTCDate()).padStart(2, '0')}`;
 };
 
+// The first and the last day of a trip whose dates the group already knows
+function checkKnownDates(dates: Record<string, unknown>, today: string): Result<{ start: string; end: string }> {
+  const start = text(dates.start), end = text(dates.end);
+  if (!isDay(start) || !isDay(end)) return { ok: false, error: 'Please choose the first and the last day of the trip' };
+  // One day of tolerance, because "today" on the server can be yesterday in the user's time zone
+  if (dayDiff(today, start) < -1) return { ok: false, error: 'The trip cannot start in the past' };
+  if (end < start) return { ok: false, error: 'The last day cannot be before the first day' };
+  if (dayDiff(start, end) + 1 > MAX_TRIP_DAYS) return { ok: false, error: `A trip can be at most ${MAX_TRIP_DAYS} days long` };
+  return { ok: true, value: { start, end } };
+}
+
 export function checkNewTrip(body: unknown, today = new Date().toISOString().slice(0, 10)): Result<NewTrip> {
   const b = (body ?? {}) as Record<string, unknown>;
   const name = text(b.name).trim();
@@ -102,13 +113,9 @@ export function checkNewTrip(body: unknown, today = new Date().toISOString().sli
   let window: NewTrip['window'] = null;
 
   if (dates.mode === 'known') {
-    const start = text(dates.start), end = text(dates.end);
-    if (!isDay(start) || !isDay(end)) return { ok: false, error: 'Please choose the first and the last day of the trip' };
-    // One day of tolerance, because "today" on the server can be yesterday in the user's time zone
-    if (dayDiff(today, start) < -1) return { ok: false, error: 'The trip cannot start in the past' };
-    if (end < start) return { ok: false, error: 'The last day cannot be before the first day' };
-    if (dayDiff(start, end) + 1 > MAX_TRIP_DAYS) return { ok: false, error: `A trip can be at most ${MAX_TRIP_DAYS} days long` };
-    knownDates = { start, end };
+    const checked = checkKnownDates(dates, today);
+    if (!checked.ok) return checked;
+    knownDates = checked.value;
   } else if (dates.mode === 'find') {
     const from = text(dates.fromMonth), to = text(dates.toMonth);
     if (!isMonth(from) || !isMonth(to)) return { ok: false, error: 'Please choose the months the trip could happen in' };
@@ -121,4 +128,36 @@ export function checkNewTrip(body: unknown, today = new Date().toISOString().sli
   // No dates at all (older clients): the group sets the months later, as in the old app
 
   return { ok: true, value: { name, destination: destination || null, knownDates, window, currency } };
+}
+
+// ── Trip settings ─────────────────────────────────────
+export interface TripChanges {
+  name?: string;
+  currency?: string;
+  dates?: { start: string; end: string };
+}
+
+// Changes from the "Trip settings" screen. Only the fields that are sent are changed, with the same rules as a new trip.
+export function checkTripChanges(body: unknown, today = new Date().toISOString().slice(0, 10)): Result<TripChanges> {
+  const b = (body ?? {}) as Record<string, unknown>;
+  const changes: TripChanges = {};
+
+  if ('name' in b) {
+    const name = text(b.name).trim();
+    if (!name) return { ok: false, error: 'Please give the trip a name' };
+    if (name.length > TRIP_NAME_MAX) return { ok: false, error: `The trip name can be at most ${TRIP_NAME_MAX} characters` };
+    changes.name = name;
+  }
+  if ('currency' in b) {
+    const currency = text(b.currency).trim().toUpperCase();
+    if (!/^[A-Z]{3}$/.test(currency)) return { ok: false, error: 'Please choose a currency' };
+    changes.currency = currency;
+  }
+  if ('dates' in b) {
+    const checked = checkKnownDates((b.dates ?? {}) as Record<string, unknown>, today);
+    if (!checked.ok) return checked;
+    changes.dates = checked.value;
+  }
+  if (!Object.keys(changes).length) return { ok: false, error: 'Nothing to change' };
+  return { ok: true, value: changes };
 }

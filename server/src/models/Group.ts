@@ -1,4 +1,4 @@
-import { Schema, model, InferSchemaType } from 'mongoose';
+import { Schema, model, InferSchemaType, HydratedDocument } from 'mongoose';
 
 // _id: false means Mongoose won't add an _id to these sub-documents
 const MsgSchema = new Schema({
@@ -83,5 +83,7 @@ const GroupSchema = new Schema({
 
 // TypeScript reads the field types straight from the schema above, so we don't write them twice
 export type IGroup = InferSchemaType<typeof GroupSchema>;
+// A trip loaded from the database, with save() and deleteOne()
+export type GroupDoc = HydratedDocument<IGroup>;
 
 export default model('Group', GroupSchema);

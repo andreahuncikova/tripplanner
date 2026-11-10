@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { MESSAGE_MAX, checkLogin, checkMessage, checkNewTrip, checkPasswordChange, checkRegister, normalizeInviteCode } from '../src/validation';
+import { MESSAGE_MAX, checkLogin, checkMessage, checkNewTrip, checkPasswordChange, checkTripChanges, checkRegister, normalizeInviteCode } from '../src/validation';
 
 const valid = { email: 'mia@example.com', password: 'password1', username: 'Mia Novak' };
 
@@ -169,5 +169,30 @@ describe('checkNewTrip', () => {
   it('rejects a currency that is not three letters and objects instead of text', () => {
     expect(checkNewTrip({ ...base, currency: 'EURO' }, today).ok).toBe(false);
     expect(checkNewTrip({ ...base, name: { $gt: '' } }, today).ok).toBe(false);
+  });
+});
+
+describe('checkTripChanges', () => {
+  const today = '2026-11-10';
+
+  it('changes only what is sent', () => {
+    expect(checkTripChanges({ name: ' Bali 2027 ' }, today)).toEqual({ ok: true, value: { name: 'Bali 2027' } });
+    expect(checkTripChanges({ currency: 'dkk' }, today)).toEqual({ ok: true, value: { currency: 'DKK' } });
+    expect(checkTripChanges({ dates: { start: '2027-03-12', end: '2027-03-22' } }, today))
+      .toEqual({ ok: true, value: { dates: { start: '2027-03-12', end: '2027-03-22' } } });
+  });
+
+  it('rejects an empty change', () => {
+    expect(checkTripChanges({}, today).ok).toBe(false);
+    expect(checkTripChanges(null, today).ok).toBe(false);
+  });
+
+  it('uses the same rules as a new trip', () => {
+    expect(checkTripChanges({ name: '  ' }, today).ok).toBe(false);
+    expect(checkTripChanges({ name: 'x'.repeat(61) }, today).ok).toBe(false);
+    expect(checkTripChanges({ currency: 'EURO' }, today).ok).toBe(false);
+    expect(checkTripChanges({ dates: { start: '2027-02-30', end: '2027-03-02' } }, today).ok).toBe(false);
+    expect(checkTripChanges({ dates: { start: '2026-11-01', end: '2026-11-05' } }, today).ok).toBe(false);
+    expect(checkTripChanges({ name: { $gt: '' } }, today).ok).toBe(false);
   });
 });

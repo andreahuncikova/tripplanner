@@ -4,6 +4,7 @@ import type { TripSummary } from '@shared/types'
 import { useAuth } from '../../auth/useAuth'
 import { api } from '../../lib/api'
 import { cn } from '../../lib/cn'
+import { TRIPS_CHANGED } from '../../lib/trips'
 import { Avatar } from '../ui'
 import { AllTripsIcon, Logo } from './icons'
 
@@ -21,11 +22,15 @@ export function Sidebar() {
   const { pathname } = useLocation()
   const [trips, setTrips] = useState<TripSummary[]>([])
 
-  // Loaded again on every page change, so a trip the user just joined or created shows up right away
+  // Loaded again on every page change, so a trip the user just joined or created shows up right away,
+  // and after a change in Trip settings (e.g. a new name), which stays on the same page
   useEffect(() => {
-    api<{ groups: TripSummary[] }>('/api/groups')
+    const load = () => api<{ groups: TripSummary[] }>('/api/groups')
       .then(r => setTrips(r.groups))
       .catch(() => setTrips([]))
+    load()
+    window.addEventListener(TRIPS_CHANGED, load)
+    return () => window.removeEventListener(TRIPS_CHANGED, load)
   }, [pathname])
 
   return (

@@ -1,11 +1,12 @@
 import { Router, Request } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import rateLimit from 'express-rate-limit';
-import Group from '../models/Group';
+import Group, { GroupDoc } from '../models/Group';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { ts, snapMonthEnd, formatTripLabel } from '../utils';
-import { checkNewTrip, normalizeInviteCode } from '../validation';
-import { removeMemberTraces } from '../socket/helpers';
+import { checkNewTrip, checkTripChanges, normalizeInviteCode } from '../validation';
+import { closeRoom, getOnline, leaveTrip, sameId, serialize, toClient } from '../socket/helpers';
+import type { IO, Sessions } from '../types';
 
 const router = Router();
 
@@ -23,6 +24,32 @@ const codeLimiter = rateLimit({
 // Routes behind authMiddleware can safely read req.user
 const userOf = (req: Request) => (req as AuthRequest).user;
 
+// The sockets, so a change made here reaches everyone who has the trip open (set in server.ts)
+const live = (req: Request) => req.app.locals.live as { io: IO; sessions: Sessions };
+
+// The trip with the code in the URL, only if the logged-in user is a member. Not a member, or no such trip:
+// both give null (404), so the answer does not tell outsiders whether a code exists.
+async function findMyTrip(req: Request) {
+  const code = normalizeInviteCode(req.params.code);
+  return code ? Group.findOne({ inviteCode: code, 'members.userId': userOf(req)._id }) : null;
+}
+
+// Sends the trip and its newest chat message (the system message about the change) to everyone who has it open
+function sendChange(req: Request, g: GroupDoc) {
+  const { io, sessions } = live(req);
+  io.to(g.inviteCode).emit('msg', toClient(g.messages.at(-1)));
+  io.to(g.inviteCode).emit('state', serialize(g, getOnline(sessions, g.inviteCode)));
+}
+
+// The fields of a trip whose dates are known: first day, the label on the cards and the number of days
+function knownDateFields(dates: { start: string; end: string }) {
+  const days = Math.round((Date.parse(dates.end) - Date.parse(dates.start)) / 86_400_000) + 1;
+  return { finalDate: dates.start, finalDateLabel: formatTripLabel(dates.start, days), tripDuration: days };
+}
+
+// What the dashboard, the sidebar and the trip header get of each trip
+const SUMMARY_FIELDS = 'name inviteCode phase members createdAt tripDuration adminUserId adminUsername tripWindowStart tripWindowEnd finalDate finalDateLabel currency approvedDest datesKnown';
+
 // Create a new trip ("New trip" screen).
 // The old app always started with the destination poll; now the trip starts at the first step it still needs:
 // destination known + dates known = ready to go, destination known = mark free days, otherwise the destination poll.
@@ -34,7 +61,7 @@ router.post('/', authMiddleware, async (req, res) => {
     const { _id: userId, username, color } = userOf(req);
     // Generate a short random invite code, e.g. "A3BF92C1"
     const inviteCode = uuidv4().slice(0,8).toUpperCase();
-    const days = knownDates ? Math.round((Date.parse(knownDates.end) - Date.parse(knownDates.start)) / 86_400_000) + 1 : null;
+    const dateFields = knownDates ? knownDateFields(knownDates) : null;
     const phase = destination ? (knownDates ? 'done' : 'calendar') : 'destinations';
     const group = await Group.create({
       inviteCode, name,
@@ -44,9 +71,9 @@ router.post('/', authMiddleware, async (req, res) => {
       destinationKnown: !!destination,
       approvedDest:     destination,
       datesKnown:       !!knownDates,
-      finalDate:        knownDates?.start ?? null,
-      finalDateLabel:   knownDates && days ? formatTripLabel(knownDates.start, days) : null,
-      tripDuration:     days,
+      finalDate:        dateFields?.finalDate ?? null,
+      finalDateLabel:   dateFields?.finalDateLabel ?? null,
+      tripDuration:     dateFields?.tripDuration ?? null,
       tripWindowStart:  window?.start ?? null,
       tripWindowEnd:    window?.end ?? null,
       phase,
@@ -81,7 +108,7 @@ router.get('/', authMiddleware, async (req, res) => {
   try {
     // .select() limits which fields are returned
     const groups = await Group.find({ 'members.userId': userOf(req)._id })
-      .select('name inviteCode phase members createdAt tripDuration adminUsername tripWindowStart tripWindowEnd finalDate finalDateLabel currency approvedDest')
+      .select(SUMMARY_FIELDS)
       .sort('-createdAt').limit(20);
     res.json({ groups });
   } catch (e) {
@@ -90,13 +117,12 @@ router.get('/', authMiddleware, async (req, res) => {
   }
 });
 
-// One trip for its members (the header of a trip page). Not a member, or no such trip: both 404,
+// One trip for its members (the trip header and Trip settings). Not a member, or no such trip: both 404,
 // so the answer does not tell outsiders whether a code exists and the code limiter is not needed here.
 router.get('/:code/summary', authMiddleware, async (req, res) => {
   try {
     const code = normalizeInviteCode(req.params.code);
-    const g = code && await Group.findOne({ inviteCode: code, 'members.userId': userOf(req)._id })
-      .select('name inviteCode phase members createdAt tripDuration adminUsername tripWindowStart tripWindowEnd finalDate finalDateLabel currency approvedDest');
+    const g = code && await Group.findOne({ inviteCode: code, 'members.userId': userOf(req)._id }).select(SUMMARY_FIELDS);
     if (!g) return res.status(404).json({ error: 'Trip not found' });
     res.json(g);
   } catch (e) {
@@ -125,67 +151,103 @@ router.post('/:code/join', codeLimiter, authMiddleware, async (req, res) => {
   }
 });
 
-// Used from the dashboard (not connected via socket)
+// "Leave trip" in Trip settings. The organiser can leave too: the next member becomes the organiser,
+// and when the last member leaves, the trip is deleted.
 router.post('/:code/leave', authMiddleware, async (req, res) => {
   try {
-    const g = await Group.findOne({ inviteCode: req.params.code.toUpperCase() });
-    if (!g) return res.json({ error: 'Group not found' });
-    const uid   = String(userOf(req)._id);
-    const isAdm = String(g.adminUserId) === uid;
-    g.set('members', g.members.filter(m => String(m.userId) !== uid));
-    removeMemberTraces(g, uid);
-    if (isAdm && g.members.length > 0) {
-      // Promote the next member to admin if the admin leaves
-      g.adminUserId   = g.members[0].userId;
-      g.adminUsername = g.members[0].username;
-    } else if (isAdm) {
-      // Last person leaving — just delete the group
-      await g.deleteOne();
-      return res.json({ ok: true });
-    }
-    await g.save();
-    res.json({ ok: true });
-  } catch { res.json({ error: 'Server error' }); }
+    const g = await findMyTrip(req);
+    if (!g) return res.status(404).json({ error: 'Trip not found' });
+    const { _id: userId, username } = userOf(req);
+    const result = await leaveTrip(g, userId, username);
+    // Their open tabs stop getting the trip's messages
+    const { io, sessions } = live(req);
+    closeRoom(io, sessions, g.inviteCode, userId);
+    if (result === 'left') sendChange(req, g);
+    res.json({ ok: true, deleted: result === 'deleted' });
+  } catch (e) {
+    console.error('[groups:leave]', (e as Error).message);
+    res.status(500).json({ error: 'Server error — please try again' });
+  }
 });
 
-// Update the trip month range from the dashboard
+// Update the trip month range (the availability step)
 router.patch('/:code/window', authMiddleware, async (req, res) => {
   try {
     const { start, end } = req.body;
     if (!start || !end || start >= end) return res.status(400).json({ error: 'Invalid window' });
-    const g = await Group.findOne({ inviteCode: req.params.code.toUpperCase() });
-    if (!g) return res.json({ error: 'Group not found' });
-    if (String(g.adminUserId) !== String(userOf(req)._id)) return res.json({ error: 'Not admin' });
+    const g = await findMyTrip(req);
+    if (!g) return res.status(404).json({ error: 'Trip not found' });
+    if (!sameId(g.adminUserId, userOf(req)._id)) return res.status(403).json({ error: 'Only the organiser can change the months' });
     g.tripWindowStart = start;
     g.tripWindowEnd   = snapMonthEnd(end); // snap to real last day to avoid timezone issues
     await g.save();
     res.json({ ok: true });
-  } catch { res.json({ error: 'Server error' }); }
+  } catch (e) {
+    console.error('[groups:window]', (e as Error).message);
+    res.status(500).json({ error: 'Server error — please try again' });
+  }
 });
 
-// Rename a group (admin only)
+// Trip settings: the organiser changes the name, the currency or the dates. Only what is sent changes.
+// The old app answered errors here with status 200; now they are 400, 403 and 404.
 router.patch('/:code', authMiddleware, async (req, res) => {
   try {
-    const { name } = req.body;
-    if (!name?.trim()) return res.status(400).json({ error: 'Name is required' });
-    const g = await Group.findOne({ inviteCode: req.params.code.toUpperCase() });
-    if (!g) return res.json({ error: 'Group not found' });
-    if (String(g.adminUserId) !== String(userOf(req)._id)) return res.json({ error: 'Not admin' });
-    g.name = name.trim();
-    await g.save();
+    const input = checkTripChanges(req.body);
+    if (!input.ok) return res.status(400).json({ error: input.error });
+    const g = await findMyTrip(req);
+    if (!g) return res.status(404).json({ error: 'Trip not found' });
+    const me = userOf(req);
+    if (!sameId(g.adminUserId, me._id)) return res.status(403).json({ error: 'Only the organiser can change the trip' });
+    const { name, currency, dates } = input.value;
+    // Dates the group voted on come from the planning steps; only dates entered when the trip was created can be changed here
+    if (dates && !g.datesKnown) return res.status(400).json({ error: 'The group chooses the dates in the Plan tab' });
+
+    // Everyone sees what changed in the chat, e.g. "Mia renamed the trip to "Bali 2027"."
+    const changed: string[] = [];
+    if (name && name !== g.name) {
+      g.name = name;
+      changed.push(`renamed the trip to "${name}"`);
+    }
+    if (currency && currency !== g.currency) {
+      g.currency = currency;
+      changed.push(`changed the currency to ${currency}`);
+    }
+    if (dates) {
+      const fields = knownDateFields(dates);
+      if (fields.finalDate !== g.finalDate || fields.tripDuration !== g.tripDuration) {
+        g.set(fields);
+        changed.push(`changed the dates to ${fields.finalDateLabel}`);
+      }
+    }
+    if (changed.length) {
+      g.messages.push({ username: 'System', text: `${me.username} ${changed.join(' and ')}.`, time: ts(), system: true });
+      await g.save();
+      sendChange(req, g);
+    }
     res.json({ ok: true });
-  } catch { res.json({ error: 'Server error' }); }
+  } catch (e) {
+    console.error('[groups:update]', (e as Error).message);
+    res.status(500).json({ error: 'Server error — please try again' });
+  }
 });
 
-// Delete a group entirely (admin only)
+// "Delete trip" in Trip settings (organiser only). Everyone who has it open is sent back to their trips.
 router.delete('/:code', authMiddleware, async (req, res) => {
   try {
-    const g = await Group.findOne({ inviteCode: req.params.code.toUpperCase() });
-    if (!g) return res.json({ error: 'Group not found' });
-    if (String(g.adminUserId) !== String(userOf(req)._id)) return res.json({ error: 'Not admin' });
+    const g = await findMyTrip(req);
+    if (!g) return res.status(404).json({ error: 'Trip not found' });
+    if (!sameId(g.adminUserId, userOf(req)._id)) return res.status(403).json({ error: 'Only the organiser can delete the trip' });
     await g.deleteOne();
+    // The organiser is taken out first: they already see "Trip deleted" on their own screen
+    const { io, sessions } = live(req);
+    closeRoom(io, sessions, g.inviteCode, userOf(req)._id);
+    io.to(g.inviteCode).emit('group:deleted');
+    closeRoom(io, sessions, g.inviteCode);
     res.json({ ok: true });
-  } catch { res.json({ error: 'Server error' }); }
+  } catch (e) {
+    console.error('[groups:delete]', (e as Error).message);
+    res.status(500).json({ error: 'Server error — please try again' });
+  }
 });
 
 export default router;

@@ -2,13 +2,15 @@ import type { ButtonHTMLAttributes } from 'react'
 import { cn } from '../../lib/cn'
 
 // Button styles from the mockups. primary: main action (Log in, Confirm), secondary: outlined (Join with code),
-// soft: light accent (Invite, Copy), dark: next to inputs (Add), danger: delete, link: text only (+ Add expense).
+// soft: light accent (Invite, Copy), dark: next to inputs (Add), danger: delete, dangerOutline: Delete trip in Trip settings,
+// link: text only (+ Add expense).
 const variants = {
   primary: 'bg-sommet text-white hover:bg-sommet-dark',
   secondary: 'border border-line-strong bg-white text-roche hover:bg-canvas',
   soft: 'bg-ciel-light text-sommet hover:bg-ciel/40',
   dark: 'bg-roche text-white hover:bg-roche-light',
   danger: 'bg-danger-light text-danger hover:bg-danger-light/70',
+  dangerOutline: 'border border-[#f1c4bf] bg-white text-danger hover:bg-danger-light',
   link: 'bg-transparent text-sommet hover:text-sommet-dark',
 }
 
