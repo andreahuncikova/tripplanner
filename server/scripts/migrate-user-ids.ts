@@ -3,6 +3,7 @@
 //   npm run migrate:user-ids -- --apply   writes the changes
 // It uses MONGO_URI from server/.env, so check which database that is before using --apply.
 import 'dotenv/config';
+import '../src/dns';
 import mongoose from 'mongoose';
 import { migrateGroup } from '../src/migrations/userIds';
 
