@@ -7,11 +7,12 @@ import type { TripPlan } from '../../../socket/useTripPlan'
 import { Button, ConfirmModal } from '../../../components/ui'
 import DatesStep from './DatesStep'
 import DestinationStep from './DestinationStep'
+import { StepCard } from './StepGuide'
 import type { StepProps } from './step'
 
 // The Plan tab: the step the group is in now. The steps and their order are the old app's phases
 // (destinations → calendar → date_vote → done); steps skipped when the trip was created are never shown.
-export default function PlanSection({ plan }: { plan: TripPlan }) {
+export default function PlanSection({ plan, stayCount }: { plan: TripPlan; stayCount: number }) {
   const { user } = useAuth()
   const state = plan.state
   if (!state || !user) return <p className="text-muted">Loading the plan…</p>
@@ -29,25 +30,25 @@ export default function PlanSection({ plan }: { plan: TripPlan }) {
     <div className={cn('mx-auto flex w-full flex-col gap-6', datesStep ? 'max-w-245' : 'max-w-180')}>
       {state.phase === 'destinations' && <DestinationStep {...props} />}
       {datesStep && <DatesStep {...props} />}
-      {state.phase === 'done' && <ReadyStep {...props} />}
+      {state.phase === 'done' && <ReadyStep {...props} stayCount={stayCount} />}
       {props.isOrganiser && <BackStep {...props} />}
     </div>
   )
 }
 
-// The destination and the dates are agreed; the rest of the trip is planned in the other tabs
-function ReadyStep({ state }: StepProps) {
+// The destination and the dates are agreed. Step 3 until the group has saved a stay, then step 4;
+// the rest of the trip is planned in the other tabs
+function ReadyStep({ state, stayCount }: StepProps & { stayCount: number }) {
   const rows = [
     { label: 'Destination', value: state.approvedDest ?? 'Not chosen' },
     { label: 'Dates', value: state.finalDateLabel ?? 'Not chosen' },
   ]
   const link = 'flex-1 rounded-md px-5 py-3 text-center font-bold no-underline'
   return (
-    <section aria-labelledby="ready-title" className="flex flex-col gap-4">
-      <header className="flex flex-col gap-1">
-        <h2 id="ready-title" className="text-lg font-extrabold">The trip is planned</h2>
-        <p className="text-sm text-muted">The group agreed on where and when. Now save stays and plan the days.</p>
-      </header>
+    <section aria-label="Plan" className="flex flex-col gap-4">
+      {stayCount === 0
+        ? <StepCard step={3} title="Where will you stay?">The group agreed on where and when. Paste links to places in the Stays tab and like the ones you want.</StepCard>
+        : <StepCard step={4} title="You're ready to go">Plan what to do each day in the Itinerary, and add shared costs in the Budget.</StepCard>}
       <dl className="flex flex-col rounded-lg bg-white">
         {rows.map(r => (
           <div key={r.label} className="flex items-center justify-between gap-4 border-b border-line px-4 py-4 last:border-b-0 lg:px-5">

@@ -1,4 +1,4 @@
-import type { DateRange, Destination, Member, TripState } from '@shared/types'
+import type { DateRange, Destination, Member, Phase, TripState } from '@shared/types'
 
 // Days are "YYYY-MM-DD" and read at noon local time, so the time zone cannot move them to another day
 const pad = (n: number) => String(n).padStart(2, '0')
@@ -83,4 +83,16 @@ export function backStep(t: Pick<TripState, 'phase' | 'datesKnown' | 'destinatio
   if (t.phase === 'done' && !t.destinationKnown)
     return { title: 'Back to the destination poll?', text: 'The destination is removed, and the activities in the itinerary are deleted.' }
   return null
+}
+
+// The four planning steps from the mockups. Dates covers two phases on the server (marking days and the date vote),
+// and Stays and Ready both come after the dates are confirmed, when the group saves places to stay.
+export const PLAN_STEPS = ['Destination', 'Dates', 'Stays', 'Ready'] as const
+
+// Which step the group is in, 0–3. Steps skipped when the trip was created count as done.
+// Stays is done when the trip has saved at least one stay (the stay dates come in sprint 3).
+export function currentStep(phase: Phase, stayCount: number): number {
+  if (phase === 'destinations') return 0
+  if (phase !== 'done') return 1
+  return stayCount > 0 ? 3 : 2
 }

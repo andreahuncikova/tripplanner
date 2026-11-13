@@ -4,6 +4,7 @@ import { cn } from '../../../lib/cn'
 import { leadingDestination, names, votesText } from '../../../lib/plan'
 import { Button } from '../../../components/ui'
 import { CloseIcon } from '../../../components/layout/icons'
+import { StepCard } from './StepGuide'
 import type { StepProps } from './step'
 
 // Step 1 from the mockups: members suggest places and each has one vote, which they can move or take back.
@@ -30,13 +31,14 @@ export default function DestinationStep({ plan, state, me, isOrganiser, organise
   }
 
   return (
-    <section aria-labelledby="destination-title" className="flex flex-col gap-4 lg:gap-5.5">
-      <header className="flex flex-col gap-1">
-        <h2 id="destination-title" className="text-lg font-extrabold">Where should we go?</h2>
-        <p className="text-sm text-muted">
-          Suggest places and pick one favourite. {isOrganiser ? 'You confirm' : `${organiser} confirms`} the winner once everyone has voted.
-        </p>
-      </header>
+    <section aria-label="Destination" className="flex flex-col gap-4 lg:gap-5.5">
+      <StepCard
+        step={1}
+        title="Where should we go?"
+        aside={<span className="hidden shrink-0 text-sm text-[#d5dde5] lg:inline">{voted.length} of {state.members.length} voted</span>}
+      >
+        Suggest places and pick one favourite. {isOrganiser ? 'As organiser, you confirm' : `${organiser} confirms`} the winner once everyone has voted.
+      </StepCard>
 
       <div role="group" aria-label="Destinations" className="flex flex-col gap-2.5">
         {state.destinations.map(d => (

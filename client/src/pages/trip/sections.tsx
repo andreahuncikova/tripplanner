@@ -14,8 +14,8 @@ function Placeholder({ title, text }: { title: string; text: string }) {
 }
 
 export function PlanSection() {
-  const { plan } = useTripOutlet()
-  return <PlanView plan={plan} />
+  const { plan, stays } = useTripOutlet()
+  return <PlanView plan={plan} stayCount={stays.stays.length} />
 }
 export function StaysSection() {
   const { stays, trip } = useTripOutlet()

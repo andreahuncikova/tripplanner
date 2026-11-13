@@ -11,6 +11,7 @@ import {
 import ChatPanel from './ChatPanel'
 import InviteModal from './InviteModal'
 import OnlineStatus from './OnlineStatus'
+import { PlanProgress } from './plan/StepGuide'
 import type { TripOutlet } from './tripOutlet'
 import { useTripSummary } from './useTripSummary'
 
@@ -31,6 +32,10 @@ export default function TripLayout() {
   const [inviteOpen, setInviteOpen] = useState(() => (location.state as { invite?: boolean } | null)?.invite === true)
   // The phone chat tab fills the screen between the header and the tabs, and only its messages scroll.
   const onChatTab = useMatch('/trips/:tripId/chat') !== null
+  // The planning steps show above Plan, Itinerary and Budget. Stays has its own bar of booked nights in the mockups,
+  // and the chat needs the whole screen.
+  const section = useMatch('/trips/:tripId/:section')?.params.section
+  const showSteps = section === 'plan' || section === 'itinerary' || section === 'budget'
 
   // Live updates for this trip (it also opens the trip on the socket). The chat lives here and not in ChatPanel,
   // so nothing is missed while the chat window is closed or another tab is open.
@@ -72,6 +77,15 @@ export default function TripLayout() {
           ))}
         </nav>
       </header>
+
+      {showSteps && plan.state && (
+        <div className="border-b border-line bg-white px-5 pt-3 pb-3.5 lg:border-0 lg:bg-transparent lg:px-8 lg:pt-7 lg:pb-0">
+          {/* On the Plan tab as wide as the step below it */}
+          <div className={cn('mx-auto w-full', section === 'plan' && (plan.state.phase === 'calendar' || plan.state.phase === 'date_vote' ? 'lg:max-w-245' : 'lg:max-w-180'))}>
+            <PlanProgress state={plan.state} stayCount={stays.stays.length} />
+          </div>
+        </div>
+      )}
 
       <main className={cn('flex-1 lg:px-8 lg:py-7', onChatTab ? 'flex min-h-0 flex-col lg:block' : 'px-5 py-4')}>
         <Outlet context={{ chat, plan, stays, trip } satisfies TripOutlet} />

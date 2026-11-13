@@ -4,7 +4,8 @@ import type { TripSummary } from '@shared/types'
 import { useAuth } from '../auth/useAuth'
 import { api } from '../lib/api'
 import { cn } from '../lib/cn'
-import { STEPS, countdown, people, phases, tripDates } from '../lib/trips'
+import { PLAN_STEPS, currentStep } from '../lib/plan'
+import { countdown, people, phases, tripDates } from '../lib/trips'
 import { Avatar, AvatarGroup, Button, Modal } from '../components/ui'
 import { JoinTripForm } from './JoinTrip'
 import { InstallBanner } from '../components/InstallBanner'
@@ -107,7 +108,8 @@ export default function Dashboard() {
         )}
 
         {planning.length > 0 && <TripSection title="Planning now" trips={planning} />}
-        {ready.length > 0 && <TripSection title="Ready to go" trips={ready} />}
+        {/* The dates are agreed; such a trip can still be choosing its stays, so it is not called "Ready to go" here */}
+        {ready.length > 0 && <TripSection title="Dates confirmed" trips={ready} />}
       </main>
 
       <Modal open={joinOpen} onClose={() => setJoinOpen(false)} title="Join a trip" description="Enter the code from the invite your friend sent.">
@@ -130,11 +132,13 @@ function TripSection({ title, trips }: { title: string; trips: TripSummary[] }) 
 }
 
 function TripCard({ trip }: { trip: TripSummary }) {
-  const phase = phases[trip.phase]
   const done = trip.phase === 'done'
+  // The same four steps as the bar on the Plan tab: a trip with confirmed dates still needs its stays
+  const step = currentStep(trip.phase, trip.stayCount ?? 0)
+  const label = done && step < 3 ? 'Choosing stays' : phases[trip.phase].label
   const chip = (
     <span className={cn('rounded-full px-2.5 py-1.5 text-xs font-bold', done ? 'bg-white text-roche lg:bg-white' : 'bg-ciel-light text-sommet lg:bg-white')}>
-      {phase.label}
+      {label}
     </span>
   )
 
@@ -154,9 +158,9 @@ function TripCard({ trip }: { trip: TripSummary }) {
           </div>
           <span className="shrink-0 lg:hidden">{chip}</span>
         </div>
-        <div role="img" aria-label={`Step ${phase.step} of ${STEPS}`} className="flex gap-1.5">
-          {Array.from({ length: STEPS }, (_, i) => (
-            <span key={i} className={cn('h-1.5 flex-1 rounded-full', i < phase.step ? 'bg-sommet' : 'bg-line')} />
+        <div role="img" aria-label={`Step ${step + 1} of ${PLAN_STEPS.length}: ${PLAN_STEPS[step]}`} className="flex gap-1.5">
+          {PLAN_STEPS.map((name, i) => (
+            <span key={name} className={cn('h-1.5 flex-1 rounded-full', i <= step ? 'bg-sommet' : 'bg-line')} />
           ))}
         </div>
         <div className="flex items-center justify-between gap-3">

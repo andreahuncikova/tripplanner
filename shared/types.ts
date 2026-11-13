@@ -247,6 +247,8 @@ export interface TripSummary {
   approvedDest: string | null
   // The dates were entered when the trip was created, so the organiser can change them in Trip settings
   datesKnown: boolean
+  // How many stays the trip has saved; only in the list (GET /api/groups), for the planning steps on the cards
+  stayCount?: number
 }
 
 // PATCH /api/groups/:code, Trip settings (organiser only). Only the fields that are sent change.

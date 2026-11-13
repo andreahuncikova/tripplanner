@@ -2,6 +2,7 @@ import { Router, Request } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import rateLimit from 'express-rate-limit';
 import Group, { GroupDoc } from '../models/Group';
+import Stay from '../models/Stay';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { snapMonthEnd, formatTripLabel } from '../utils';
 import { checkNewTrip, checkTripChanges, normalizeInviteCode } from '../validation';
@@ -110,8 +111,14 @@ router.get('/', authMiddleware, async (req, res) => {
     // .select() limits which fields are returned
     const groups = await Group.find({ 'members.userId': userOf(req)._id })
       .select(SUMMARY_FIELDS)
-      .sort('-createdAt').limit(20);
-    res.json({ groups });
+      .sort('-createdAt').limit(20).lean();
+    // How many stays each trip has saved, for the planning steps on the trip cards (one query for all the trips)
+    const counts = await Stay.aggregate<{ _id: unknown; n: number }>([
+      { $match: { groupId: { $in: groups.map(g => g._id) } } },
+      { $group: { _id: '$groupId', n: { $sum: 1 } } },
+    ]);
+    const stays = new Map(counts.map(c => [String(c._id), c.n]));
+    res.json({ groups: groups.map(g => ({ ...g, stayCount: stays.get(String(g._id)) ?? 0 })) });
   } catch (e) {
     console.error('[groups:list]', (e as Error).message);
     res.status(500).json({ error: 'Server error' });

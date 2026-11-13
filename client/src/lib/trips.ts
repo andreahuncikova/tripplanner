@@ -1,13 +1,12 @@
 import type { Phase, TripSummary } from '@shared/types'
 
-// How each planning phase is shown on the trip cards, and how far the trip is (step 1–4)
-export const phases: Record<Phase, { label: string; now: string; step: number }> = {
-  destinations: { label: 'Choosing destination', now: 'Now choosing the destination', step: 1 },
-  calendar:     { label: 'Marking free days',    now: 'Now marking free days',        step: 2 },
-  date_vote:    { label: 'Voting on dates',      now: 'Now voting on dates',          step: 3 },
-  done:         { label: 'Ready to go',          now: 'Dates are confirmed',          step: 4 },
+// How each planning phase is shown on the trip cards. How far the trip is comes from currentStep() in lib/plan.ts.
+export const phases: Record<Phase, { label: string; now: string }> = {
+  destinations: { label: 'Choosing destination', now: 'Now choosing the destination' },
+  calendar:     { label: 'Marking free days',    now: 'Now marking free days' },
+  date_vote:    { label: 'Voting on dates',      now: 'Now voting on dates' },
+  done:         { label: 'Ready to go',          now: 'Dates are confirmed' },
 }
-export const STEPS = 4
 
 // Sent on window after a trip was changed in Trip settings, so the sidebar loads the trips again
 export const TRIPS_CHANGED = 'trips:changed'

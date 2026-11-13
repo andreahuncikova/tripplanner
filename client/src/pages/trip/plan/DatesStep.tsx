@@ -5,6 +5,7 @@ import {
   addDays, dayKey, dayLabel, daysIn, fits, leadingRange, monthGrid, monthName, names, rangeText, votesText, windowMonths,
 } from '../../../lib/plan'
 import { Button, ConfirmModal } from '../../../components/ui'
+import { StepCard } from './StepGuide'
 import type { StepProps } from './step'
 
 const WEEKDAYS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']
@@ -24,20 +25,21 @@ export default function DatesStep(props: StepProps) {
   if (!state.tripWindowStart || !state.tripWindowEnd) return <ChooseMonths {...props} />
 
   return (
-    <section aria-labelledby="dates-title" className="flex flex-col gap-4">
-      <header className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between lg:gap-4">
-        <div className="flex flex-col gap-1">
-          <h2 id="dates-title" className="text-lg font-extrabold">Mark the days you can't travel</h2>
-          <p className="text-sm text-muted">
-            Then press I'm done. {state.phase === 'date_vote'
-              ? 'Vote for one of the windows when everyone is free.'
-              : `${isOrganiser ? 'You find' : `${organiser} finds`} the windows when everyone is free.`}
-          </p>
-        </div>
-        <Button variant={imDone ? 'soft' : 'primary'} aria-pressed={imDone} onClick={() => plan.setDone(!imDone)} className="shrink-0">
-          {imDone && <span aria-hidden="true">✓</span>}I'm done
-        </Button>
-      </header>
+    <section aria-label="Dates" className="flex flex-col gap-4">
+      {/* Marking days and voting are two phases on the server, but one step for the group, so the card says what to do in each */}
+      <StepCard
+        step={2}
+        title={state.phase === 'date_vote' ? 'Vote for your dates' : "Mark the days you can't travel"}
+        aside={
+          <Button variant={imDone ? 'soft' : 'secondary'} aria-pressed={imDone} onClick={() => plan.setDone(!imDone)} className="shrink-0 border-0">
+            {imDone && <span aria-hidden="true">✓</span>}I'm done
+          </Button>
+        }
+      >
+        {state.phase === 'date_vote'
+          ? `Everyone is free in the windows below. Vote for one, and ${isOrganiser ? 'you confirm' : `${organiser} confirms`} the dates. You can still change your days.`
+          : `Then press I'm done. ${isOrganiser ? 'You find' : `${organiser} finds`} the windows when everyone is free.`}
+      </StepCard>
 
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-4.5">
         <Calendar {...props} />
