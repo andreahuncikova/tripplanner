@@ -2,18 +2,21 @@ import Group from '../models/Group';
 import { broadcastState, toClient, sameId, hasId, objectId } from './helpers';
 import { addSystemMessage } from '../messages';
 import { formatTripLabel } from '../utils';
+import { checkConfirmDates, checkTripLength } from '../validation';
 import type { AppSocket, Ctx } from '../types';
 
 export default function register(socket: AppSocket, { io, sessions, userId }: Ctx) {
-  // Admin sets how many days the trip will last — this filters the date windows shown
+  // The organiser sets how many days the trip will last, while the group marks days or votes.
+  // Windows shorter than that cannot be voted on or confirmed
   socket.on('trip:setDuration', async dur => {
     try {
       const s = sessions[socket.id];
-      if (!s) return;
+      const input = checkTripLength(dur);
+      if (!s || !input.ok) return;
       const g = await Group.findOne({ inviteCode: s.code });
       // Known dates already fix the length of the trip
-      if (!g || String(g.adminUserId) !== String(userId) || g.datesKnown || !['date_vote', 'done'].includes(g.phase)) return;
-      g.tripDuration = Math.max(1, Math.floor(Number(dur)) || 1);
+      if (!g || !sameId(g.adminUserId, userId) || g.datesKnown || !['calendar', 'date_vote'].includes(g.phase)) return;
+      g.tripDuration = input.value;
       await g.save();
       await broadcastState(io, sessions, s.code);
     } catch (e) { console.error('[trip:setDuration]', (e as Error).message); }
@@ -22,9 +25,9 @@ export default function register(socket: AppSocket, { io, sessions, userId }: Ct
   socket.on('range:vote', async idx => {
     try {
       const s = sessions[socket.id];
-      if (!s) return;
+      if (!s || !Number.isInteger(idx)) return;
       const g = await Group.findOne({ inviteCode: s.code });
-      if (!g || !['date_vote', 'done'].includes(g.phase)) return;
+      if (!g || g.phase !== 'date_vote') return;
       const range = g.dateRanges[idx];
       const alreadyVoted = range ? hasId(range.voterIds, userId) : false;
       // Clear the user's previous vote across all ranges — one vote at a time
@@ -35,21 +38,23 @@ export default function register(socket: AppSocket, { io, sessions, userId }: Ct
     } catch (e) { console.error('[range:vote]', (e as Error).message); }
   });
 
-  // Admin confirms the final trip date — moves the group to the done phase
-  socket.on('range:confirm', async ({ idx, start }) => {
+  // The organiser confirms the trip dates inside one free window — moves the group to the planning phase.
+  // The old server took any start day; now the whole trip must fit in the window, so nobody is busy on one of its days
+  socket.on('range:confirm', async data => {
     try {
       const s = sessions[socket.id];
-      if (!s) return;
+      if (!s || !Number.isInteger(data?.idx)) return;
       const g = await Group.findOne({ inviteCode: s.code });
-      if (!g || String(g.adminUserId) !== String(userId) || !['date_vote', 'done'].includes(g.phase)) return;
-      const r = g.dateRanges[idx];
-      if (!r) return;
-      const chosenStart = start || r.start;
-      if (!chosenStart) return;
-      const label = g.tripDuration ? formatTripLabel(chosenStart, g.tripDuration) : r.label;
-      g.dateRanges.forEach((x, i) => { x.selected = i === idx; });
-      g.finalDate      = chosenStart;
+      if (!g || !sameId(g.adminUserId, userId) || g.phase !== 'date_vote') return;
+      const r = g.dateRanges[data.idx];
+      if (!r?.start || !r.end) return;
+      const dates = checkConfirmDates({ start: r.start, end: r.end }, data.start, g.tripDuration);
+      if (!dates.ok) return;
+      const label = formatTripLabel(dates.value.start, dates.value.days);
+      g.dateRanges.forEach((x, i) => { x.selected = i === data.idx; });
+      g.finalDate      = dates.value.start;
       g.finalDateLabel = label;
+      g.tripDuration   = dates.value.days;
       g.phase          = 'done';
       await g.save();
       await broadcastState(io, sessions, s.code);
@@ -68,7 +73,7 @@ export default function register(socket: AppSocket, { io, sessions, userId }: Ct
       // Steps the group skipped when the trip was created (known destination, known dates) are skipped going back too
       if (g.phase === 'done' && g.datesKnown) {
         if (g.destinationKnown) return;                       // nothing to go back to
-        g.phase = 'destinations'; g.set('activities', []);
+        g.phase = 'destinations'; g.approvedDest = null; g.set('activities', []);
         msg = 'Back to destination selection.';
       } else if (g.phase === 'calendar' && g.destinationKnown) {
         return;
@@ -80,7 +85,8 @@ export default function register(socket: AppSocket, { io, sessions, userId }: Ct
         g.phase = 'calendar'; g.set('dateRanges', []);
         msg = 'Back to availability calendar.';
       } else if (g.phase === 'calendar') {
-        g.phase = 'destinations'; g.set('availability', []);
+        // The destination is chosen again, and the marked days and "I'm done" start from nothing
+        g.phase = 'destinations'; g.approvedDest = null; g.set('availability', []); g.set('readyUserIds', []);
         msg = 'Back to destination selection.';
       } else { return; }
       await g.save();

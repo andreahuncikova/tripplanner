@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { checkAreaName } from '../src/validation';
-import { MESSAGE_MAX, checkLogin, checkMessage, checkNewTrip, checkPasswordChange, checkTripChanges, checkRegister, normalizeInviteCode } from '../src/validation';
+import { MESSAGE_MAX, checkLogin, checkMessage, checkConfirmDates, checkDestinationName, checkNewTrip, checkPasswordChange, checkTripChanges, checkTripLength, cleanUnavailableDays, checkRegister, normalizeInviteCode } from '../src/validation';
 
 const valid = { email: 'mia@example.com', password: 'password1', username: 'Mia Novak' };
 
@@ -207,5 +207,40 @@ describe('checkAreaName', () => {
     expect(checkAreaName('x'.repeat(41)).ok).toBe(false);
     expect(checkAreaName({ $gt: '' }).ok).toBe(false);
     expect(checkAreaName(undefined).ok).toBe(false);
+  });
+});
+
+describe('planning steps', () => {
+  it('checks a suggested destination', () => {
+    expect(checkDestinationName('  Bali, Indonesia ')).toEqual({ ok: true, value: 'Bali, Indonesia' });
+    expect(checkDestinationName(' ').ok).toBe(false);
+    expect(checkDestinationName('x'.repeat(61)).ok).toBe(false);
+    expect(checkDestinationName({ $ne: '' }).ok).toBe(false);
+  });
+
+  it('keeps only real days inside the trip months, each once and in order', () => {
+    const days = cleanUnavailableDays(['2027-03-05', '2027-03-04', '2027-03-05', '2027-02-30', '2027-04-01', 'soon', 5, { $gt: '' }], '2027-03-01', '2027-03-31');
+    expect(days).toEqual(['2027-03-04', '2027-03-05']);
+    expect(cleanUnavailableDays('2027-03-04', '2027-03-01', '2027-03-31')).toEqual([]);
+  });
+
+  it('accepts a trip length from 1 to 90 whole days', () => {
+    expect(checkTripLength(10)).toEqual({ ok: true, value: 10 });
+    expect(checkTripLength('7')).toEqual({ ok: true, value: 7 });
+    for (const bad of [0, 91, 2.5, 'ten', null]) expect(checkTripLength(bad).ok).toBe(false);
+  });
+
+  it('confirms only dates that fit inside the free window', () => {
+    const range = { start: '2027-03-10', end: '2027-03-24' };   // 15 free days
+    expect(checkConfirmDates(range, '2027-03-12', 10)).toEqual({ ok: true, value: { start: '2027-03-12', days: 10 } });
+    expect(checkConfirmDates(range, '2027-03-15', 10)).toEqual({ ok: true, value: { start: '2027-03-15', days: 10 } });  // last day 24 March
+    expect(checkConfirmDates(range, '2027-03-16', 10).ok).toBe(false);   // would end on 25 March
+    expect(checkConfirmDates(range, '2027-03-09', 10).ok).toBe(false);   // starts before the window
+    expect(checkConfirmDates(range, 'tomorrow', 10).ok).toBe(false);
+  });
+
+  it('without a start or a length, takes the whole window', () => {
+    expect(checkConfirmDates({ start: '2027-03-10', end: '2027-03-24' }, undefined, null))
+      .toEqual({ ok: true, value: { start: '2027-03-10', days: 15 } });
   });
 });

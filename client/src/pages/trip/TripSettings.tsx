@@ -6,7 +6,7 @@ import { api } from '../../lib/api'
 import { cn } from '../../lib/cn'
 import { useCurrencies } from '../../lib/currencies'
 import { TRIPS_CHANGED, people, tripDates } from '../../lib/trips'
-import { Avatar, Button, Input, Modal, useToast } from '../../components/ui'
+import { Avatar, Button, ConfirmModal, Input, Modal, useToast } from '../../components/ui'
 import { BackIcon } from '../../components/layout/icons'
 import InviteModal from './InviteModal'
 import { useTripSummary } from './useTripSummary'
@@ -122,7 +122,7 @@ export default function TripSettings() {
         {dialog === 'dates' && <DatesForm trip={trip} onSave={dates => save({ dates })} />}
       </Modal>
 
-      <Confirm
+      <ConfirmModal
         open={dialog === 'leave'}
         onClose={close}
         title={`Leave ${trip.name}?`}
@@ -134,7 +134,7 @@ export default function TripSettings() {
         confirm="Leave trip"
         onConfirm={leave}
       />
-      <Confirm
+      <ConfirmModal
         open={dialog === 'delete'}
         onClose={close}
         title="Delete the trip for everyone?"
@@ -248,34 +248,5 @@ function DatesForm({ trip, onSave }: { trip: TripSummary; onSave: (dates: { star
         </div>
       </div>
     </EditForm>
-  )
-}
-
-// "Are you sure?" before leaving or deleting, with the server's error if it fails
-function Confirm({ open, onClose, title, text, confirm, onConfirm }: {
-  open: boolean; onClose: () => void; title: string; text: string; confirm: string; onConfirm: () => Promise<void>
-}) {
-  const [error, setError] = useState('')
-  const [busy, setBusy] = useState(false)
-
-  async function run() {
-    setError('')
-    setBusy(true)
-    try {
-      await onConfirm()
-    } catch (err) {
-      setError((err as Error).message)
-      setBusy(false)
-    }
-  }
-
-  return (
-    <Modal open={open} onClose={onClose} title={title} description={text}>
-      {error && <p role="alert" className="rounded-md bg-danger-light px-4 py-3 text-sm font-semibold text-danger">{error}</p>}
-      <div className="flex flex-col-reverse gap-2.5 md:flex-row md:justify-end">
-        <Button variant="secondary" onClick={onClose}>Cancel</Button>
-        <Button variant="danger" onClick={run} disabled={busy}>{busy ? 'One moment…' : confirm}</Button>
-      </div>
-    </Modal>
   )
 }

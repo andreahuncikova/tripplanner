@@ -54,6 +54,13 @@ describe('computeDateRanges', () => {
     expect(range.end).toBe('2027-06-30');
   });
 
+  it('leaves out windows shorter than the trip, before taking the first 8', () => {
+    // Every third day is blocked: nine 2-day gaps, then a long free end of the month
+    const blocked = ['03', '06', '09', '12', '15', '18', '21', '24', '27'].map(d => `2027-05-${d}`);
+    const ranges = computeDateRanges(['Anna'], { Anna: blocked }, '2027-05-01', '2027-05-31', 3);
+    expect(ranges.map(r => [r.start, r.end])).toEqual([['2027-05-28', '2027-05-31']]);
+  });
+
   it('ignores days marked by someone who is not a member any more', () => {
     const ranges = computeDateRanges(['Anna'], { Ex: ['2027-05-10'] }, '2027-05-01', '2027-05-31');
     expect(ranges).toHaveLength(1);

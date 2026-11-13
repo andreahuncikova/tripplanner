@@ -60,6 +60,7 @@ export function computeDateRanges(
   unavailMap: Record<string, string[]>,
   windowStart?: string | null,
   windowEnd?: string | null,
+  minDays = 1,                              // shorter windows are left out, e.g. the trip length the organiser chose
 ): DateRange[] {
   // Build a set of all days that at least one member can't travel
   const blocked        = new Set<string>();
@@ -127,6 +128,7 @@ export function computeDateRanges(
     });
   }
 
-  return ranges.slice(0, 8);
+  // At most 8 windows, counted after the short ones are left out, so many 1-day gaps cannot push the long windows out
+  return ranges.filter(r => daysBetween(new Date(r.start + 'T12:00:00'), new Date(r.end + 'T12:00:00')) >= minDays).slice(0, 8);
 }
 

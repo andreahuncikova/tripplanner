@@ -1,4 +1,4 @@
-// Checks the log-in and sign-up forms, chat messages, new trips and trip settings before anything touches the database.
+// Checks the log-in and sign-up forms, chat messages, new trips, trip settings and the planning steps before anything touches the database.
 
 export const PASSWORD_MIN = 8;
 const USERNAME_MAX = 30;
@@ -169,4 +169,42 @@ export function checkTripChanges(body: unknown, today = new Date().toISOString()
   }
   if (!Object.keys(changes).length) return { ok: false, error: 'Nothing to change' };
   return { ok: true, value: changes };
+}
+
+// ── Planning steps ────────────────────────────────────
+const MAX_UNAVAILABLE_DAYS = 400;   // more than a year of days; protects the trip document from huge lists
+
+// A suggested destination, e.g. "Bali, Indonesia"
+export function checkDestinationName(v: unknown): Result<string> {
+  const name = text(v).trim();
+  if (!name) return { ok: false, error: 'Please write a place' };
+  if (name.length > DESTINATION_MAX) return { ok: false, error: `A place can be at most ${DESTINATION_MAX} characters` };
+  return { ok: true, value: name };
+}
+
+// The days someone cannot travel: real days inside the trip's months, each once and in order.
+// Anything else (other text, objects, days outside the months) is dropped.
+export function cleanUnavailableDays(v: unknown, windowStart?: string | null, windowEnd?: string | null): string[] {
+  if (!Array.isArray(v)) return [];
+  const days = new Set(v.filter((d): d is string =>
+    typeof d === 'string' && isDay(d) && (!windowStart || d >= windowStart) && (!windowEnd || d <= windowEnd)));
+  return [...days].sort().slice(0, MAX_UNAVAILABLE_DAYS);
+}
+
+// How many days the trip lasts, set by the organiser while the group looks for dates
+export function checkTripLength(v: unknown): Result<number> {
+  const days = Number(v);
+  if (!Number.isInteger(days) || days < 1 || days > MAX_TRIP_DAYS) return { ok: false, error: `A trip can be 1 to ${MAX_TRIP_DAYS} days long` };
+  return { ok: true, value: days };
+}
+
+// The organiser confirms one of the free windows. The trip starts on `start` (or the window's first day)
+// and lasts `days` (or the whole window), and it must fit inside the window: nobody may be busy on any of its days.
+export function checkConfirmDates(range: { start: string; end: string }, start: unknown, days: number | null | undefined): Result<{ start: string; days: number }> {
+  const length = dayDiff(range.start, range.end) + 1;
+  const tripDays = days ?? length;
+  const first = start == null || start === '' ? range.start : text(start);
+  if (!isDay(first)) return { ok: false, error: 'Please choose the first day of the trip' };
+  if (first < range.start || dayDiff(first, range.end) + 1 < tripDays) return { ok: false, error: 'The trip does not fit in this free window' };
+  return { ok: true, value: { start: first, days: tripDays } };
 }
