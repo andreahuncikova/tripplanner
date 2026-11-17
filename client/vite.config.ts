@@ -2,11 +2,14 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
+import { fileURLToPath } from 'node:url'
 
 // The local server the dev proxy talks to. The end-to-end tests run their own server on another port (e2e/).
 const apiTarget = process.env.API_PROXY_TARGET ?? 'http://localhost:3000'
 
 export default defineConfig({
+  // Code shared with the server, e.g. @shared/money (the same path as in tsconfig.app.json)
+  resolve: { alias: { '@shared': fileURLToPath(new URL('../shared', import.meta.url)) } },
   plugins: [
     react(),
     tailwindcss(),

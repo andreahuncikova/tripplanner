@@ -88,8 +88,15 @@ export interface Expense {
   // User ids: who paid, who shares the cost, and who added it (may edit or remove it).
   paidByUserId: string
   splitAmongUserIds: string[]
+  // Only when split by exact amounts: what each person pays, in the expense's currency. Otherwise equal parts.
+  shares?: ExpenseShare[]
   addedByUserId: string
   createdAt: string
+}
+
+export interface ExpenseShare {
+  userId: string
+  amount: number
 }
 
 // The order a trip moves through.
@@ -143,7 +150,12 @@ export interface ExpenseInput {
   // User ids of members of the trip. An empty split means the whole group.
   paidByUserId: string
   splitAmongUserIds: string[]
+  // Split by exact amounts instead: they must add up to the amount
+  shares?: ExpenseShare[]
 }
+
+// The answer to adding or changing an expense
+export type ExpenseResult = { ok: true } | { error: string }
 
 // What the client sends.
 export interface ClientToServerEvents {
@@ -177,8 +189,8 @@ export interface ClientToServerEvents {
   'activity:edit': (data: ActivityInput & { id: string }) => void
   'activity:remove': (activityId: string) => void
 
-  'expense:add': (data: ExpenseInput) => void
-  'expense:edit': (data: ExpenseInput & { id: string }) => void
+  'expense:add': (data: ExpenseInput, ack: (result: ExpenseResult) => void) => void
+  'expense:edit': (data: ExpenseInput & { id: string }, ack: (result: ExpenseResult) => void) => void
   'expense:remove': (expenseId: string) => void
 
   // Stays tab. The server answers stay:add when the stay is saved, or with the reason it was not.
@@ -332,4 +344,15 @@ export interface Stay {
 export interface StaysState {
   areas: Area[]
   stays: Stay[]               // newest first
+}
+
+// GET /api/fx-rates: how much of each currency one euro buys, e.g. { EUR: 1, DKK: 7.46, … }
+export type FxSource = 'exchangerate-api' | 'frankfurter' | 'fallback'
+export interface FxRates {
+  base: 'EUR'
+  rates: Record<string, number>
+  // The day the rates are from, "YYYY-MM-DD" ('' for the built-in fallback)
+  date: string
+  // Where they came from. ExchangeRate-API asks for a credit link wherever its rates are used.
+  source: FxSource
 }

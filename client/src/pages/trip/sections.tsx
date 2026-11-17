@@ -1,6 +1,7 @@
 import ChatPanel from './ChatPanel'
 import StaysView from './StaysSection'
 import PlanView from './plan/PlanSection'
+import BudgetView from './budget/BudgetSection'
 import { useTripOutlet } from './tripOutlet'
 
 // The trip's sections. Each one is a placeholder until its feature is built.
@@ -22,7 +23,10 @@ export function StaysSection() {
   return <StaysView stays={stays} trip={trip} />
 }
 export const ItinerarySection = () => <Placeholder title="Itinerary" text="What happens on each day." />
-export const BudgetSection = () => <Placeholder title="Budget" text="Expenses and who owes whom." />
+export function BudgetSection() {
+  const { plan } = useTripOutlet()
+  return <BudgetView plan={plan} />
+}
 
 // On phones the chat is its own tab and fills the screen. Desktop opens it from the bubble instead,
 // but someone who widens the window on this tab still sees it in a card.

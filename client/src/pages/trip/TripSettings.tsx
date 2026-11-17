@@ -4,10 +4,10 @@ import type { Member, TripChangesInput, TripSummary } from '@shared/types'
 import { useAuth } from '../../auth/useAuth'
 import { api } from '../../lib/api'
 import { cn } from '../../lib/cn'
-import { useCurrencies } from '../../lib/currencies'
 import { TRIPS_CHANGED, people, tripDates } from '../../lib/trips'
 import { Avatar, Button, ConfirmModal, Input, Modal, useToast } from '../../components/ui'
 import { BackIcon } from '../../components/layout/icons'
+import { CurrencySelect } from '../../components/CurrencySelect'
 import InviteModal from './InviteModal'
 import { useTripSummary } from './useTripSummary'
 
@@ -220,15 +220,10 @@ function EditForm({ onSave, children }: { onSave: (form: FormData) => Promise<vo
 }
 
 function CurrencyForm({ current, onSave }: { current: string; onSave: (currency: string) => Promise<void> }) {
-  const currencies = useCurrencies()
+  const [currency, setCurrency] = useState(current)
   return (
-    <EditForm onSave={form => onSave(String(form.get('currency')))}>
-      <div className="flex flex-col gap-2">
-        <label htmlFor="settings-currency" className="text-sm font-bold">Group currency</label>
-        <select id="settings-currency" name="currency" defaultValue={current} className="rounded-md border border-line-strong bg-white px-4 py-3.5 text-base text-roche focus:border-sommet focus:ring-1 focus:ring-sommet focus:outline-none">
-          {currencies.map(c => <option key={c.code} value={c.code}>{c.label}</option>)}
-        </select>
-      </div>
+    <EditForm onSave={() => onSave(currency)}>
+      <CurrencySelect label="Group currency" value={currency} onChange={setCurrency} labelClassName="text-sm font-bold" />
     </EditForm>
   )
 }

@@ -2,9 +2,9 @@ import { useId, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import type { NewTripInput } from '@shared/types'
 import { api } from '../lib/api'
-import { useCurrencies } from '../lib/currencies'
 import { cn } from '../lib/cn'
 import { Button, Input } from '../components/ui'
+import { CurrencySelect } from '../components/CurrencySelect'
 import { BackIcon } from '../components/layout/icons'
 
 type DatesMode = NewTripInput['dates']['mode']
@@ -32,7 +32,6 @@ const monthsBetween = (from: string, to: string) =>
 export default function NewTrip() {
   const navigate = useNavigate()
   const months = useMemo(() => nextMonths(24), [])
-  const currencies = useCurrencies()
   const [mode, setMode] = useState<DatesMode>('known')
   const [start, setStart] = useState('')
   const [end, setEnd] = useState('')
@@ -42,7 +41,6 @@ export default function NewTrip() {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const today = todayKey()
-  const currencyId = useId()
   const fieldId = useId()   // ids for the From/To fields, so each label is linked to its field
 
   // The last month can only be the first month or later, and at most 12 months in total
@@ -161,11 +159,8 @@ export default function NewTrip() {
             </div>
           </fieldset>
 
-          <div className="flex flex-col gap-2 lg:max-w-80">
-            <label htmlFor={currencyId} className="text-md font-bold">Group currency</label>
-            <select id={currencyId} value={currency} onChange={e => setCurrency(e.target.value)} className="rounded-md border border-line-strong bg-white px-4 py-3.5 text-base text-roche focus:border-sommet focus:ring-1 focus:ring-sommet focus:outline-none">
-              {currencies.map(c => <option key={c.code} value={c.code}>{c.label}</option>)}
-            </select>
+          <div className="lg:max-w-80">
+            <CurrencySelect label="Group currency" value={currency} onChange={setCurrency} />
           </div>
 
           {error && <p role="alert" className="rounded-md bg-danger-light px-4 py-3 text-sm font-semibold text-danger">{error}</p>}

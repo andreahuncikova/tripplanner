@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { TripState } from '@shared/types'
+import type { ExpenseInput, ExpenseResult, TripState } from '@shared/types'
 import { useAuth } from '../auth/useAuth'
 import { useSocket } from './useSocket'
 
@@ -19,7 +19,12 @@ export interface TripPlan {
   voteRange: (index: number) => void
   confirmRange: (index: number, start: string) => void
   back: () => void
+  // Resolves with an error message, or null when the expense was saved
+  addExpense: (expense: ExpenseInput) => Promise<string | null>
 }
+
+// How long we wait for the server to save an expense
+const SAVE_TIMEOUT_MS = 10_000
 
 // The planning steps of the trip that useJoinTrip() opened: destinations, marked days, free windows and votes.
 // Kept in TripLayout like the chat, so nothing is missed while another tab is open.
@@ -41,13 +46,20 @@ export function useTripPlan(code: string): TripPlan {
     const onAvail = (a: TripState['availability'][number]) =>
       setState(s => s && { ...s, availability: [...s.availability.filter(x => x.userId !== a.userId), a] })
     const onRanges = (dateRanges: TripState['dateRanges']) => setState(s => s && { ...s, dateRanges })
+    const onExpense = (e: TripState['expenses'][number]) =>
+      setState(s => s && (s.expenses.some(x => x._id === e._id) ? s : { ...s, expenses: [...s.expenses, e] }))
+    const onExpenseRemoved = (id: string) => setState(s => s && { ...s, expenses: s.expenses.filter(e => e._id !== id) })
 
     socket.on('joined', onState)
     socket.on('state', onState)
     socket.on('dest:new', onDest)
     socket.on('avail:update', onAvail)
     socket.on('range:votes', onRanges)
+    socket.on('expense:new', onExpense)
+    socket.on('expense:removed', onExpenseRemoved)
     return () => {
+      socket.off('expense:new', onExpense)
+      socket.off('expense:removed', onExpenseRemoved)
       socket.off('joined', onState)
       socket.off('state', onState)
       socket.off('dest:new', onDest)
@@ -83,5 +95,13 @@ export function useTripPlan(code: string): TripPlan {
     back: () => socket?.emit('phase:back'),
   }), [socket])
 
-  return { state, setUnavailable, ...actions }
+  const addExpense = useCallback((expense: ExpenseInput) => new Promise<string | null>(resolve => {
+    if (!socket?.connected) return resolve('You are offline — please try again')
+    socket.timeout(SAVE_TIMEOUT_MS).emit('expense:add', expense, (err: Error | null, result: ExpenseResult) => {
+      if (err) return resolve('The server did not answer — please try again')
+      resolve('error' in result ? result.error : null)
+    })
+  }), [socket])
+
+  return { state, setUnavailable, addExpense, ...actions }
 }

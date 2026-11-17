@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import rateLimit from 'express-rate-limit';
 import Group, { GroupDoc } from '../models/Group';
 import Stay from '../models/Stay';
+import { isKnownCurrency } from '../fx';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { snapMonthEnd, formatTripLabel } from '../utils';
 import { checkNewTrip, checkTripChanges, normalizeInviteCode } from '../validation';
@@ -60,6 +61,7 @@ router.post('/', authMiddleware, async (req, res) => {
     const input = checkNewTrip(req.body);
     if (!input.ok) return res.status(400).json({ error: input.error });
     const { name, destination, knownDates, window, currency } = input.value;
+    if (!(await isKnownCurrency(currency))) return res.status(400).json({ error: 'There is no exchange rate for this currency' });
     const { _id: userId, username, color } = userOf(req);
     // Generate a short random invite code, e.g. "A3BF92C1"
     const inviteCode = uuidv4().slice(0,8).toUpperCase();
@@ -207,6 +209,7 @@ router.patch('/:code', authMiddleware, async (req, res) => {
     const me = userOf(req);
     if (!sameId(g.adminUserId, me._id)) return res.status(403).json({ error: 'Only the organiser can change the trip' });
     const { name, currency, dates } = input.value;
+    if (currency && !(await isKnownCurrency(currency))) return res.status(400).json({ error: 'There is no exchange rate for this currency' });
     // Dates the group voted on come from the planning steps; only dates entered when the trip was created can be changed here
     if (dates && !g.datesKnown) return res.status(400).json({ error: 'The group chooses the dates in the Plan tab' });
 

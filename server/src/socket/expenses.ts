@@ -1,52 +1,61 @@
-import Group from '../models/Group';
-import { broadcastState, toClient, sameId, memberIds } from './helpers';
-import type { AppSocket, Ctx } from '../types';
+import Group, { GroupDoc } from '../models/Group';
+import { broadcastState, toClient, sameId } from './helpers';
+import { isKnownCurrency } from '../fx';
+import { checkExpense, type CheckedExpense } from '../validation';
+import type { AppSocket, Ctx, ExpenseResult } from '../types';
+
+type Result = { ok: true; value: CheckedExpense } | { ok: false; error: string };
 
 export default function register(socket: AppSocket, { io, sessions, userId }: Ctx) {
-  socket.on('expense:add', async ({ description, amount, currency, paidByUserId, splitAmongUserIds }) => {
+  // The rules for an expense, the same for adding and changing: who paid and who shares the cost must be members,
+  // the currency must have an exchange rate, and exact amounts must add up to the whole (validation.ts)
+  async function check(g: GroupDoc, data: unknown): Promise<Result> {
+    const input = checkExpense(data, g.members.map(m => String(m.userId)), g.currency || 'EUR');
+    if (!input.ok) return input;
+    if (!(await isKnownCurrency(input.value.currency))) return { ok: false, error: 'There is no exchange rate for this currency' };
+    return input;
+  }
+  // Answers the form, so it can show what went wrong instead of losing the expense without a word
+  const answer = (ack: ((r: ExpenseResult) => void) | undefined, r: ExpenseResult) => { if (typeof ack === 'function') ack(r); };
+
+  socket.on('expense:add', async (data, ack) => {
     try {
       const s = sessions[socket.id];
-      if (!s || !description?.trim() || !amount || amount <= 0) return;
+      if (!s) return answer(ack, { error: 'Open the trip again and try once more' });
       const g = await Group.findOne({ inviteCode: s.code });
-      if (!g || g.phase !== 'done') return;
-      // The payer and everyone who shares the cost must be members of this trip
-      const [payer] = memberIds(g, [paidByUserId]);
-      if (!payer) return;
-      const split = memberIds(g, splitAmongUserIds);
-      g.expenses.push({
-        description:       description.trim(),
-        amount:            Number(amount),
-        currency:          currency || g.currency || 'EUR',
-        paidByUserId:      payer,
-        // Nobody chosen: the cost is shared by the whole group
-        splitAmongUserIds: split.length ? split : memberIds(g, g.members.map(m => m.userId)),
-        addedByUserId:     userId,
-      });
+      if (!g || g.phase !== 'done') return answer(ack, { error: 'Expenses can be added when the dates are confirmed' });
+      const input = await check(g, data);
+      if (!input.ok) return answer(ack, { error: input.error });
+      g.expenses.push({ ...input.value, addedByUserId: userId });
       await g.save();
       io.to(s.code).emit('expense:new', toClient(g.expenses.at(-1)));
-    } catch (e) { console.error('[expense:add]', (e as Error).message); }
+      answer(ack, { ok: true });
+    } catch (e) {
+      console.error('[expense:add]', (e as Error).message);
+      answer(ack, { error: 'Server error — please try again' });
+    }
   });
 
   // Only the person who added it or the admin can edit
-  socket.on('expense:edit', async ({ id, description, amount, currency, paidByUserId, splitAmongUserIds }) => {
+  socket.on('expense:edit', async (data, ack) => {
     try {
       const s = sessions[socket.id];
-      if (!s) return;
+      if (!s) return answer(ack, { error: 'Open the trip again and try once more' });
       const g = await Group.findOne({ inviteCode: s.code });
-      if (!g) return;
-      const exp = g.expenses.id(id);
-      if (!exp || (!sameId(exp.addedByUserId, userId) && !sameId(g.adminUserId, userId))) return;
-      const [payer] = memberIds(g, [paidByUserId]);
-      const split = memberIds(g, splitAmongUserIds);
-      exp.description = description;
-      exp.amount      = amount;
-      exp.currency    = currency || exp.currency;
-      // A payer or split that is not a member keeps the old value
-      if (payer) exp.set('paidByUserId', payer);
-      if (split.length) exp.set('splitAmongUserIds', split);
+      if (!g) return answer(ack, { error: 'Trip not found' });
+      const exp = g.expenses.id(data?.id);
+      if (!exp || (!sameId(exp.addedByUserId, userId) && !sameId(g.adminUserId, userId))) return answer(ack, { error: 'You cannot change this expense' });
+      const input = await check(g, data);
+      if (!input.ok) return answer(ack, { error: input.error });
+      // A split by exact amounts that becomes an equal split loses its amounts
+      exp.set({ ...input.value, shares: input.value.shares ?? undefined });
       await g.save();
       await broadcastState(io, sessions, s.code);
-    } catch (e) { console.error('[expense:edit]', (e as Error).message); }
+      answer(ack, { ok: true });
+    } catch (e) {
+      console.error('[expense:edit]', (e as Error).message);
+      answer(ack, { error: 'Server error — please try again' });
+    }
   });
 
   socket.on('expense:remove', async expenseId => {

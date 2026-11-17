@@ -7,6 +7,7 @@ import cors         from 'cors';
 import { PORT, CLIENT_URLS }  from './config';
 import { connectWithRetry, isDbReady } from './db';
 import { socketAuth }      from './middleware/auth';
+import { fxRates }        from './fx';
 import registerAllHandlers from './socket';
 import authRoutes          from './routes/auth';
 import groupRoutes         from './routes/groups';
@@ -57,30 +58,9 @@ app.use('/api/preview', requireDb, previewRoutes);   // reads photo, title, pric
 app.use('/api/places',  requireDb, placesRoutes);    // photos from Google Maps for stays without one
 
 // ── Currency exchange rates  ─────────────────────
-// fallback data if API fails or returns incomplete data
-const FX_FALLBACK: Record<string, number> = {
-  EUR:1, USD:1.08, GBP:0.86, CHF:0.95, CZK:25.1,
-  PLN:4.28, HUF:390, NOK:11.7, SEK:11.4, DKK:7.46,
-  JPY:162, CAD:1.47, AUD:1.65,
-};
-// cache to avoid calling API too often
-let _fxCache: Record<string, number> | null = null, _fxCacheTime = 0;
-
+// Every currency the budget can convert, from ExchangeRate-API or Frankfurter (see fx.ts)
 app.get('/api/fx-rates', async (_req, res) => {
-  // Return the cached rates if they are less than 1 hour old
-  if (_fxCache && Date.now() - _fxCacheTime < 3_600_000) return res.json(_fxCache);
-  try {
-    const r = await fetch('https://api.frankfurter.app/latest?from=EUR');
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    const data = await r.json() as { rates: Record<string, number> };
-    _fxCache = { EUR: 1, ...data.rates };
-    _fxCacheTime = Date.now();
-    res.json(_fxCache);
-  } catch (e) {
-    // If the external API fails, return the last cached value or hardcoded fallback
-    console.warn('[fx-rates]', (e as Error).message, '— using fallback');
-    res.json(_fxCache || FX_FALLBACK);
-  }
+  res.json(await fxRates.get());
 });
 
 // ── Database connection ───────────────────────────────

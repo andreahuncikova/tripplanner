@@ -30,11 +30,16 @@ const ActivitySchema = new Schema({
 });
 
 // Names and colours of the payer and the others come from the members list on the client
+// One person's part of an expense split by exact amounts
+const ShareSchema = new Schema({ userId: Schema.Types.ObjectId, amount: Number }, { _id: false });
+
 const ExpenseSchema = new Schema({
   description: String, amount: Number,
   currency:    { type: String, default: 'EUR' },
   paidByUserId:      Schema.Types.ObjectId,                    // who paid
   splitAmongUserIds: { type: [Schema.Types.ObjectId], default: [] }, // who shares the cost
+  // Split by exact amounts: what each person pays, in the expense's currency. Missing = split equally
+  shares: { type: [ShareSchema], default: undefined },
   addedByUserId:     Schema.Types.ObjectId,                    // who added it (may edit or remove it)
   createdAt: { type: Date, default: Date.now },
 });

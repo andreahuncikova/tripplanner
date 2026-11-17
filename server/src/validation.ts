@@ -1,4 +1,6 @@
-// Checks the log-in and sign-up forms, chat messages, new trips, trip settings and the planning steps before anything touches the database.
+// Checks the log-in and sign-up forms, chat messages, new trips, trip settings, the planning steps and expenses before anything touches the database.
+
+import { decimals } from '../../shared/money';
 
 export const PASSWORD_MIN = 8;
 const USERNAME_MAX = 30;
@@ -207,4 +209,60 @@ export function checkConfirmDates(range: { start: string; end: string }, start: 
   if (!isDay(first)) return { ok: false, error: 'Please choose the first day of the trip' };
   if (first < range.start || dayDiff(first, range.end) + 1 < tripDays) return { ok: false, error: 'The trip does not fit in this free window' };
   return { ok: true, value: { start: first, days: tripDays } };
+}
+
+// ── Expenses ──────────────────────────────────────────
+const EXPENSE_TEXT_MAX = 80;
+const EXPENSE_MAX = 1_000_000_000;   // a billion, enough for Indonesian rupiah or Vietnamese dong
+
+export interface CheckedExpense {
+  description: string;
+  amount: number;
+  currency: string;
+  paidByUserId: string;
+  splitAmongUserIds: string[];
+  // Only when the expense is split by exact amounts
+  shares?: { userId: string; amount: number }[];
+}
+
+// An expense from the Add expense form. members are the user ids of the trip. It is split equally between
+// splitAmongUserIds (none = the whole group), or by exact amounts in shares, which must add up to the amount.
+// Amounts are counted in the smallest unit of the currency (cents), so 0.1 + 0.2 cannot miss 0.3.
+export function checkExpense(body: unknown, members: string[], groupCurrency: string): Result<CheckedExpense> {
+  const b = (body ?? {}) as Record<string, unknown>;
+  const description = text(b.description).trim();
+  const currency = (text(b.currency).trim() || groupCurrency).toUpperCase();
+  const paidByUserId = text(b.paidByUserId);
+
+  if (!description) return { ok: false, error: 'Please write what it was' };
+  if (description.length > EXPENSE_TEXT_MAX) return { ok: false, error: `The description can be at most ${EXPENSE_TEXT_MAX} characters` };
+  if (!/^[A-Z]{3}$/.test(currency)) return { ok: false, error: 'Please choose a currency' };
+  const factor = 10 ** decimals(currency);
+  const toUnits = (v: unknown) => Math.round(Number(v) * factor);
+  const units = toUnits(b.amount);
+  if (!Number.isFinite(units) || units <= 0 || units / factor > EXPENSE_MAX) return { ok: false, error: 'Please enter an amount above zero' };
+  if (!members.includes(paidByUserId)) return { ok: false, error: 'The person who paid must be in the trip' };
+  const value = { description, amount: units / factor, currency, paidByUserId };
+
+  if (Array.isArray(b.shares) && b.shares.length) {
+    const shares: { userId: string; amount: number }[] = [];
+    let sum = 0;
+    for (const raw of b.shares as Record<string, unknown>[]) {
+      const id = text(raw?.userId);
+      const part = toUnits(raw?.amount);
+      if (!members.includes(id) || shares.some(s => s.userId === id)) return { ok: false, error: 'Everyone in the split must be in the trip, once' };
+      if (!Number.isFinite(part) || part < 0) return { ok: false, error: 'The amounts cannot be below zero' };
+      // People with 0 are not part of the split
+      if (part > 0) shares.push({ userId: id, amount: part / factor });
+      sum += part;
+    }
+    if (!shares.length) return { ok: false, error: 'Please enter an amount for at least one person' };
+    if (sum !== units) return { ok: false, error: `The amounts add up to ${sum / factor} ${currency}, not ${units / factor} ${currency}` };
+    return { ok: true, value: { ...value, splitAmongUserIds: shares.map(s => s.userId), shares } };
+  }
+
+  const chosen = Array.isArray(b.splitAmongUserIds) ? [...new Set(b.splitAmongUserIds.map(String))] : [];
+  if (chosen.some(id => !members.includes(id))) return { ok: false, error: 'Everyone in the split must be in the trip, once' };
+  // Nobody chosen: the cost is shared by the whole group
+  return { ok: true, value: { ...value, splitAmongUserIds: chosen.length ? chosen : members } };
 }

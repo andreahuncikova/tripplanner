@@ -97,3 +97,18 @@ test('the last month cannot be before the first one', async ({ page }) => {
   expect(toMonths[0]).toBe(monthFromNow(5))
   expect(toMonths.length).toBeLessThanOrEqual(12)
 })
+
+test('every currency with an exchange rate can be chosen, and the server refuses one without a rate', async ({ page }) => {
+  await signUp(page)
+  await page.goto('/new-trip')
+  const select = page.getByLabel('Group currency')
+  // The common currencies come first; with the internet there are about 160, without it the built-in 13
+  await expect(select.locator('optgroup[label="Common"] option').first()).toHaveText(/^EUR — Euro/)
+  const count = await select.locator('option').count()
+  expect(count).toBeGreaterThanOrEqual(13)
+
+  const token = await page.evaluate(() => localStorage.getItem('tp_token'))
+  const made = await page.request.post('/api/groups', { headers: { Authorization: `Bearer ${token}` }, data: { name: 'Gold', currency: 'XAU' } })
+  expect(made.status()).toBe(400)
+  expect((await made.json()).error).toContain('no exchange rate')
+})
