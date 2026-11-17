@@ -1,5 +1,5 @@
 import { useId, useState, type FormEvent } from 'react'
-import type { ExpenseInput, TripState } from '@shared/types'
+import type { Expense, ExpenseInput, TripState } from '@shared/types'
 import { convert, decimals, splitEqually } from '@shared/money'
 import { cn } from '../../../lib/cn'
 import { formatMoney, parseAmount } from '../../../lib/budget'
@@ -12,32 +12,36 @@ type Mode = 'equal' | 'exact'
 // "Add expense" from the mockups: a sheet on phones, a dialog on desktop. The cost is split equally between the
 // chosen members, or by exact amounts, which must add up to the whole before the expense can be saved.
 // The old app could only split equally. The server checks the same rules again (validation.ts).
-export default function AddExpense({ open, onClose, ...props }: {
-  open: boolean; onClose: () => void; plan: TripPlan; state: TripState; me: string; rates: Record<string, number>
+// With an expense it becomes "Edit expense", with a Delete button; only its author gets there.
+export default function ExpenseDialog({ open, onClose, expense, ...props }: {
+  open: boolean; onClose: () => void; expense?: Expense; plan: TripPlan; state: TripState; me: string; rates: Record<string, number>
 }) {
   return (
-    <Modal open={open} onClose={onClose} title="Add expense">
-      {/* Rendered only while open, so every expense starts from an empty form */}
-      {open && <ExpenseForm {...props} onDone={onClose} />}
+    <Modal open={open} onClose={onClose} title={expense ? 'Edit expense' : 'Add expense'}>
+      {/* Rendered only while open, so every expense starts from an empty or its own form */}
+      {open && <ExpenseForm {...props} expense={expense} onDone={onClose} />}
     </Modal>
   )
 }
 
-function ExpenseForm({ plan, state, me, rates, onDone }: {
-  plan: TripPlan; state: TripState; me: string; rates: Record<string, number>; onDone: () => void
+function ExpenseForm({ plan, state, me, rates, expense, onDone }: {
+  plan: TripPlan; state: TripState; me: string; rates: Record<string, number>; expense?: Expense; onDone: () => void
 }) {
   const toast = useToast()
   const { options } = useCurrencies()
   const currencyId = useId()
-  const [description, setDescription] = useState('')
-  const [amountText, setAmountText] = useState('')
-  const [currency, setCurrency] = useState(state.currency)
-  const [payer, setPayer] = useState(me)
-  const [mode, setMode] = useState<Mode>('equal')
-  const [chosen, setChosen] = useState<string[]>(state.members.map(m => m.userId))
-  const [exact, setExact] = useState<Record<string, string>>({})
+  const [description, setDescription] = useState(expense?.description ?? '')
+  const [amountText, setAmountText] = useState(expense ? String(expense.amount) : '')
+  const [currency, setCurrency] = useState(expense?.currency ?? state.currency)
+  const [payer, setPayer] = useState(expense?.paidByUserId ?? me)
+  const [mode, setMode] = useState<Mode>(expense?.shares?.length ? 'exact' : 'equal')
+  const [chosen, setChosen] = useState<string[]>(
+    state.members.map(m => m.userId).filter(id => !expense || expense.shares?.length || expense.splitAmongUserIds.includes(id)))
+  const [exact, setExact] = useState<Record<string, string>>(
+    Object.fromEntries((expense?.shares ?? []).map(s => [s.userId, String(s.amount)])))
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
   const amount = parseAmount(amountText)
   const hasAmount = Number.isFinite(amount) && amount > 0
@@ -69,10 +73,20 @@ function ExpenseForm({ plan, state, me, rates, onDone }: {
     }
     setError('')
     setBusy(true)
-    const problem = await plan.addExpense(input)
+    const problem = expense ? await plan.editExpense(expense._id, input) : await plan.addExpense(input)
     setBusy(false)
     if (problem) return setError(problem)
-    toast('Expense added')
+    toast(expense ? 'Expense saved' : 'Expense added')
+    onDone()
+  }
+
+  async function remove() {
+    if (!expense) return
+    setBusy(true)
+    const problem = await plan.removeExpense(expense._id)
+    setBusy(false)
+    if (problem) return setError(problem)
+    toast('Expense deleted')
     onDone()
   }
 
@@ -160,7 +174,23 @@ function ExpenseForm({ plan, state, me, rates, onDone }: {
       </fieldset>
 
       {error && <p role="alert" className="rounded-md bg-danger-light px-4 py-3 text-sm font-semibold text-danger">{error}</p>}
-      <Button type="submit" size="lg" fullWidth pill disabled={!ready || busy}>{busy ? 'Adding…' : 'Add expense'}</Button>
+      <Button type="submit" size="lg" fullWidth pill disabled={!ready || busy}>
+        {busy ? 'Saving…' : expense ? 'Save changes' : 'Add expense'}
+      </Button>
+      {!expense && <p className="text-center text-caption text-muted">Only you can edit or delete this expense later.</p>}
+
+      {/* Deleting asks once more inside the dialog; a second dialog on top of this one would be harder to follow */}
+      {expense && (confirmDelete ? (
+        <div role="group" aria-label="Delete this expense?" className="flex flex-col gap-2.5 rounded-lg bg-danger-light p-3.5">
+          <p className="text-sm font-semibold text-danger">Delete "{expense.description}" for everyone?</p>
+          <div className="flex gap-2.5">
+            <Button variant="secondary" onClick={() => setConfirmDelete(false)} className="flex-1">Keep it</Button>
+            <Button variant="dangerOutline" onClick={remove} disabled={busy} className="flex-1">Delete</Button>
+          </div>
+        </div>
+      ) : (
+        <Button variant="link" onClick={() => setConfirmDelete(true)} className="text-danger hover:text-danger">Delete expense</Button>
+      ))}
     </form>
   )
 }

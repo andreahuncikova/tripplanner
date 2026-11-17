@@ -29,7 +29,7 @@ async function budgetWithTwo(browser: Browser) {
   expect((await call(theo, 'POST', `/api/groups/${code}/join`)).ok()).toBe(true)
   await mia.goto(`/trips/${code}/budget`)
   await theo.goto(`/trips/${code}/budget`)
-  return { mia, theo }
+  return { mia, theo, code: code as string }
 }
 
 const total = (page: Page, label: string) => page.getByText(label, { exact: true }).filter({ visible: true }).locator('..')
@@ -89,4 +89,60 @@ test('an expense in another currency is converted to the group currency', async 
   await expect(form.getByText(/≈ €\d+.* at today's rate/)).toBeVisible()
   await form.getByRole('button', { name: 'Add expense' }).click()
   await expect(mia.getByRole('listitem').filter({ hasText: 'Museum' })).toContainText('DKK 300')
+})
+
+// Opens a trip with a plain socket, as the app does, but without the screen, so the test can send what the
+// screen does not offer. Resolves with the socket and the trip it got back.
+async function openTrip(page: Page, code: string) {
+  const { io } = await import('socket.io-client')
+  const token = await page.evaluate(() => localStorage.getItem('tp_token'))
+  const socket = io('http://localhost:3100', { auth: { token }, transports: ['websocket'] })
+  const trip = await new Promise<{ expenses: { _id: string; description: string }[] }>((resolve, reject) => {
+    socket.once('joined', resolve)
+    socket.once('connect_error', reject)
+    socket.emit('join', { code })
+  })
+  return { socket, trip }
+}
+
+test('only the person who added an expense can change or delete it', async ({ browser }) => {
+  const { mia, theo, code } = await budgetWithTwo(browser)
+  // Theo adds an expense; Mia is the organiser
+  await theo.getByRole('button', { name: '+ Add expense' }).click()
+  let form = theo.getByRole('dialog', { name: 'Add expense' })
+  await form.getByLabel('What was it?').fill('Tickets')
+  await form.getByLabel('Amount', { exact: true }).fill('40')
+  await expect(form.getByText('Only you can edit or delete this expense later.')).toBeVisible()
+  await form.getByRole('button', { name: 'Add expense' }).click()
+  await expect(form).toBeHidden()
+
+  // Mia sees it, but cannot edit it, although she is the organiser
+  await expect(mia.getByRole('listitem').filter({ hasText: 'Tickets' })).toBeVisible()
+  await expect(mia.getByRole('button', { name: 'Edit Tickets' })).toHaveCount(0)
+
+  // Not even by sending the events herself: the server says no
+  const { socket, trip } = await openTrip(mia, code)
+  const id = trip.expenses.find(e => e.description === 'Tickets')!._id
+  const edit = await socket.emitWithAck('expense:edit', { id, description: 'Mine now', amount: 1, currency: 'EUR', paidByUserId: '', splitAmongUserIds: [] })
+  const remove = await socket.emitWithAck('expense:remove', id)
+  socket.disconnect()
+  expect(edit).toEqual({ error: 'Only the person who added this expense can change it' })
+  expect(remove).toEqual({ error: 'Only the person who added this expense can delete it' })
+
+  // Theo changes it, and Mia sees the change at once
+  await theo.getByRole('button', { name: 'Edit Tickets' }).click()
+  form = theo.getByRole('dialog', { name: 'Edit expense' })
+  await expect(form.getByLabel('Amount', { exact: true })).toHaveValue('40')
+  await form.getByLabel('What was it?').fill('Museum tickets')
+  await form.getByLabel('Amount', { exact: true }).fill('50')
+  await form.getByRole('button', { name: 'Save changes' }).click()
+  await expect(form).toBeHidden()
+  await expect(mia.getByRole('listitem').filter({ hasText: 'Museum tickets' })).toContainText('€50')
+
+  // And deletes it after a question
+  await theo.getByRole('button', { name: 'Edit Museum tickets' }).click()
+  form = theo.getByRole('dialog', { name: 'Edit expense' })
+  await form.getByRole('button', { name: 'Delete expense' }).click()
+  await form.getByRole('group', { name: 'Delete this expense?' }).getByRole('button', { name: 'Delete' }).click()
+  await expect(mia.getByRole('listitem').filter({ hasText: 'Museum tickets' })).toHaveCount(0)
 })

@@ -191,7 +191,7 @@ export interface ClientToServerEvents {
 
   'expense:add': (data: ExpenseInput, ack: (result: ExpenseResult) => void) => void
   'expense:edit': (data: ExpenseInput & { id: string }, ack: (result: ExpenseResult) => void) => void
-  'expense:remove': (expenseId: string) => void
+  'expense:remove': (expenseId: string, ack: (result: ExpenseResult) => void) => void
 
   // Stays tab. The server answers stay:add when the stay is saved, or with the reason it was not.
   'stay:add': (data: { url: string; areaId: string | null }, done: (result: { ok: true } | { error: string }) => void) => void

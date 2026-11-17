@@ -1,5 +1,5 @@
 import Group, { GroupDoc } from '../models/Group';
-import { broadcastState, toClient, sameId } from './helpers';
+import { broadcastState, toClient, mayChangeExpense } from './helpers';
 import { isKnownCurrency } from '../fx';
 import { checkExpense, type CheckedExpense } from '../validation';
 import type { AppSocket, Ctx, ExpenseResult } from '../types';
@@ -36,7 +36,6 @@ export default function register(socket: AppSocket, { io, sessions, userId }: Ct
     }
   });
 
-  // Only the person who added it or the admin can edit
   socket.on('expense:edit', async (data, ack) => {
     try {
       const s = sessions[socket.id];
@@ -44,7 +43,7 @@ export default function register(socket: AppSocket, { io, sessions, userId }: Ct
       const g = await Group.findOne({ inviteCode: s.code });
       if (!g) return answer(ack, { error: 'Trip not found' });
       const exp = g.expenses.id(data?.id);
-      if (!exp || (!sameId(exp.addedByUserId, userId) && !sameId(g.adminUserId, userId))) return answer(ack, { error: 'You cannot change this expense' });
+      if (!exp || !mayChangeExpense(g, exp.addedByUserId, userId)) return answer(ack, { error: 'Only the person who added this expense can change it' });
       const input = await check(g, data);
       if (!input.ok) return answer(ack, { error: input.error });
       // A split by exact amounts that becomes an equal split loses its amounts
@@ -58,17 +57,21 @@ export default function register(socket: AppSocket, { io, sessions, userId }: Ct
     }
   });
 
-  socket.on('expense:remove', async expenseId => {
+  socket.on('expense:remove', async (expenseId, ack) => {
     try {
       const s = sessions[socket.id];
-      if (!s) return;
+      if (!s) return answer(ack, { error: 'Open the trip again and try once more' });
       const g = await Group.findOne({ inviteCode: s.code });
-      if (!g) return;
+      if (!g) return answer(ack, { error: 'Trip not found' });
       const exp = g.expenses.id(expenseId);
-      if (!exp || (!sameId(exp.addedByUserId, userId) && !sameId(g.adminUserId, userId))) return;
+      if (!exp || !mayChangeExpense(g, exp.addedByUserId, userId)) return answer(ack, { error: 'Only the person who added this expense can delete it' });
       exp.deleteOne();
       await g.save();
       io.to(s.code).emit('expense:removed', expenseId);
-    } catch (e) { console.error('[expense:remove]', (e as Error).message); }
+      answer(ack, { ok: true });
+    } catch (e) {
+      console.error('[expense:remove]', (e as Error).message);
+      answer(ack, { error: 'Server error — please try again' });
+    }
   });
 }

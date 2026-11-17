@@ -49,6 +49,14 @@ async function deleteTrip(g: GroupDoc) {
   await deleteStays(g._id);
 }
 
+// Only the person who added an expense may change or delete it. In the old app the admin could change
+// everyone's expenses (Table 6). The organiser may only when the author has left the trip, so it is not stuck forever.
+function mayChangeExpense(g: Pick<IGroup, 'members' | 'adminUserId'>, authorId: Id, userId: Id): boolean {
+  if (sameId(authorId, userId)) return true;
+  const authorLeft = !g.members.some(m => sameId(m.userId, authorId));
+  return authorLeft && sameId(g.adminUserId, userId);
+}
+
 // Takes someone out of a trip and saves it. When the organiser leaves, the next member becomes the organiser;
 // the last one out deletes the trip. Used by "Leave trip" in Trip settings and by the old socket event.
 // Returns the chat message about it for the others, or null when the trip was deleted.
@@ -129,4 +137,4 @@ async function broadcastState(io: IO, sessions: Sessions, code: string) {
   io.to(code).emit('state', serialize(g, getOnline(sessions, code)));
 }
 
-export { ts, toClient, getOnline, toOnline, serialize, broadcastState, sameId, hasId, objectId, memberIds, removeMemberTraces, leaveTrip, deleteTrip, closeRoom };
+export { ts, toClient, getOnline, toOnline, serialize, broadcastState, sameId, hasId, objectId, memberIds, removeMemberTraces, leaveTrip, deleteTrip, closeRoom, mayChangeExpense };

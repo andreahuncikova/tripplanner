@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { checkExpense } from '../src/validation';
+import { mayChangeExpense } from '../src/socket/helpers';
 import { expenseShares, splitEqually } from '../../shared/money';
 
 const members = ['mia', 'theo', 'sara'];
@@ -60,5 +61,20 @@ describe('checkExpense', () => {
   it('rounds to the decimals of the currency', () => {
     expect((r => r.ok && r.value.amount)(checkExpense({ ...base, amount: 1500.4, currency: 'JPY' }, members, 'EUR'))).toBe(1500);
     expect((r => r.ok && r.value.amount)(checkExpense({ ...base, amount: 12.345 }, members, 'EUR'))).toBe(12.35);
+  });
+});
+
+describe('mayChangeExpense', () => {
+  const g = { adminUserId: 'mia', members: [{ userId: 'mia' }, { userId: 'theo' }] } as never;
+
+  it('lets only the person who added the expense change it, not the organiser', () => {
+    expect(mayChangeExpense(g, 'theo', 'theo')).toBe(true);
+    expect(mayChangeExpense(g, 'theo', 'mia')).toBe(false);   // the old app let the admin do this
+    expect(mayChangeExpense(g, 'mia', 'theo')).toBe(false);
+  });
+
+  it('lets the organiser change it when its author has left the trip', () => {
+    expect(mayChangeExpense(g, 'sara', 'mia')).toBe(true);
+    expect(mayChangeExpense(g, 'sara', 'theo')).toBe(false);
   });
 });

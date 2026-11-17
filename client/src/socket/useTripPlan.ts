@@ -21,6 +21,9 @@ export interface TripPlan {
   back: () => void
   // Resolves with an error message, or null when the expense was saved
   addExpense: (expense: ExpenseInput) => Promise<string | null>
+  // Only for the person who added the expense; the server checks it too
+  editExpense: (id: string, expense: ExpenseInput) => Promise<string | null>
+  removeExpense: (id: string) => Promise<string | null>
 }
 
 // How long we wait for the server to save an expense
@@ -95,13 +98,26 @@ export function useTripPlan(code: string): TripPlan {
     back: () => socket?.emit('phase:back'),
   }), [socket])
 
-  const addExpense = useCallback((expense: ExpenseInput) => new Promise<string | null>(resolve => {
-    if (!socket?.connected) return resolve('You are offline — please try again')
-    socket.timeout(SAVE_TIMEOUT_MS).emit('expense:add', expense, (err: Error | null, result: ExpenseResult) => {
-      if (err) return resolve('The server did not answer — please try again')
-      resolve('error' in result ? result.error : null)
-    })
-  }), [socket])
+  // Adding, changing and deleting an expense wait for the server's answer, so the form can show what went wrong
+  const expenses = useMemo(() => {
+    const done = (resolve: (r: string | null) => void) => (err: Error | null, result: ExpenseResult) =>
+      resolve(err ? 'The server did not answer — please try again' : 'error' in result ? result.error : null)
+    const offline = 'You are offline — please try again'
+    return {
+      addExpense: (expense: ExpenseInput) => new Promise<string | null>(resolve => {
+        if (!socket?.connected) return resolve(offline)
+        socket.timeout(SAVE_TIMEOUT_MS).emit('expense:add', expense, done(resolve))
+      }),
+      editExpense: (id: string, expense: ExpenseInput) => new Promise<string | null>(resolve => {
+        if (!socket?.connected) return resolve(offline)
+        socket.timeout(SAVE_TIMEOUT_MS).emit('expense:edit', { ...expense, id }, done(resolve))
+      }),
+      removeExpense: (id: string) => new Promise<string | null>(resolve => {
+        if (!socket?.connected) return resolve(offline)
+        socket.timeout(SAVE_TIMEOUT_MS).emit('expense:remove', id, done(resolve))
+      }),
+    }
+  }, [socket])
 
-  return { state, setUnavailable, addExpense, ...actions }
+  return { state, setUnavailable, ...expenses, ...actions }
 }

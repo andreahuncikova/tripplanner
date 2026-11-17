@@ -9,6 +9,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.64.1",
-    "mongodb-memory-server": "^10.4.3"
+    "mongodb-memory-server": "^10.4.3",
+    "socket.io-client": "^4.8.4"
   }
 }
