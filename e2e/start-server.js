@@ -18,8 +18,10 @@ const server = spawn(process.execPath, ['--import', 'tsx', 'src/server.ts'], {
     PORT: '3100',
     JWT_SECRET: 'e2e-tests-only-secret-not-used-anywhere-else',
     CLIENT_URL: 'http://localhost:5180',
-    // Never ask Google from the tests, even when server/.env has a key
+    // Never ask Google or Unsplash from the tests, even when server/.env has a key
+    // (Unsplash allows only 50 searches an hour, and the tests must not depend on the internet)
     GOOGLE_PLACES_KEY: '',
+    UNSPLASH_ACCESS_KEY: '',
   },
 })
 

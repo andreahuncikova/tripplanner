@@ -2,8 +2,8 @@ import { Router, Request } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import rateLimit from 'express-rate-limit';
 import Group, { GroupDoc } from '../models/Group';
-import Stay from '../models/Stay';
 import { isKnownCurrency } from '../fx';
+import { coversEnabled, findCover } from '../covers';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { snapMonthEnd, formatTripLabel } from '../utils';
 import { checkNewTrip, checkTripChanges, normalizeInviteCode } from '../validation';
@@ -112,15 +112,26 @@ router.get('/', authMiddleware, async (req, res) => {
   try {
     // .select() limits which fields are returned
     const groups = await Group.find({ 'members.userId': userOf(req)._id })
-      .select(SUMMARY_FIELDS)
+      .select(SUMMARY_FIELDS + ' cover')
       .sort('-createdAt').limit(20).lean();
-    // How many stays each trip has saved, for the planning steps on the trip cards (one query for all the trips)
-    const counts = await Stay.aggregate<{ _id: unknown; n: number }>([
-      { $match: { groupId: { $in: groups.map(g => g._id) } } },
-      { $group: { _id: '$groupId', n: { $sum: 1 } } },
-    ]);
-    const stays = new Map(counts.map(c => [String(c._id), c.n]));
-    res.json({ groups: groups.map(g => ({ ...g, stayCount: stays.get(String(g._id)) ?? 0 })) });
+    // A trip with a destination it has not searched a photo for yet searches now, once (several trips at the same time)
+    if (coversEnabled()) {
+      // When Unsplash does not answer, nothing is saved, so the next visit tries again
+      await Promise.all(groups.filter(g => g.approvedDest && g.cover?.query !== g.approvedDest).map(async g => {
+        try {
+          const found = await findCover(g.approvedDest!);
+          g.cover = { query: g.approvedDest!, ...found };
+          await Group.updateOne({ _id: g._id }, { cover: g.cover });
+        } catch (e) {
+          console.error('[covers]', (e as Error).message);
+        }
+      }));
+    }
+    // The photo is only shown while it belongs to the trip's destination
+    res.json({ groups: groups.map(({ cover, ...g }) => ({
+      ...g,
+      cover: cover?.url && cover.query === g.approvedDest ? { url: cover.url, author: cover.author!, authorUrl: cover.authorUrl! } : null,
+    })) });
   } catch (e) {
     console.error('[groups:list]', (e as Error).message);
     res.status(500).json({ error: 'Server error' });
@@ -137,6 +148,39 @@ router.get('/:code/summary', authMiddleware, async (req, res) => {
     res.json(g);
   } catch (e) {
     console.error('[groups:summary]', (e as Error).message);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// The photos of the three tiles on the Plan tab: a stay, something to see and food at the destination, from Unsplash.
+// Searched the first time someone opens the tab after the destination is known, then kept with the trip.
+const TILE_QUERIES = { stays: 'hotel', days: 'sightseeing', costs: 'food' } as const;
+type Tile = keyof typeof TILE_QUERIES;
+
+router.get('/:code/photos', authMiddleware, async (req, res) => {
+  try {
+    const code = normalizeInviteCode(req.params.code);
+    const g = code && await Group.findOne({ inviteCode: code, 'members.userId': userOf(req)._id }).select('approvedDest tilePhotos');
+    if (!g) return res.status(404).json({ error: 'Trip not found' });
+    const dest = g.approvedDest;
+    if (dest && coversEnabled() && g.tilePhotos?.query !== dest) {
+      try {
+        const tiles = Object.keys(TILE_QUERIES) as Tile[];
+        const found = await Promise.all(tiles.map(t => findCover(`${dest} ${TILE_QUERIES[t]}`)));
+        g.tilePhotos = { query: dest, ...Object.fromEntries(tiles.map((t, i) => [t, found[i] && { query: dest, ...found[i] }])) };
+        await Group.updateOne({ _id: g._id }, { tilePhotos: g.tilePhotos });
+      } catch (e) {
+        // Unsplash did not answer: nothing is saved, so the next visit tries again
+        console.error('[covers]', (e as Error).message);
+      }
+    }
+    const photo = (t: Tile) => {
+      const p = g.tilePhotos?.query === dest ? g.tilePhotos?.[t] : null;
+      return p?.url ? { url: p.url, author: p.author!, authorUrl: p.authorUrl! } : null;
+    };
+    res.json({ stays: photo('stays'), days: photo('days'), costs: photo('costs') });
+  } catch (e) {
+    console.error('[groups:photos]', (e as Error).message);
     res.status(500).json({ error: 'Server error' });
   }
 });

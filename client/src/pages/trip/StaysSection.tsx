@@ -62,7 +62,7 @@ export default function StaysSection({ stays, trip }: { stays: TripStays; trip: 
           {current ? `No stays in ${current.name} yet. Paste a link above to add one.` : 'No stays yet. Paste a Booking.com or Airbnb link above, and the group can like the ones they want.'}
         </Card>
       ) : (
-        <ul aria-label={current ? `Stays in ${current.name}` : 'All stays'} className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <ul aria-label={current ? `Stays in ${current.name}` : 'All stays'} className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {shown.map(s => (
             <StayItem
               key={s._id}
@@ -180,7 +180,7 @@ function StayItem({ stay: s, areas, me, canRemove, stays, onNights, onDetails }:
   // The photo fills the card, with the area and the like on top and the name, the nights and the rest on a dark fade
   // at the bottom. A stay without photos gets a dark gradient in its place, so every card looks the same.
   return (
-    <li>
+    <li className="min-w-0">
       <article className="relative isolate flex h-84 flex-col justify-between overflow-hidden rounded-lg bg-linear-to-br from-sommet-dark to-roche shadow-card">
         {photos.length ? (
           <PhotoCarousel images={photos} credits={s.imageCredits} label={name} href={s.url} />
@@ -277,15 +277,31 @@ function LikeButton({ stay: s, me, stays }: { stay: Stay; me?: string; stays: Tr
 
 type TripDays = { start: string; end: string }
 
-// A run of nights written like the nights on a card, check-in to check-out: "13 – 15 Jun (2 nights)"
-const runText = (r: DayRange) => {
-  const n = { checkIn: r.first, checkOut: addDays(r.last, 1) }
-  return `${nightsRange(n)} (${nightsWord(nightCount(n))})`
+// One problem with the nights: its name and each run of nights it is about, written like the nights on a card,
+// check-in to check-out: "13 – 15 Jun · 2 nights"
+function NightsWarning({ tone, title, runs }: { tone: 'none' | 'double'; title: string; runs: DayRange[] }) {
+  const color = tone === 'none' ? 'text-chemin' : 'text-[#ff8f80]'
+  return (
+    <div role="group" aria-label={title} className={cn('flex min-w-0 flex-1 items-start gap-3 rounded-xl bg-white/6 p-3 ring-1 ring-inset', tone === 'none' ? 'ring-chemin/40' : 'ring-[#ff8f80]/40')}>
+      <span aria-hidden="true" className={cn('flex size-8 shrink-0 items-center justify-center rounded-full text-sm font-extrabold', tone === 'none' ? 'bg-chemin/15' : 'bg-[#ff8f80]/15', color)}>
+        {tone === 'none' ? '!' : '2×'}
+      </span>
+      <div className="flex min-w-0 flex-col gap-1">
+        <strong className="text-sm text-white">{title}</strong>
+        <ul className="flex flex-col gap-0.5 text-sm text-[#d5dde5]">
+          {runs.map(r => {
+            const n = { checkIn: r.first, checkOut: addDays(r.last, 1) }
+            return <li key={r.first}>{nightsRange(n)} · <span className={cn('font-semibold', color)}>{nightsWord(nightCount(n))}</span></li>
+          })}
+        </ul>
+      </div>
+    </div>
+  )
 }
 
 // The trip's nights in the style of the Itinerary calendar: a small tile for each night with its day, its date and
-// the stay that covers it. The line on top is blue when a booked stay covers the night, amber when two do, grey
-// when none does. Under the tiles the nights still without a stay, so nobody arrives somewhere with no bed.
+// the stay that covers it, on a dark card like the step card on the Plan tab. The line on top is blue when a booked
+// stay covers the night, rose when two do, faint when none does. Under the tiles the nights still without a stay, so nobody arrives somewhere with no bed.
 const nightDay = new Intl.DateTimeFormat('en-GB', { weekday: 'short' })
 
 function NightsBar({ tripDays, stays }: { tripDays: TripDays; stays: Stay[] }) {
@@ -299,24 +315,24 @@ function NightsBar({ tripDays, stays }: { tripDays: TripDays; stays: Stay[] }) {
   }
   const ring = 2 * Math.PI * 18
   return (
-    <section aria-label="Nights" className="mb-4 flex flex-col gap-4 md:flex-row md:items-start md:gap-8">
+    <section aria-label="Nights" className="mb-4 flex flex-col gap-4 rounded-[18px] bg-roche p-4.5 text-white lg:p-5.5">
+      <div className="flex flex-col gap-4 md:flex-row md:items-start md:gap-8">
       {/* How many nights are booked, as a ring that fills up */}
       <div className="flex shrink-0 items-center gap-3.5 md:pt-1">
         <svg width="52" height="52" viewBox="0 0 44 44" aria-hidden="true" className="-rotate-90">
-          <circle cx="22" cy="22" r="18" fill="none" strokeWidth="4.5" className="stroke-line-strong/50" />
+          <circle cx="22" cy="22" r="18" fill="none" strokeWidth="4.5" className="stroke-white/15" />
           <circle cx="22" cy="22" r="18" fill="none" strokeWidth="4.5" strokeLinecap="round"
             strokeDasharray={ring} strokeDashoffset={ring * (1 - cover.booked / total)}
-            className={cn('transition-[stroke-dashoffset] duration-700', done ? 'stroke-success' : 'stroke-sommet')} />
+            className={cn('transition-[stroke-dashoffset] duration-700', done ? 'stroke-success' : 'stroke-ciel')} />
         </svg>
         <div className="flex flex-col leading-tight">
-          <span className={cn('text-title font-extrabold', done && 'text-success')}>{cover.booked} of {total}</span>
-          <span className={cn('text-sm', done && cover.doubles.length === 0 ? 'font-semibold text-success' : 'text-muted')}>
+          <span className={cn('text-title font-extrabold', done && 'text-[#7fd6a0]')}>{cover.booked} of {total}</span>
+          <span className={cn('text-sm', done && cover.doubles.length === 0 ? 'font-semibold text-[#7fd6a0]' : 'text-[#9fb0c0]')}>
             {done && cover.doubles.length === 0 ? 'Every night has a stay' : 'nights booked'}
           </span>
         </div>
       </div>
-      <div className="flex min-w-0 flex-1 flex-col gap-3">
-      <ol aria-label="Nights of the trip" className="flex gap-2 overflow-x-auto pb-1">
+      <ol aria-label="Nights of the trip" className="flex min-w-0 flex-1 gap-2 overflow-x-auto pb-1">
         {cover.nights.map(n => {
           const state = n.stayIds.length > 1 ? 'booked twice' : n.stayIds.length ? 'booked' : 'no stay'
           const date = fromKey(n.day)
@@ -327,25 +343,28 @@ function NightsBar({ tripDays, stays }: { tripDays: TripDays; stays: Stay[] }) {
               aria-label={`Night of ${shortDayText(n.day)}: ${state}`}
               className={cn(
                 'flex min-w-24 flex-1 flex-col gap-0.5 border-t-2 pt-2',
-                n.stayIds.length > 1 ? 'border-chemin' : n.stayIds.length ? 'border-sommet' : 'border-line-strong',
+                n.stayIds.length > 1 ? 'border-[#ff8f80]' : n.stayIds.length ? 'border-ciel' : 'border-white/20',
               )}
             >
-              <span className="text-2xs font-bold tracking-wider text-muted uppercase">{nightDay.format(date)}</span>
+              <span className="text-2xs font-bold tracking-wider text-[#9fb0c0] uppercase">{nightDay.format(date)}</span>
               <span className="text-lg leading-6 font-semibold">{String(date.getDate()).padStart(2, '0')}</span>
-              <span className={cn('truncate text-xs', n.stayIds.length ? 'font-semibold text-roche' : 'text-chemin-dark')}>
+              <span className={cn('truncate text-xs', n.stayIds.length ? 'font-semibold text-white' : 'text-chemin')}>
                 {n.stayIds.length ? n.stayIds.map(stayName).join(' + ') : 'No stay'}
               </span>
             </li>
           )
         })}
       </ol>
+      </div>
+      {/* The problems take the whole width of the card, under the ring and the nights */}
       {(!done || cover.doubles.length > 0) && (
-        <div role="status" className="flex flex-col gap-0.5 text-sm text-chemin-dark">
-          {!done && <p className="flex items-start gap-2"><span aria-hidden="true" className="mt-1.5 size-2 shrink-0 rounded-full bg-chemin" /><span><strong>No stay booked</strong> for {cover.gaps.map(runText).join(', ')}.</span></p>}
-          {cover.doubles.length > 0 && <p className="flex items-start gap-2"><span aria-hidden="true" className="mt-1.5 size-2 shrink-0 rounded-full bg-chemin" /><span><strong>Two stays booked</strong> for {cover.doubles.map(runText).join(', ')}.</span></p>}
+        // What still needs doing, as one box per problem with its nights listed under it; one box alone takes the whole width:
+        // amber for nights without a bed, rose for nights two stays are booked for
+        <div role="status" className="flex flex-col gap-2.5 sm:flex-row">
+          {!done && <NightsWarning tone="none" title="No stay booked" runs={cover.gaps} />}
+          {cover.doubles.length > 0 && <NightsWarning tone="double" title="Two stays booked" runs={cover.doubles} />}
         </div>
       )}
-      </div>
     </section>
   )
 }

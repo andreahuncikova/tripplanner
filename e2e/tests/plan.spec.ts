@@ -34,7 +34,9 @@ async function planWithTwo(browser: Browser, trip: object) {
 
 const summary = async (page: Page, code: string) => (await call(page, 'GET', `/api/groups/${code}/summary`)).json()
 const datesHeading = (page: Page) => page.getByRole('heading', { name: "Mark the days you can't travel" })
-// The step of the bar with the four planning steps that the group is in now
+// The step that the group is in now, in the planning steps at the top of the card on the Plan tab
+// A section in the switch (the bottom tabs on a phone), which is locked until the dates are confirmed
+const sectionLink = (page: Page, name: string) => page.getByRole('link', { name: new RegExp(`^${name}`) }).first()
 const currentStep = (page: Page) => page.getByRole('list', { name: 'Planning steps' }).locator('[aria-current="step"]')
 
 test('the group suggests places and votes, and the organiser confirms the winner', async ({ browser }) => {
@@ -42,8 +44,9 @@ test('the group suggests places and votes, and the organiser confirms the winner
   const { mia, theo, code } = await planWithTwo(browser, { name: 'Summer', dates: { mode: 'find', fromMonth: month, toMonth: month } })
   await expect(mia.getByRole('heading', { name: 'Step 1: Where should we go?' })).toBeVisible()
   await expect(currentStep(mia)).toHaveText(/Destination/)
-  // Only one bar at a time: while the group plans there is no section switch
-  await expect(mia.getByRole('navigation', { name: 'Trip sections' })).toHaveCount(0)
+  // The header is the same in every phase; while the group plans, Stays, Itinerary and Budget are locked
+  await expect(sectionLink(mia, 'Plan')).not.toHaveAttribute('aria-disabled')
+  for (const name of ['Stays', 'Itinerary', 'Budget']) await expect(sectionLink(mia, name)).toHaveAttribute('aria-disabled', 'true')
 
   await mia.getByLabel('Suggest a place').fill('Bali')
   await mia.getByRole('button', { name: 'Add' }).click()
@@ -75,7 +78,7 @@ test('the group suggests places and votes, and the organiser confirms the winner
   expect(await summary(mia, code)).toMatchObject({ phase: 'calendar', approvedDest: 'Bali' })
 })
 
-test('everyone marks busy days, the organiser finds free windows and confirms the dates the group voted for', async ({ browser, isMobile }) => {
+test('everyone marks busy days, the organiser finds free windows and confirms the dates the group voted for', async ({ browser }) => {
   const month = monthFromNow(2)
   const { mia, theo, code } = await planWithTwo(browser, { name: 'Lisbon weekend', destination: 'Lisbon', dates: { mode: 'find', fromMonth: month, toMonth: month } })
   await expect(datesHeading(theo)).toBeVisible()
@@ -115,12 +118,13 @@ test('everyone marks busy days, the organiser finds free windows and confirms th
   const dialog = mia.getByRole('dialog', { name: 'Confirm the trip dates?' })
   await dialog.getByLabel('Trip dates').selectOption(`${month}-12`)
   await dialog.getByRole('button', { name: 'Confirm dates' }).click()
-  await expect(theo.getByRole('heading', { name: 'Step 3: Where will you stay?' })).toBeVisible()
+  await expect(theo.getByRole('heading', { name: "You're ready to go" })).toBeVisible()
   expect(await summary(mia, code)).toMatchObject({ phase: 'done', finalDate: `${month}-12`, tripDuration: 5 })
 
-  // With the dates confirmed the steps bar goes, and on a computer the section switch takes its place
-  await expect(theo.getByRole('list', { name: 'Planning steps' })).toHaveCount(0)
-  if (!isMobile) await expect(theo.getByRole('navigation', { name: 'Trip sections' })).toBeVisible()
+  // With the dates confirmed both planning steps are done, and the other sections open
+  await expect(theo.getByRole('list', { name: 'Planning steps' })).toContainText('Dates ✓')
+  await expect(currentStep(theo)).toHaveCount(0)
+  for (const name of ['Stays', 'Itinerary', 'Budget']) await expect(sectionLink(theo, name)).not.toHaveAttribute('aria-disabled')
 
   // The organiser can go back a step after a question; the group then votes again
   await expect(theo.getByRole('button', { name: 'Go back a step' })).toHaveCount(0)

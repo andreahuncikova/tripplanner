@@ -21,7 +21,7 @@ export default function BudgetSection({ plan }: { plan: TripPlan }) {
 
   if (state.phase !== 'done') {
     return (
-      <p className="mx-auto max-w-180 rounded-lg bg-white p-4 text-sm text-subtle">
+      <p className="rounded-lg bg-white p-4 text-sm text-subtle">
         The budget opens when the group has agreed on the destination and the dates.
       </p>
     )
@@ -36,7 +36,7 @@ export default function BudgetSection({ plan }: { plan: TripPlan }) {
     || (state.adminUserId === user._id && !state.members.some(m => m.userId === e.addedByUserId))
 
   return (
-    <div className="mx-auto flex w-full max-w-245 flex-col gap-5">
+    <div className="flex w-full flex-col gap-5">
       <div className="flex flex-col gap-3 lg:flex-row lg:gap-3.5">
         <div className="flex flex-col gap-3.5 rounded-xl bg-roche p-4.5 text-white lg:flex-[2_1_260px] lg:gap-1.5 lg:px-5">
           <span className="text-caption text-line-strong">Group spent</span>

@@ -43,10 +43,10 @@ test('destination and dates known: the trip is ready to go right away', async ({
   expect(trip.finalDateLabel).toMatch(/\(10 days\)$/)
 
   await page.goto('/dashboard')
-  // The dates are agreed, so the next of the four planning steps is choosing stays
+  // The destination and the dates are agreed, so both planning steps are done
   const card = page.getByRole('main').getByRole('link', { name: /Bali with friends/ })
-  await expect(card).toContainText('Choosing stays')
-  await expect(card.getByRole('img', { name: 'Step 3 of 4: Stays' })).toBeVisible()
+  await expect(card).toContainText('Ready to go')
+  await expect(card.getByRole('img', { name: 'All planning steps done' })).toBeVisible()
 })
 
 test('destination known, dates not: the group starts by marking free days', async ({ page }) => {

@@ -273,8 +273,24 @@ export interface TripSummary {
   approvedDest: string | null
   // The dates were entered when the trip was created, so the organiser can change them in Trip settings
   datesKnown: boolean
-  // How many stays the trip has saved; only in the list (GET /api/groups), for the planning steps on the cards
-  stayCount?: number
+  // A photo of the destination from Unsplash for the trip card; only in the list (GET /api/groups).
+  // null while the trip has no destination, or when no photo was found.
+  cover?: TripCover | null
+}
+
+// GET /api/groups/:code/photos: a photo from Unsplash for each tile on the Plan tab once the trip is ready
+// (a stay, something to see, food). null when there is no destination, no photo or no Unsplash key.
+export interface TripPhotos {
+  stays: TripCover | null
+  days: TripCover | null
+  costs: TripCover | null
+}
+
+// A photo from Unsplash: its address and the photographer, whom the card must name with a link
+export interface TripCover {
+  url: string
+  author: string
+  authorUrl: string
 }
 
 // PATCH /api/groups/:code, Trip settings (organiser only). Only the fields that are sent change.

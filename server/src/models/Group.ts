@@ -45,6 +45,13 @@ const ExpenseSchema = new Schema({
   createdAt: { type: Date, default: Date.now },
 });
 
+// The photo of the destination on the trip card (covers.ts). `query` is the destination it was searched for, so a new
+// destination gets a new photo; a search that found nothing is kept too (no url), so it is not repeated every time.
+const CoverSchema = new Schema({ query: String, url: String, author: String, authorUrl: String }, { _id: false });
+
+// The photos of the three tiles on the Plan tab (GET /api/groups/:code/photos), searched once per destination like `cover`
+const TilePhotosSchema = new Schema({ query: String, stays: CoverSchema, days: CoverSchema, costs: CoverSchema }, { _id: false });
+
 const AreaSchema = new Schema({
   name: { type: String, required: true },
 });
@@ -85,6 +92,8 @@ const GroupSchema = new Schema({
   expenses:          { type: [ExpenseSchema],  default: [] },
   // Parts of the destination for the Stays tab, e.g. Ubud and Uluwatu. The stays themselves are in models/Stay.ts.
   areas:             { type: [AreaSchema],     default: [] },
+  cover:             { type: CoverSchema,      default: null },
+  tilePhotos:        { type: TilePhotosSchema, default: null },
   createdAt:         { type: Date,             default: Date.now },
 });
 

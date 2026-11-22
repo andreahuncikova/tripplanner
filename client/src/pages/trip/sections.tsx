@@ -9,8 +9,8 @@ import { useTripOutlet } from './tripOutlet'
 
 // The trip's sections, each given what it needs from TripLayout (tripOutlet.ts)
 export function PlanSection() {
-  const { plan, stays } = useTripOutlet()
-  return <PlanView plan={plan} stayCount={stays.stays.length} />
+  const { plan } = useTripOutlet()
+  return <PlanView plan={plan} />
 }
 export function StaysSection() {
   const { stays, trip } = useTripOutlet()

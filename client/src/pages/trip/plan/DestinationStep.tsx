@@ -31,7 +31,7 @@ export default function DestinationStep({ plan, state, me, isOrganiser, organise
   }
 
   return (
-    <section aria-label="Destination" className="flex flex-col gap-4 lg:gap-5.5">
+    <section aria-label="Destination" className="flex flex-1 flex-col gap-4 lg:min-h-0 lg:gap-5.5">
       <StepCard
         step={1}
         title="Where should we go?"
@@ -40,7 +40,9 @@ export default function DestinationStep({ plan, state, me, isOrganiser, organise
         Suggest places and pick one favourite. {isOrganiser ? 'As organiser, you confirm' : `${organiser} confirms`} the winner once everyone has voted.
       </StepCard>
 
-      <div role="group" aria-label="Destinations" className="flex flex-col gap-2.5">
+      {/* On a computer the list takes the free height and scrolls when there are many places; the vote count stays at the bottom */}
+      <div role="group" aria-label="Destinations" className="flex flex-1 flex-col gap-2.5 lg:min-h-0">
+        <div className="flex flex-col gap-2.5 lg:-m-1 lg:min-h-0 lg:overflow-y-auto lg:p-1 lg:[&>*]:shrink-0">
         {state.destinations.map(d => (
           <DestinationRow
             key={d._id}
@@ -53,6 +55,7 @@ export default function DestinationStep({ plan, state, me, isOrganiser, organise
           />
         ))}
         {!state.destinations.length && <p className="rounded-lg bg-white p-4 text-sm text-muted">No places yet. Suggest the first one.</p>}
+        </div>
 
         <form onSubmit={suggest} className="flex gap-2 rounded-lg border border-dashed border-line-strong bg-white p-1.5 lg:gap-2.5 lg:p-2.5">
           <label htmlFor="suggest-place" className="sr-only">Suggest a place</label>

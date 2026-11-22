@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import type { DateRange } from '@shared/types'
 import { cn } from '../../../lib/cn'
 import {
@@ -8,7 +8,7 @@ import { Button, ConfirmModal } from '../../../components/ui'
 import { StepCard } from './StepGuide'
 import type { StepProps } from './step'
 
-const WEEKDAYS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']
+const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 // Trip lengths the organiser can choose (the server allows up to 90 days)
 const LENGTHS = Array.from({ length: 30 }, (_, i) => i + 1)
 
@@ -25,10 +25,11 @@ export default function DatesStep(props: StepProps) {
   if (!state.tripWindowStart || !state.tripWindowEnd) return <ChooseMonths {...props} />
 
   return (
-    <section aria-label="Dates" className="flex flex-col gap-4">
+    <section aria-label="Dates" className="flex flex-1 flex-col gap-4">
       {/* Marking days and voting are two phases on the server, but one step for the group, so the card says what to do in each */}
       <StepCard
         step={2}
+        agreed={[state.approvedDest]}
         title={state.phase === 'date_vote' ? 'Vote for your dates' : "Mark the days you can't travel"}
         aside={
           <Button variant={imDone ? 'soft' : 'secondary'} aria-pressed={imDone} onClick={() => plan.setDone(!imDone)} className="shrink-0 border-0">
@@ -41,9 +42,12 @@ export default function DatesStep(props: StepProps) {
           : `Then press I'm done. ${isOrganiser ? 'You find' : `${organiser} finds`} the windows when everyone is free.`}
       </StepCard>
 
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-4.5">
+      {/* The same layout as the Itinerary: the calendar on the left, the free windows on the right (on phones below).
+          On a computer both fill the rest of the window (at least the height of the calendar), and the free windows
+          scroll when there are more than fit: the right column takes no height of its own (h-0) and fills the row. */}
+      <div className="flex flex-col gap-8 lg:grid lg:flex-1 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-10 xl:grid-cols-[minmax(0,1fr)_26rem]">
         <Calendar {...props} />
-        <div className="flex flex-col gap-3 lg:flex-[1_1_280px]">
+        <div className="flex flex-col gap-3 lg:h-0 lg:min-h-full">
           <FreeWindows {...props} />
           <section aria-label="Who is done" className="flex flex-col gap-1.5 rounded-[14px] bg-white p-3.5 text-sm">
             <h3 className="font-extrabold">{done.length} of {state.members.length} done</h3>
@@ -56,8 +60,10 @@ export default function DatesStep(props: StepProps) {
   )
 }
 
-// The trip's months, one at a time. Tapping a day marks or unmarks it as a day the user cannot travel;
-// the colours show the whole group: you can't, someone else can't, or everyone is free.
+// The trip's months, one at a time, drawn like the calendar in the Itinerary but smaller. Tapping a day marks or
+// unmarks it as a day the user cannot travel. The days show the whole group, the way the Itinerary shows the days
+// of the trip: everyone is free (a dark number under a blue line), someone else can't (greyed out, with a dot in the
+// colour of each of them), or you can't (filled dark).
 function Calendar({ plan, state, me }: StepProps) {
   const months = useMemo(() => windowMonths(state.tripWindowStart!, state.tripWindowEnd!), [state.tripWindowStart, state.tripWindowEnd])
   const [index, setIndex] = useState(0)
@@ -65,12 +71,12 @@ function Calendar({ plan, state, me }: StepProps) {
   const today = dayKey(new Date())
 
   const mine = useMemo(() => new Set(state.availability.find(a => a.userId === me)?.unavailableDates ?? []), [state.availability, me])
-  // Day → names of the other members who cannot travel then (members only: someone who left does not count)
+  // Day → the other members who cannot travel then (members only: someone who left does not count)
   const others = useMemo(() => {
-    const map = new Map<string, string[]>()
+    const map = new Map<string, { username: string; color: string }[]>()
     for (const a of state.availability) {
       if (a.userId === me || !state.members.some(m => m.userId === a.userId)) continue
-      for (const d of a.unavailableDates) map.set(d, [...(map.get(d) ?? []), a.username])
+      for (const d of a.unavailableDates) map.set(d, [...(map.get(d) ?? []), { username: a.username, color: a.color }])
     }
     return map
   }, [state.availability, state.members, me])
@@ -83,9 +89,9 @@ function Calendar({ plan, state, me }: StepProps) {
   }
 
   return (
-    <div className="flex flex-col gap-2 rounded-lg bg-white p-3 pb-3.5 lg:flex-[1_1_380px] lg:gap-2.5 lg:rounded-[18px] lg:p-4">
+    <div className="flex min-w-0 flex-col gap-3">
       <div className="flex items-center gap-1">
-        <strong className="flex-1 px-1">{monthName.format(new Date(month + '-15T12:00:00'))}</strong>
+        <p className="flex-1 text-title font-extrabold lg:text-2xl">{monthName.format(new Date(month + '-15T12:00:00'))}</p>
         {months.length > 1 && (
           <>
             <MonthButton label="Previous month" disabled={index === 0} onClick={() => setIndex(i => i - 1)} path="M15 18l-6-6 6-6" />
@@ -93,15 +99,16 @@ function Calendar({ plan, state, me }: StepProps) {
           </>
         )}
       </div>
-      <div aria-hidden="true" className="grid grid-cols-7 gap-1 text-center text-2xs font-bold text-muted lg:text-xs">
-        {WEEKDAYS.map(d => <span key={d}>{d}</span>)}
+      <div aria-hidden="true" className="grid grid-cols-7 gap-1.5 sm:gap-3">
+        {WEEKDAYS.map(d => <span key={d} className="text-2xs font-bold tracking-wider text-muted uppercase">{d}</span>)}
       </div>
-      <div className="grid grid-cols-7 gap-1">
+      <div role="group" aria-label="Days of the month" className="grid grid-cols-7 gap-x-1.5 gap-y-3 sm:gap-x-3 sm:gap-y-4">
         {monthGrid(month).map((day, i) => {
           if (!day) return <span key={`blank-${i}`} />
           const past = day < today
           const busy = others.get(day)
-          const status = mine.has(day) ? 'you can\'t travel' : busy ? `${names(busy.map(username => ({ username })))} can't travel` : 'everyone is free'
+          const who = busy && names(busy)
+          const status = mine.has(day) ? 'you can\'t travel' : busy ? `${who} can't travel` : 'everyone is free'
           return (
             <button
               key={day}
@@ -109,23 +116,33 @@ function Calendar({ plan, state, me }: StepProps) {
               data-day={day}
               aria-pressed={mine.has(day)}
               aria-label={`${dayLabel(day)}, ${past ? 'in the past' : status}`}
-              title={busy?.length ? `${names(busy.map(username => ({ username })))} can't travel` : undefined}
+              title={who ? `${who} can't travel` : undefined}
               disabled={past}
               onClick={() => toggle(day)}
               className={cn(
-                'h-9.5 rounded-[10px] text-sm font-semibold lg:h-10',
-                past ? 'text-faint' : mine.has(day) ? 'bg-roche text-white' : busy ? 'bg-[#d5dde5] text-subtle' : 'bg-[#d3eef2] text-roche hover:ring-2 hover:ring-sommet/40',
+                'flex min-h-13 min-w-0 flex-col items-start gap-1.5 border-t-2 px-1 pt-1.5 pb-1.5 text-left transition-colors sm:min-h-16 sm:px-2',
+                'focus-visible:outline-2 focus-visible:outline-sommet',
+                past ? 'border-line text-faint/60'
+                : mine.has(day) ? 'border-roche bg-roche text-white'
+                : busy ? 'border-line text-faint hover:bg-white/70'
+                : 'border-sommet text-roche hover:bg-white',
               )}
             >
-              {Number(day.slice(8))}
+              <span className="text-base font-semibold sm:text-lg">{String(Number(day.slice(8))).padStart(2, '0')}</span>
+              {/* A dot in the colour of each other member who can't travel that day */}
+              {busy && !past && (
+                <span aria-hidden="true" className="flex flex-wrap gap-1">
+                  {busy.slice(0, 4).map(b => <span key={b.username} className="size-1.5 rounded-full" style={{ backgroundColor: b.color }} />)}
+                </span>
+              )}
             </button>
           )
         })}
       </div>
-      <div className="flex flex-wrap gap-3 px-1 pt-1 text-xs text-subtle lg:gap-3.5">
-        <Legend className="bg-roche">You can't</Legend>
-        <Legend className="bg-[#d5dde5]">Someone can't</Legend>
-        <Legend className="bg-[#d3eef2]">Everyone free</Legend>
+      <div className="flex flex-wrap gap-3 pt-1 text-xs text-subtle lg:gap-4">
+        <Legend sample={<span className="h-3.5 w-4.5 bg-roche" />}>You can't</Legend>
+        <Legend sample={<span className="flex gap-1"><span className="size-1.5 rounded-full bg-chemin" /><span className="size-1.5 rounded-full bg-sommet" /></span>}>Someone can't</Legend>
+        <Legend sample={<span className="h-3.5 w-4.5 border-t-2 border-sommet" />}>Everyone free</Legend>
       </div>
     </div>
   )
@@ -139,8 +156,9 @@ function MonthButton({ label, disabled, onClick, path }: { label: string; disabl
   )
 }
 
-function Legend({ className, children }: { className: string; children: string }) {
-  return <span className="flex items-center gap-1.5"><span aria-hidden="true" className={cn('size-3 rounded-[4px]', className)} />{children}</span>
+// A small sample of how the calendar shows a kind of day, and its name
+function Legend({ sample, children }: { sample: ReactNode; children: string }) {
+  return <span className="flex items-center gap-1.5"><span aria-hidden="true" className="flex">{sample}</span>{children}</span>
 }
 
 // "Free for everyone": the windows the organiser found, the trip length and the votes
@@ -155,7 +173,7 @@ function FreeWindows({ plan, state, me, isOrganiser, organiser }: StepProps) {
   const findFreeDates = () => (waiting.length ? setAsking(true) : plan.findFreeDates())
 
   return (
-    <section aria-labelledby="free-title" className="flex flex-col gap-2">
+    <section aria-labelledby="free-title" className="flex flex-col gap-2 lg:min-h-0 lg:flex-1">
       <div className="flex items-center justify-between gap-2">
         <h3 id="free-title" className="font-extrabold">Free for everyone</h3>
         {isOrganiser ? (
@@ -184,14 +202,16 @@ function FreeWindows({ plan, state, me, isOrganiser, organiser }: StepProps) {
         </div>
       ) : (
         <>
-          {state.dateRanges.map((r, i) => (
-            <WindowRow key={`${r.start}-${r.end}`} range={r} mine={r.voterIds.includes(me)} tripDays={tripDays} onVote={() => plan.voteRange(i)} />
-          ))}
-          {!state.dateRanges.length && (
-            <p className="rounded-[14px] bg-white p-3.5 text-sm text-subtle">
-              There is no window when everyone is free{tripDays ? ` for ${tripDays} days` : ''}. Change your days{isOrganiser ? ', or choose a shorter trip and look again' : ''}.
-            </p>
-          )}
+          <div aria-label="Free windows" role="group" className="flex flex-col gap-2 lg:-m-1 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:p-1 lg:[&>*]:shrink-0">
+            {state.dateRanges.map((r, i) => (
+              <WindowRow key={`${r.start}-${r.end}`} range={r} mine={r.voterIds.includes(me)} tripDays={tripDays} onVote={() => plan.voteRange(i)} />
+            ))}
+            {!state.dateRanges.length && (
+              <p className="rounded-[14px] bg-white p-3.5 text-sm text-subtle">
+                There is no window when everyone is free{tripDays ? ` for ${tripDays} days` : ''}. Change your days{isOrganiser ? ', or choose a shorter trip and look again' : ''}.
+              </p>
+            )}
+          </div>
           {isOrganiser && (
             <div className="flex flex-col gap-2">
               {top >= 0 && <Button onClick={() => setConfirming(top)}>Confirm {rangeText(state.dateRanges[top].start, state.dateRanges[top].end)}</Button>}

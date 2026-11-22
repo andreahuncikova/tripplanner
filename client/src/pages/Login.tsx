@@ -76,7 +76,7 @@ export default function Login() {
 
         {/* Starts at the same height on both tabs, so the heading and tabs do not move when the sign-up form adds a field */}
         <div className="mx-auto flex w-full max-w-[420px] flex-col gap-[18px] lg:gap-5 lg:pt-[max(1.5rem,7vh)] lg:pb-4">
-          <h1 className="font-display text-display font-extrabold tracking-[-0.02em] lg:text-[44px] lg:tracking-[-0.03em]">
+          <h1 className="font-display text-heading font-extrabold tracking-[-0.02em] lg:text-[36px] lg:tracking-[-0.03em]">
             {mode === 'login' ? 'Welcome back' : 'Create your account'}
           </h1>
 

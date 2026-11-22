@@ -85,14 +85,12 @@ export function backStep(t: Pick<TripState, 'phase' | 'datesKnown' | 'destinatio
   return null
 }
 
-// The four planning steps from the mockups. Dates covers two phases on the server (marking days and the date vote),
-// and Stays and Ready both come after the dates are confirmed, when the group saves places to stay.
-export const PLAN_STEPS = ['Destination', 'Dates', 'Stays', 'Ready'] as const
+// The planning steps the group decides together. Dates covers two phases on the server (marking days and the date vote).
+// Stays, the itinerary and the budget come after them and have their own tabs.
+export const PLAN_STEPS = ['Destination', 'Dates'] as const
 
-// Which step the group is in, 0–3. Steps skipped when the trip was created count as done.
-// Stays is done when the trip has saved at least one stay (the stay dates come in sprint 3).
-export function currentStep(phase: Phase, stayCount: number): number {
+// Which step the group is in: 0–1, or 2 when both are done. Steps skipped when the trip was created count as done.
+export function currentStep(phase: Phase): number {
   if (phase === 'destinations') return 0
-  if (phase !== 'done') return 1
-  return stayCount > 0 ? 3 : 2
+  return phase === 'done' ? 2 : 1
 }

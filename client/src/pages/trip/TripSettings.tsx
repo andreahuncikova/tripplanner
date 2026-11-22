@@ -61,7 +61,7 @@ export default function TripSettings() {
   const deleteNote = isOrganiser ? 'Deleting removes the trip for everyone.' : 'Only the organiser can delete the trip.'
 
   return (
-    <div className="flex min-h-dvh flex-col bg-canvas lg:min-h-0 lg:flex-1 lg:gap-6 lg:px-12 lg:py-9">
+    <div className="flex min-h-dvh flex-col bg-canvas lg:min-h-0 lg:flex-1 lg:gap-6 lg:px-12 lg:py-9 xl:px-16">
       {/* Phones: back to the trip and the title. Desktop: "Trip name / Trip settings" */}
       <header className="flex items-center gap-1 bg-white px-3 pt-3 pb-3 lg:gap-2 lg:bg-transparent lg:p-0">
         <Link to={`/trips/${tripId}`} aria-label={`Back to ${trip.name}`} className="flex size-11 items-center justify-center text-roche hover:text-roche lg:hidden">
@@ -73,7 +73,7 @@ export default function TripSettings() {
       </header>
 
       {/* Phones: Trip, Members, then Leave and Delete at the bottom. Desktop: Trip and Leave/Delete on the left, Members on the right */}
-      <div className="flex flex-1 flex-col gap-5 p-5 lg:grid lg:flex-none lg:grid-cols-2 lg:items-start lg:gap-6 lg:p-0">
+      <div className="flex flex-1 flex-col gap-5 px-6 py-5 lg:grid lg:flex-none lg:grid-cols-2 lg:items-start lg:gap-6 lg:p-0">
         <Section title="Trip">
           <Row label="Name" value={trip.name} onEdit={isOrganiser ? () => setDialog('name') : undefined} />
           <Row label="Dates" value={tripDates(trip)} onEdit={canEditDates ? () => setDialog('dates') : undefined} />

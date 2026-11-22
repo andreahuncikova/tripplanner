@@ -142,7 +142,7 @@ test('a booked stay fills its nights and the tab warns about nights without a st
   expect((await call(theo, 'POST', `/api/groups/${code}/join`)).ok()).toBe(true)
   await mia.goto(`/trips/${code}/stays`)
   await theo.goto(`/trips/${code}/stays`)
-  await expect(theo.getByText('No stay booked for 10 – 15 Jun (5 nights).')).toBeVisible()
+  await expect(theo.getByRole('group', { name: 'No stay booked' })).toContainText('10 – 15 Jun · 5 nights')
 
   await addStay(mia, 'https://ribeira-loft.invalid/rooms/3')
   // Booking needs nights first
@@ -157,7 +157,7 @@ test('a booked stay fills its nights and the tab warns about nights without a st
   // Theo did not reload: three nights are booked and the last two still need a stay
   await expect(theo.getByRole('button', { name: 'Booked: ribeira-loft.invalid' })).toHaveAttribute('aria-pressed', 'true')
   await expect(theo.getByText('3 of 5')).toBeVisible()
-  await expect(theo.getByText('No stay booked for 13 – 15 Jun (2 nights).')).toBeVisible()
+  await expect(theo.getByRole('group', { name: 'No stay booked' })).toContainText('13 – 15 Jun · 2 nights')
 
   // Taking the booking back empties the nights again
   await theo.getByRole('button', { name: 'Booked: ribeira-loft.invalid' }).click()
