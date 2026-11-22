@@ -25,7 +25,7 @@ export function CurrencySelect({ label, value, onChange, labelClassName = 'text-
         id={id}
         value={value}
         onChange={e => onChange(e.target.value)}
-        className="w-full min-w-0 rounded-md border border-line-strong bg-white px-4 py-3.5 text-base text-roche focus:border-sommet focus:ring-1 focus:ring-sommet focus:outline-none"
+        className="w-full min-w-0 rounded-md border border-line-strong bg-white px-4 py-3 text-base text-roche lg:py-2.5 lg:text-md focus:border-sommet focus:ring-1 focus:ring-sommet focus:outline-none"
       >
         <optgroup label="Common">
           {common.map(c => <option key={c.code} value={c.code}>{c.label}</option>)}

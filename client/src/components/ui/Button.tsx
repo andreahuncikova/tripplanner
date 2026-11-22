@@ -1,7 +1,8 @@
 import type { ButtonHTMLAttributes } from 'react'
 import { cn } from '../../lib/cn'
 
-// Button styles from the mockups. primary: main action (Log in, Confirm), secondary: outlined (Join with code),
+// Button styles from the mockups. Sizes are a little smaller on a computer, where a mouse needs less room than a finger.
+// primary: main action (Log in, Confirm), secondary: outlined (Join with code),
 // soft: light accent (Invite, Copy), dark: next to inputs (Add), danger: delete, dangerOutline: Delete trip in Trip settings,
 // link: text only (+ Add expense).
 const variants = {
@@ -15,9 +16,9 @@ const variants = {
 }
 
 const sizes = {
-  sm: 'min-h-10 px-4 text-sm',
-  md: 'min-h-12 px-5 text-base',
-  lg: 'min-h-14 px-6 text-lead',
+  sm: 'min-h-10 px-4 text-sm lg:min-h-9 lg:px-3.5',
+  md: 'min-h-12 px-5 text-base lg:min-h-10 lg:px-4 lg:text-md',
+  lg: 'min-h-13 px-6 text-base lg:min-h-11 lg:px-5',
 }
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {

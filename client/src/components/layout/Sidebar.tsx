@@ -38,7 +38,7 @@ export function Sidebar() {
       <Link to="/dashboard" className="flex items-center gap-2.5 px-2 py-1 text-lg font-extrabold text-roche hover:text-roche">
         <Logo />TripPlanner
       </Link>
-      <Link to="/new-trip" className="rounded-md bg-sommet p-3 text-center font-bold text-white hover:bg-sommet-dark hover:text-white">
+      <Link to="/new-trip" className="rounded-md bg-sommet px-3 py-2.5 text-center text-md font-bold text-white hover:bg-sommet-dark hover:text-white">
         + New trip
       </Link>
 

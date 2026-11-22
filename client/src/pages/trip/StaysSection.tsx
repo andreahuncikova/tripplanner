@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useId, useState, type FormEvent } from 'react'
 import type { Area, Stay, StayDetailsInput, TripSummary } from '@shared/types'
 import { formatPrice, imageSrc, nightCount, nightsRange, nightsWord, platformName, shortDayText, stayTotal } from './stayFormat'
 import { uploadFile } from '../../lib/files'
@@ -32,24 +32,25 @@ export default function StaysSection({ stays, trip }: { stays: TripStays; trip: 
 
   return (
     <section aria-labelledby="stays-title" className="flex flex-col gap-4">
-      <h2 id="stays-title" className="text-2xl font-extrabold">Stays</h2>
+      {/* The title, and the one main action of the tab next to it on a computer */}
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <h2 id="stays-title" className="text-2xl font-extrabold">Stays</h2>
+        <AddStayForm stays={stays} areaId={current?._id ?? null} />
+      </div>
       {tripDays && stays.loaded && <NightsBar tripDays={tripDays} stays={stays.stays} />}
 
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
-        <div role="group" aria-label="Areas" className="flex flex-wrap gap-2 lg:flex-1">
-          <AreaChip label={`All · ${stays.stays.length}`} active={!current} onClick={() => setAreaId(null)} />
-          {stays.areas.map(a => (
-            <AreaChip key={a._id} label={`${a.name} · ${count(a._id)}`} active={current?._id === a._id} onClick={() => setAreaId(a._id)} />
-          ))}
-          <button
-            type="button"
-            onClick={() => setAreasOpen(true)}
-            className="min-h-10 rounded-full border border-dashed border-faint bg-white px-3.5 text-sm font-bold text-subtle hover:bg-canvas"
-          >
-            {stays.areas.length ? '+ Areas' : '+ Add area'}
-          </button>
-        </div>
-        <AddStayForm stays={stays} areaId={current?._id ?? null} />
+      <div role="group" aria-label="Areas" className="flex flex-wrap gap-2">
+        <AreaChip label={`All · ${stays.stays.length}`} active={!current} onClick={() => setAreaId(null)} />
+        {stays.areas.map(a => (
+          <AreaChip key={a._id} label={`${a.name} · ${count(a._id)}`} active={current?._id === a._id} onClick={() => setAreaId(a._id)} />
+        ))}
+        <button
+          type="button"
+          onClick={() => setAreasOpen(true)}
+          className="min-h-9 rounded-full border border-dashed border-faint px-3.5 text-sm font-semibold text-subtle hover:border-subtle hover:bg-white"
+        >
+          {stays.areas.length ? '+ Areas' : '+ Add area'}
+        </button>
       </div>
 
       {!stays.loaded ? (
@@ -103,8 +104,8 @@ function AreaChip({ label, active, onClick }: { label: string; active: boolean; 
       aria-pressed={active}
       onClick={onClick}
       className={cn(
-        'min-h-10 rounded-full px-3.5 text-sm whitespace-nowrap',
-        active ? 'bg-roche font-bold text-white' : 'border border-line-strong bg-white font-semibold text-roche hover:bg-canvas',
+        'min-h-9 rounded-full px-3.5 text-sm whitespace-nowrap',
+        active ? 'bg-roche font-bold text-white' : 'border border-line bg-white font-semibold text-subtle hover:border-line-strong hover:text-roche',
       )}
     >
       {label}
@@ -116,6 +117,7 @@ function AddStayForm({ stays, areaId }: { stays: TripStays; areaId: string | nul
   const [url, setUrl] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const inputId = useId()
 
   async function submit(e: FormEvent) {
     e.preventDefault()
@@ -128,24 +130,37 @@ function AddStayForm({ stays, areaId }: { stays: TripStays; areaId: string | nul
     else setUrl('')
   }
 
+  // One slim bar like a search field: a link icon, the field, and Add inside it
   return (
-    <form onSubmit={submit} className="flex items-start gap-2 lg:w-105">
-      <div className="min-w-0 flex-1">
-        <Input
-          label="Paste a stay link"
-          hideLabel
+    <form onSubmit={submit} className="flex flex-col gap-1.5 lg:w-110">
+      <div className={cn(
+        'flex items-center gap-2 rounded-full border bg-white py-1 pr-1 pl-3.5 focus-within:border-sommet focus-within:ring-1 focus-within:ring-sommet',
+        error ? 'border-danger' : 'border-line',
+      )}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" className="shrink-0 text-faint">
+          <path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" />
+        </svg>
+        <label htmlFor={inputId} className="sr-only">Paste a stay link</label>
+        <input
+          id={inputId}
           type="url"
           inputMode="url"
           placeholder="Paste a Booking.com or Airbnb link…"
           value={url}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? `${inputId}-error` : undefined}
           onChange={e => { setUrl(e.target.value); setError('') }}
-          error={error || undefined}
-          className="py-3"
+          className="min-w-0 flex-1 bg-transparent py-1.5 text-base text-roche placeholder:text-faint focus:outline-none lg:text-md"
         />
+        <button
+          type="submit"
+          disabled={!url.trim() || busy || !stays.loaded}
+          className="min-h-9 shrink-0 rounded-full bg-sommet px-4 text-sm font-bold text-white hover:bg-sommet-dark disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          {busy ? 'Adding…' : 'Add'}
+        </button>
       </div>
-      <Button type="submit" disabled={!url.trim() || busy || !stays.loaded} className="min-h-12.5 shrink-0">
-        {busy ? 'Adding…' : 'Add'}
-      </Button>
+      {error && <p id={`${inputId}-error`} className="px-3.5 text-caption text-danger">{error}</p>}
     </form>
   )
 }
@@ -232,29 +247,37 @@ function StayControls({ stay: s, areas, me, canRemove, stays, name, onPhoto }: {
   const likes = s.likeUserIds.length
   return (
     <div className="flex flex-wrap items-center justify-between gap-2">
-      <label className="flex items-center gap-2 text-sm">
+      {/* The area as a small pill with its own arrow, instead of the browser's square list */}
+      <label className="relative flex min-w-0 items-center text-sm">
         <span className="sr-only">Area for {name}</span>
         <select
           value={s.areaId ?? ''}
           onChange={e => stays.move(s._id, e.target.value || null)}
           className={cn(
-            'min-h-10 rounded-md px-2.5 text-sm',
-            onPhoto ? 'border border-white/40 bg-white/15 text-white backdrop-blur-sm [&>option]:text-roche' : 'border border-line-strong bg-white text-roche',
+            'min-h-9 max-w-44 cursor-pointer appearance-none truncate rounded-full py-1 pr-8 pl-3.5 text-sm font-semibold',
+            onPhoto ? 'border border-white/40 bg-white/15 text-white backdrop-blur-sm [&>option]:text-roche' : 'border border-line bg-white text-subtle hover:border-line-strong',
           )}
         >
           <option value="">No area</option>
           {areas.map(a => <option key={a._id} value={a._id}>{a.name}</option>)}
         </select>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"
+          className={cn('pointer-events-none absolute right-3', onPhoto ? 'text-white' : 'text-subtle')}>
+          <path d="M6 9l6 6 6-6" />
+        </svg>
       </label>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5">
         {canRemove && (
           <button
             type="button"
             onClick={() => stays.remove(s._id)}
             aria-label={`Remove ${name}`}
-            className={cn('min-h-10 px-2 text-sm font-semibold', onPhoto ? 'text-white/80 hover:text-white' : 'text-muted hover:text-danger')}
+            title="Remove"
+            className={cn('flex size-9 items-center justify-center rounded-full', onPhoto ? 'text-white/80 hover:bg-white/15 hover:text-white' : 'text-muted hover:bg-danger-light hover:text-danger')}
           >
-            Remove
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+              <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />
+            </svg>
           </button>
         )}
         <button
@@ -263,10 +286,10 @@ function StayControls({ stay: s, areas, me, canRemove, stays, name, onPhoto }: {
           aria-label={`${liked ? 'Liked by you' : 'Like'}, ${likes} ${likes === 1 ? 'like' : 'likes'}`}
           onClick={() => stays.like(s._id)}
           className={cn(
-            'flex min-h-10 items-center gap-1.5 rounded-[10px] px-3 text-sm font-bold',
+            'flex min-h-9 items-center gap-1.5 rounded-full px-3 text-sm font-bold',
             liked ? 'bg-[#FDE7E1] text-[#9A2E14]'
               : onPhoto ? 'border border-white/40 bg-white/15 text-white backdrop-blur-sm hover:bg-white/25'
-              : 'border border-line-strong bg-white text-subtle hover:bg-canvas',
+              : 'border border-line bg-white text-subtle hover:border-line-strong',
           )}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill={liked ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" aria-hidden="true">
@@ -342,10 +365,10 @@ function BookedButton({ stay: s, name, onPhoto, stays }: { stay: Stay; name: str
       disabled={busy}
       onClick={toggle}
       className={cn(
-        'flex min-h-10 shrink-0 items-center justify-center gap-1.5 rounded-[10px] px-3 text-sm font-bold whitespace-nowrap disabled:opacity-60',
+        'flex min-h-9 shrink-0 items-center justify-center gap-1.5 rounded-full px-3.5 text-sm font-bold whitespace-nowrap disabled:opacity-60',
         s.booked ? 'bg-success text-white hover:bg-success/90'
           : onPhoto ? 'border border-white/40 bg-white/15 text-white backdrop-blur-sm hover:bg-white/25'
-          : 'border border-line-strong bg-white text-subtle hover:bg-canvas',
+          : 'border border-line bg-white text-subtle hover:border-line-strong',
       )}
     >
       {s.booked && (
@@ -370,7 +393,7 @@ function NightsButton({ stay: s, name, onPhoto, onClick }: { stay: Stay; name: s
       onClick={onClick}
       aria-label={n ? `Nights for ${name}: ${text}. Change` : `Choose nights for ${name}`}
       className={cn(
-        'flex min-h-10 w-full items-center gap-2 rounded-[10px] px-3 text-left text-sm font-bold',
+        'flex min-h-9 w-full items-center gap-2 rounded-full px-3.5 text-left text-sm font-semibold',
         onPhoto ? 'border border-white/40 bg-white/15 text-white backdrop-blur-sm hover:bg-white/25'
           : n ? 'bg-ciel-light text-sommet hover:bg-ciel/40'
           : 'border border-dashed border-line-strong bg-white text-subtle hover:bg-canvas',

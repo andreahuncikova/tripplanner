@@ -11,8 +11,8 @@ import { JoinTripForm } from './JoinTrip'
 import { InstallBanner } from '../components/InstallBanner'
 
 // Link that looks like a button (Button itself is a <button>, these go to another page)
-const primaryLink = 'inline-flex min-h-12 items-center justify-center gap-2 rounded-[14px] bg-sommet px-5 font-bold text-white hover:bg-sommet-dark hover:text-white'
-const secondaryLink = 'inline-flex min-h-12 items-center justify-center gap-2 rounded-[14px] border border-line-strong bg-white px-5 font-semibold text-roche hover:bg-canvas hover:text-roche'
+const primaryLink = 'inline-flex min-h-12 items-center justify-center gap-2 rounded-[14px] bg-sommet px-5 font-bold lg:min-h-10 lg:rounded-md lg:px-4 lg:text-md text-white hover:bg-sommet-dark hover:text-white'
+const secondaryLink = 'inline-flex min-h-12 items-center justify-center gap-2 rounded-[14px] border border-line-strong bg-white px-5 font-semibold lg:min-h-10 lg:rounded-md lg:px-4 lg:text-md text-roche hover:bg-canvas hover:text-roche'
 
 // Placeholder colours for the cover of a trip card until trips have photos
 const covers = ['bg-ciel', 'bg-chemin-light', 'bg-sky']
@@ -147,7 +147,7 @@ function TripCard({ trip }: { trip: TripSummary }) {
       to={`/trips/${trip.inviteCode}`}
       className="flex flex-col overflow-hidden rounded-xl bg-white text-roche shadow-card hover:text-roche hover:shadow-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sommet"
     >
-      <div className={cn('relative hidden h-35 lg:block', cover(trip.inviteCode))}>
+      <div className={cn('relative hidden h-24 lg:block', cover(trip.inviteCode))}>
         <span className="absolute top-3.5 left-3.5">{chip}</span>
       </div>
       <div className="flex flex-col gap-3.5 p-4.5">
