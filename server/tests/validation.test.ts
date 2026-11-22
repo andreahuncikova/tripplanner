@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { checkAreaName, checkStayDetails, checkStayNights } from '../src/validation';
+import { checkActivity, checkAreaName, checkStayDetails, checkStayNights } from '../src/validation';
 import { MESSAGE_MAX, checkLogin, checkMessage, checkConfirmDates, checkDestinationName, checkNewTrip, checkPasswordChange, checkTripChanges, checkTripLength, cleanUnavailableDays, checkRegister, normalizeInviteCode } from '../src/validation';
 
 const valid = { email: 'mia@example.com', password: 'password1', username: 'Mia Novak' };
@@ -304,5 +304,33 @@ describe('checkStayDetails', () => {
     expect(checkStayDetails({ title: 'x'.repeat(121), price: null, location: '', image: 'keep' }).ok).toBe(false);
     expect(checkStayDetails({ title: { $gt: '' }, price: null, location: '', image: 'keep' }))
       .toEqual({ ok: true, value: { title: null, price: null, location: null, image: 'keep' } });
+  });
+});
+
+describe('checkActivity', () => {
+  const trip = { start: '2027-03-12', end: '2027-03-17' };
+
+  it('takes an activity with a day, time, place and note', () => {
+    expect(checkActivity({ text: ' Dinner  in Ubud ', calDate: '2027-03-12', calTime: '19:30', place: 'Locavore', note: 'Book a table' }, trip))
+      .toEqual({ ok: true, value: { text: 'Dinner in Ubud', calDate: '2027-03-12', calTime: '19:30', place: 'Locavore', note: 'Book a table' } });
+  });
+
+  it('keeps an activity without a day as an idea, and drops its time', () => {
+    expect(checkActivity({ text: 'Rafting', calTime: '10:00' }, trip))
+      .toEqual({ ok: true, value: { text: 'Rafting', calDate: null, calTime: null, place: null, note: null } });
+  });
+
+  it('needs a text, a day of the trip and a real time', () => {
+    expect(checkActivity({ text: '  ' }, trip).ok).toBe(false);
+    expect(checkActivity({ text: 'A', calDate: '2027-03-18' }, trip)).toEqual({ ok: false, error: 'Please choose a day of the trip' });
+    expect(checkActivity({ text: 'A', calDate: '2027-02-30' }, null).ok).toBe(false);
+    expect(checkActivity({ text: 'A', calDate: '2027-03-12', calTime: '24:00' }, trip).ok).toBe(false);
+    expect(checkActivity({ text: 'A', calDate: '2027-03-12', calTime: '9:5' }, trip).ok).toBe(false);
+  });
+
+  it('refuses text that is too long and objects instead of text', () => {
+    expect(checkActivity({ text: 'x'.repeat(81) }, trip).ok).toBe(false);
+    expect(checkActivity({ text: 'A', note: 'x'.repeat(501) }, trip).ok).toBe(false);
+    expect(checkActivity({ text: { $gt: '' } }, trip).ok).toBe(false);
   });
 });

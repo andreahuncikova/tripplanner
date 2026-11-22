@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { ExpenseInput, ExpenseResult, TripState } from '@shared/types'
+import type { ActivityInput, ActivityResult, ExpenseInput, ExpenseResult, TripState } from '@shared/types'
 import { useAuth } from '../auth/useAuth'
 import { useSocket } from './useSocket'
 
@@ -24,6 +24,10 @@ export interface TripPlan {
   // Only for the person who added the expense; the server checks it too
   editExpense: (id: string, expense: ExpenseInput) => Promise<string | null>
   removeExpense: (id: string) => Promise<string | null>
+  // The itinerary. Every member adds; only who added an activity, or the organiser, changes or removes it.
+  addActivity: (activity: ActivityInput) => Promise<string | null>
+  editActivity: (id: string, activity: ActivityInput) => Promise<string | null>
+  removeActivity: (id: string) => Promise<string | null>
 }
 
 // How long we wait for the server to save an expense
@@ -52,6 +56,8 @@ export function useTripPlan(code: string): TripPlan {
     const onExpense = (e: TripState['expenses'][number]) =>
       setState(s => s && (s.expenses.some(x => x._id === e._id) ? s : { ...s, expenses: [...s.expenses, e] }))
     const onExpenseRemoved = (id: string) => setState(s => s && { ...s, expenses: s.expenses.filter(e => e._id !== id) })
+    const onActivity = (a: TripState['activities'][number]) =>
+      setState(s => s && (s.activities.some(x => x._id === a._id) ? s : { ...s, activities: [...s.activities, a] }))
 
     socket.on('joined', onState)
     socket.on('state', onState)
@@ -60,7 +66,9 @@ export function useTripPlan(code: string): TripPlan {
     socket.on('range:votes', onRanges)
     socket.on('expense:new', onExpense)
     socket.on('expense:removed', onExpenseRemoved)
+    socket.on('activity:new', onActivity)
     return () => {
+      socket.off('activity:new', onActivity)
       socket.off('expense:new', onExpense)
       socket.off('expense:removed', onExpenseRemoved)
       socket.off('joined', onState)
@@ -119,5 +127,26 @@ export function useTripPlan(code: string): TripPlan {
     }
   }, [socket])
 
-  return { state, setUnavailable, ...expenses, ...actions }
+  // The itinerary's activities, answered the same way
+  const activities = useMemo(() => {
+    const done = (resolve: (r: string | null) => void) => (err: Error | null, result: ActivityResult) =>
+      resolve(err ? 'The server did not answer — please try again' : 'error' in result ? result.error : null)
+    const offline = 'You are offline — please try again'
+    return {
+      addActivity: (activity: ActivityInput) => new Promise<string | null>(resolve => {
+        if (!socket?.connected) return resolve(offline)
+        socket.timeout(SAVE_TIMEOUT_MS).emit('activity:add', activity, done(resolve))
+      }),
+      editActivity: (id: string, activity: ActivityInput) => new Promise<string | null>(resolve => {
+        if (!socket?.connected) return resolve(offline)
+        socket.timeout(SAVE_TIMEOUT_MS).emit('activity:edit', { ...activity, id }, done(resolve))
+      }),
+      removeActivity: (id: string) => new Promise<string | null>(resolve => {
+        if (!socket?.connected) return resolve(offline)
+        socket.timeout(SAVE_TIMEOUT_MS).emit('activity:remove', id, done(resolve))
+      }),
+    }
+  }, [socket])
+
+  return { state, setUnavailable, ...expenses, ...activities, ...actions }
 }

@@ -1,4 +1,4 @@
-import { Navigate, createBrowserRouter } from 'react-router-dom'
+import { createBrowserRouter } from 'react-router-dom'
 import App from './App'
 import RequireAuth from './components/RequireAuth'
 import AppShell from './components/layout/AppShell'
@@ -11,7 +11,7 @@ import NotFound from './pages/NotFound'
 import UiGallery from './pages/UiGallery'
 import TripLayout from './pages/trip/TripLayout'
 import TripSettings from './pages/trip/TripSettings'
-import { BudgetSection, ChatSection, ItinerarySection, PlanSection, StaysSection } from './pages/trip/sections'
+import { BudgetSection, ChatSection, ItinerarySection, PlanSection, StaysSection, TripIndex } from './pages/trip/sections'
 
 // Every page of the app. App wraps them all and renders the current one in its <Outlet />.
 export const router = createBrowserRouter([
@@ -40,7 +40,7 @@ export const router = createBrowserRouter([
                 path: 'trips/:tripId',
                 element: <TripLayout />,
                 children: [
-                  { index: true,       element: <Navigate to="plan" replace /> },
+                  { index: true,       element: <TripIndex /> },
                   { path: 'plan',      element: <PlanSection /> },
                   { path: 'stays',     element: <StaysSection /> },
                   { path: 'itinerary', element: <ItinerarySection /> },

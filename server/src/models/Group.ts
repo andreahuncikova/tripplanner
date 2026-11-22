@@ -26,6 +26,7 @@ const RangeSchema = new Schema({
 const ActivitySchema = new Schema({
   text: String, addedBy: String, userId: Schema.Types.ObjectId,
   calDate: String, calTime: String, // optional placement on the trip calendar
+  place: String, note: String,      // where, e.g. "Tegallalang rice terraces", and anything to remember
   createdAt: { type: Date, default: Date.now },
 });
 

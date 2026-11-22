@@ -1,19 +1,13 @@
+import { useEffect } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import ChatPanel from './ChatPanel'
+import ItineraryView from './itinerary/ItinerarySection'
 import StaysView from './StaysSection'
 import PlanView from './plan/PlanSection'
 import BudgetView from './budget/BudgetSection'
 import { useTripOutlet } from './tripOutlet'
 
-// The trip's sections. Each one is a placeholder until its feature is built.
-function Placeholder({ title, text }: { title: string; text: string }) {
-  return (
-    <section className="flex flex-col gap-2">
-      <h2 className="text-lg font-extrabold">{title}</h2>
-      <p className="text-muted">{text}</p>
-    </section>
-  )
-}
-
+// The trip's sections, each given what it needs from TripLayout (tripOutlet.ts)
 export function PlanSection() {
   const { plan, stays } = useTripOutlet()
   return <PlanView plan={plan} stayCount={stays.stays.length} />
@@ -22,7 +16,26 @@ export function StaysSection() {
   const { stays, trip } = useTripOutlet()
   return <StaysView stays={stays} trip={trip} />
 }
-export const ItinerarySection = () => <Placeholder title="Itinerary" text="What happens on each day." />
+export function ItinerarySection() {
+  const { plan, stays } = useTripOutlet()
+  return <ItineraryView plan={plan} stays={stays} />
+}
+
+// /trips/:tripId opens the Itinerary once the destination and the dates are agreed, because then the days
+// are what the group looks at; before that it opens the Plan with the step the group is in
+export function TripIndex() {
+  const { plan } = useTripOutlet()
+  const navigate = useNavigate()
+  const { pathname } = useLocation()
+  const phase = plan.state?.phase
+  useEffect(() => {
+    // The trip loads for a moment first. Someone who already tapped another link meanwhile (Trip settings)
+    // must not be sent back, so the address is checked again right before moving on.
+    if (!phase || window.location.pathname !== pathname) return
+    navigate(`${pathname.replace(/\/$/, '')}/${phase === 'done' ? 'itinerary' : 'plan'}`, { replace: true })
+  }, [phase, pathname, navigate])
+  return null
+}
 export function BudgetSection() {
   const { plan } = useTripOutlet()
   return <BudgetView plan={plan} />

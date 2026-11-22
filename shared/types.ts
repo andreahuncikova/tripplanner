@@ -74,9 +74,11 @@ export interface Activity {
   text: string
   addedBy: string
   userId: string
-  // Optional place on the trip calendar.
+  // Optional place on the trip calendar: a day of the trip and a time, "HH:MM". Without a day it is an idea for later.
   calDate?: string
   calTime?: string
+  place?: string              // where, e.g. "Tegallalang rice terraces"
+  note?: string
   createdAt: string
 }
 
@@ -141,7 +143,12 @@ export interface ActivityInput {
   text: string
   calDate?: string
   calTime?: string
+  place?: string
+  note?: string
 }
+
+// The server's answer to activity:add/edit/remove
+export type ActivityResult = { ok: true } | { error: string }
 
 export interface ExpenseInput {
   description: string
@@ -185,9 +192,10 @@ export interface ClientToServerEvents {
   'range:confirm': (data: { idx: number; start?: string }) => void
   'phase:back': () => void
 
-  'activity:add': (data: ActivityInput) => void
-  'activity:edit': (data: ActivityInput & { id: string }) => void
-  'activity:remove': (activityId: string) => void
+  // Answered with the reason when something is refused, so the form can show it
+  'activity:add': (data: ActivityInput, ack: (result: ActivityResult) => void) => void
+  'activity:edit': (data: ActivityInput & { id: string }, ack: (result: ActivityResult) => void) => void
+  'activity:remove': (activityId: string, ack: (result: ActivityResult) => void) => void
 
   'expense:add': (data: ExpenseInput, ack: (result: ExpenseResult) => void) => void
   'expense:edit': (data: ExpenseInput & { id: string }, ack: (result: ExpenseResult) => void) => void

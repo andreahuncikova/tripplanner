@@ -262,6 +262,31 @@ export function checkStayDetails(body: unknown): Result<CheckedStayDetails> {
   return { ok: true, value: { title: title || null, price, location: location || null, image } };
 }
 
+// ── Itinerary ─────────────────────────────────────────
+// One activity (ActivityInput). Its day must be a day of the trip once the trip has dates;
+// without a day it is an idea for later. The time is optional, "HH:MM".
+const ACTIVITY_TEXT_MAX = 80;
+const ACTIVITY_PLACE_MAX = 120;
+const ACTIVITY_NOTE_MAX = 500;
+export interface CheckedActivity { text: string; calDate: string | null; calTime: string | null; place: string | null; note: string | null }
+export function checkActivity(body: unknown, trip: { start: string; end: string } | null): Result<CheckedActivity> {
+  const b = (body ?? {}) as Record<string, unknown>;
+  const one = (v: unknown) => text(v).trim().replace(/\s+/g, ' ');
+  const activity = one(b.text), place = one(b.place);
+  const note = text(b.note).trim();
+  if (!activity) return { ok: false, error: 'Please write what you will do' };
+  if (activity.length > ACTIVITY_TEXT_MAX) return { ok: false, error: `The activity can have at most ${ACTIVITY_TEXT_MAX} characters` };
+  if (place.length > ACTIVITY_PLACE_MAX) return { ok: false, error: `The place can have at most ${ACTIVITY_PLACE_MAX} characters` };
+  if (note.length > ACTIVITY_NOTE_MAX) return { ok: false, error: `The note can have at most ${ACTIVITY_NOTE_MAX} characters` };
+  const calDate = text(b.calDate).trim() || null;
+  if (calDate && (!isDay(calDate) || (trip && (calDate < trip.start || calDate > trip.end)))) {
+    return { ok: false, error: 'Please choose a day of the trip' };
+  }
+  const calTime = text(b.calTime).trim() || null;
+  if (calTime && !/^([01]\d|2[0-3]):[0-5]\d$/.test(calTime)) return { ok: false, error: 'Please choose a time' };
+  return { ok: true, value: { text: activity, calDate, calTime: calDate ? calTime : null, place: place || null, note: note || null } };
+}
+
 // ── Expenses ──────────────────────────────────────────
 const EXPENSE_TEXT_MAX = 80;
 const EXPENSE_MAX = 1_000_000_000;   // a billion, enough for Indonesian rupiah or Vietnamese dong
