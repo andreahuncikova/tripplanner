@@ -42,6 +42,8 @@ test('the group suggests places and votes, and the organiser confirms the winner
   const { mia, theo, code } = await planWithTwo(browser, { name: 'Summer', dates: { mode: 'find', fromMonth: month, toMonth: month } })
   await expect(mia.getByRole('heading', { name: 'Step 1: Where should we go?' })).toBeVisible()
   await expect(currentStep(mia)).toHaveText(/Destination/)
+  // Only one bar at a time: while the group plans there is no section switch
+  await expect(mia.getByRole('navigation', { name: 'Trip sections' })).toHaveCount(0)
 
   await mia.getByLabel('Suggest a place').fill('Bali')
   await mia.getByRole('button', { name: 'Add' }).click()
@@ -73,7 +75,7 @@ test('the group suggests places and votes, and the organiser confirms the winner
   expect(await summary(mia, code)).toMatchObject({ phase: 'calendar', approvedDest: 'Bali' })
 })
 
-test('everyone marks busy days, the organiser finds free windows and confirms the dates the group voted for', async ({ browser }) => {
+test('everyone marks busy days, the organiser finds free windows and confirms the dates the group voted for', async ({ browser, isMobile }) => {
   const month = monthFromNow(2)
   const { mia, theo, code } = await planWithTwo(browser, { name: 'Lisbon weekend', destination: 'Lisbon', dates: { mode: 'find', fromMonth: month, toMonth: month } })
   await expect(datesHeading(theo)).toBeVisible()
@@ -116,16 +118,9 @@ test('everyone marks busy days, the organiser finds free windows and confirms th
   await expect(theo.getByRole('heading', { name: 'Step 3: Where will you stay?' })).toBeVisible()
   expect(await summary(mia, code)).toMatchObject({ phase: 'done', finalDate: `${month}-12`, tripDuration: 5 })
 
-  // The steps collapse into one line, which opens the bar again
-  const steps = theo.getByRole('button', { name: /^Next: Stays · Lisbon · 12–16 / })
-  await expect(steps).toHaveAttribute('aria-expanded', 'false')
+  // With the dates confirmed the steps bar goes, and on a computer the section switch takes its place
   await expect(theo.getByRole('list', { name: 'Planning steps' })).toHaveCount(0)
-  await steps.click()
-  await expect(currentStep(theo)).toHaveText(/Stays/)
-  // The Itinerary tab shows the same line
-  await theo.goto(`/trips/${code}/itinerary`)
-  await expect(theo.getByRole('button', { name: /^Next: Stays/ })).toBeVisible()
-  await theo.goto(`/trips/${code}/plan`)
+  if (!isMobile) await expect(theo.getByRole('navigation', { name: 'Trip sections' })).toBeVisible()
 
   // The organiser can go back a step after a question; the group then votes again
   await expect(theo.getByRole('button', { name: 'Go back a step' })).toHaveCount(0)

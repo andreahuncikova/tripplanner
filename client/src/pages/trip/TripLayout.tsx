@@ -12,7 +12,6 @@ import { AvatarGroup } from '../../components/ui'
 import ChatPanel from './ChatPanel'
 import InviteModal from './InviteModal'
 import OnlineStatus from './OnlineStatus'
-import { PLAN_STEPS, currentStep } from '../../lib/plan'
 import { PlanProgress } from './plan/StepGuide'
 import type { TripOutlet } from './tripOutlet'
 import { useTripSummary } from './useTripSummary'
@@ -34,10 +33,7 @@ export default function TripLayout() {
   const [inviteOpen, setInviteOpen] = useState(() => (location.state as { invite?: boolean } | null)?.invite === true)
   // The phone chat tab fills the screen between the header and the tabs, and only its messages scroll.
   const onChatTab = useMatch('/trips/:tripId/chat') !== null
-  // The planning steps show above Plan, Itinerary and Budget. Stays has its own bar of booked nights in the mockups,
-  // and the chat needs the whole screen.
   const section = useMatch('/trips/:tripId/:section')?.params.section
-  const showSteps = section === 'plan' || section === 'itinerary' || section === 'budget'
 
   // Live updates for this trip (it also opens the trip on the socket). The chat lives here and not in ChatPanel,
   // so nothing is missed while the chat window is closed or another tab is open.
@@ -45,13 +41,23 @@ export default function TripLayout() {
   const chat = useTripChat(tripId)
   const plan = useTripPlan(tripId)
   const stays = useTripStays(tripId)
+  // While the group chooses the destination and the dates, the bar with the planning steps takes the place of the
+  // section switch on a computer, so there are never two bars at once. Stays, Itinerary and Budget are only useful
+  // once the dates are confirmed; then the switch comes and the steps bar goes. Unknown while the trip loads.
+  const phase = plan.state?.phase ?? trip?.phase
+  const planning = phase !== undefined && phase !== 'done'
 
   return (
     <div className={cn('flex flex-col pb-24 lg:min-h-dvh lg:pb-0', onChatTab ? 'h-dvh lg:h-auto' : 'min-h-dvh')}>
       {/* Desktop: on the page itself; the countdown to the trip on the left, the sections as a switch
           in the middle, the people and actions on the right. The trip's name, place and dates are in the sidebar there,
           so the name here is only for screen readers. */}
-      <header className="sticky top-0 z-20 flex items-center gap-1 border-b border-line bg-white px-3 pt-3 pb-2.5 lg:static lg:mx-8 lg:grid lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:gap-6 lg:border-0 lg:bg-transparent lg:px-0 lg:py-5">
+      {/* While the group plans there is no countdown, so the steps bar takes the free space next to the people
+          and actions; it can then never run under them, even with many members */}
+      <header className={cn(
+        'sticky top-0 z-20 flex items-center gap-1 border-b border-line bg-white px-3 pt-3 pb-2.5 lg:static lg:mx-8 lg:grid lg:gap-6 lg:border-0 lg:bg-transparent lg:px-0 lg:py-5',
+        planning ? 'lg:grid-cols-[minmax(0,1fr)_auto]' : 'lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]',
+      )}>
         <Link to="/dashboard" aria-label="Back to trips" className="flex size-11 items-center justify-center text-roche hover:text-roche lg:hidden">
           <BackIcon />
         </Link>
@@ -60,14 +66,19 @@ export default function TripLayout() {
           {onChatTab && <span className="lg:hidden"><OnlineStatus online={chat.online} /></span>}
           {trip && <span className={cn('text-caption text-muted lg:hidden', onChatTab && 'hidden')}>{people(trip.members.length)}</span>}
         </div>
-        <div className="hidden lg:block">
+        {!planning && <div className="hidden lg:block">
           {trip && countdown(trip) && (
             <span className="inline-flex h-10 items-center gap-2 rounded-md bg-roche px-4 text-sm font-semibold text-white shadow-raised [&_svg]:size-4.5 [&_svg]:text-ciel">
               <ItineraryIcon />{countdown(trip)}
             </span>
           )}
-        </div>
+        </div>}
 
+        {planning && plan.state ? (
+          <div className="hidden w-full max-w-140 justify-self-center lg:block">
+            <PlanProgress state={plan.state} stayCount={stays.stays.length} />
+          </div>
+        ) : phase === undefined ? <div aria-hidden="true" className="hidden lg:block" /> : (
         <nav aria-label="Trip sections" className="hidden h-10 gap-1 rounded-md bg-roche p-1 shadow-raised lg:flex">
           {sections.map(s => (
             <NavLink
@@ -82,6 +93,7 @@ export default function TripLayout() {
             </NavLink>
           ))}
         </nav>
+        )}
 
         {/* Desktop: one dark box like the switch, with the members, Invite and the settings */}
         <div className="flex items-center gap-1 lg:h-10 lg:justify-self-end lg:rounded-md lg:bg-roche lg:p-1 lg:shadow-raised">
@@ -99,13 +111,10 @@ export default function TripLayout() {
         </div>
       </header>
 
-      {/* Once every step is done the itinerary does not repeat it: the header already says where and when */}
-      {showSteps && plan.state && !(section === 'itinerary' && currentStep(plan.state.phase, stays.stays.length) === PLAN_STEPS.length - 1) && (
-        <div className="border-b border-line bg-white px-5 pt-3 pb-3.5 lg:border-0 lg:bg-transparent lg:px-8 lg:pt-7 lg:pb-0">
-          {/* On the Plan tab as wide as the step below it */}
-          <div className={cn('mx-auto w-full', section === 'plan' && (plan.state.phase === 'calendar' || plan.state.phase === 'date_vote' ? 'lg:max-w-245' : 'lg:max-w-180'))}>
-            <PlanProgress state={plan.state} stayCount={stays.stays.length} />
-          </div>
+      {/* Phones: the planning steps under the header while the group plans; the tabs stay at the bottom */}
+      {planning && plan.state && section !== 'chat' && (
+        <div className="border-b border-line bg-white px-5 pt-3 pb-3.5 lg:hidden">
+          <PlanProgress state={plan.state} stayCount={stays.stays.length} />
         </div>
       )}
 
