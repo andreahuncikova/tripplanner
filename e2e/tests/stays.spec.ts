@@ -129,3 +129,37 @@ test('the nights of a stay are chosen inside the trip dates and everyone sees th
   await theo.getByRole('dialog', { name: 'Nights' }).getByRole('button', { name: 'Clear nights' }).click()
   await expect(mia.getByRole('button', { name: 'Choose nights for alfama-flat.invalid' })).toBeVisible()
 })
+
+test('a booked stay fills its nights and the tab warns about nights without a stay', async ({ browser }) => {
+  const mia = await (await browser.newContext()).newPage()
+  const theo = await (await browser.newContext()).newPage()
+  await signUp(mia, 'Mia')
+  await signUp(theo, 'Theo')
+  // 10 – 15 June: five nights
+  const { inviteCode: code } = await (await call(mia, 'POST', '/api/groups', {
+    name: 'Porto weekend', currency: 'EUR', dates: { mode: 'known', start: '2027-06-10', end: '2027-06-15' },
+  })).json()
+  expect((await call(theo, 'POST', `/api/groups/${code}/join`)).ok()).toBe(true)
+  await mia.goto(`/trips/${code}/stays`)
+  await theo.goto(`/trips/${code}/stays`)
+  await expect(theo.getByText('No stay booked for 10 – 15 Jun (5 nights).')).toBeVisible()
+
+  await addStay(mia, 'https://ribeira-loft.invalid/rooms/3')
+  // Booking needs nights first
+  await expect(mia.getByRole('button', { name: 'Booked: ribeira-loft.invalid' })).toHaveCount(0)
+  await mia.getByRole('button', { name: 'Choose nights for ribeira-loft.invalid' }).click()
+  const dialog = mia.getByRole('dialog', { name: 'Nights' })
+  await dialog.getByLabel('Check-out').fill('2027-06-13')
+  await dialog.getByRole('button', { name: 'Save' }).click()
+  await expect(dialog).toBeHidden()
+  await mia.getByRole('button', { name: 'Booked: ribeira-loft.invalid' }).click()
+
+  // Theo did not reload: three nights are booked and the last two still need a stay
+  await expect(theo.getByRole('button', { name: 'Booked: ribeira-loft.invalid' })).toHaveAttribute('aria-pressed', 'true')
+  await expect(theo.getByText('3 of 5')).toBeVisible()
+  await expect(theo.getByText('No stay booked for 13 – 15 Jun (2 nights).')).toBeVisible()
+
+  // Taking the booking back empties the nights again
+  await theo.getByRole('button', { name: 'Booked: ribeira-loft.invalid' }).click()
+  await expect(mia.getByText('0 of 5')).toBeVisible()
+})

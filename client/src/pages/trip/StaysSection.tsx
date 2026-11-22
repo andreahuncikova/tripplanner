@@ -1,10 +1,11 @@
 import { useState, type FormEvent } from 'react'
 import type { Area, Stay, TripSummary } from '@shared/types'
-import { formatPrice, nightCount, nightsRange, nightsWord, platformName, stayTotal } from './stayFormat'
+import { formatPrice, nightCount, nightsRange, nightsWord, platformName, shortDayText, stayTotal } from './stayFormat'
 import { addDays } from '../../lib/plan'
+import { nightsCover, type DayRange } from '@shared/nights'
 import PhotoCarousel from './PhotoCarousel'
 import { useAuth } from '../../auth/useAuth'
-import { Button, Card, Input, Modal } from '../../components/ui'
+import { Button, Card, Input, Modal, useToast } from '../../components/ui'
 import { cn } from '../../lib/cn'
 import type { TripStays } from '../../socket/useTripStays'
 
@@ -28,6 +29,7 @@ export default function StaysSection({ stays, trip }: { stays: TripStays; trip: 
   return (
     <section aria-labelledby="stays-title" className="flex flex-col gap-4">
       <h2 id="stays-title" className="text-2xl font-extrabold">Stays</h2>
+      {tripDays && stays.loaded && <NightsBar tripDays={tripDays} stays={stays.stays} />}
 
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
         <div role="group" aria-label="Areas" className="flex flex-wrap gap-2 lg:flex-1">
@@ -143,7 +145,15 @@ function StayItem({ stay: s, areas, me, canRemove, stays, onNights }: {
   const photos = s.images?.length ? s.images : s.image ? [s.image] : []
   const onPhoto = photos.length > 0
   const controls = <StayControls stay={s} areas={areas} me={me} canRemove={canRemove} stays={stays} name={name} onPhoto={onPhoto} />
-  const nights = <NightsButton stay={s} name={name} onPhoto={onPhoto} onClick={onNights} />
+  const nights = (
+    // Side by side when the card is wide enough, else Booked goes under the nights so they are not cut off
+    <div className="@container">
+      <div className="flex flex-col gap-2 @xs:flex-row @xs:items-center">
+        <div className="min-w-0 flex-1"><NightsButton stay={s} name={name} onPhoto={onPhoto} onClick={onNights} /></div>
+        {s.nights && <BookedButton stay={s} name={name} onPhoto={onPhoto} stays={stays} />}
+      </div>
+    </div>
+  )
 
   // With photos: the photos fill the whole card and the text sits on them, white on a dark fade at the bottom
   if (photos.length) {
@@ -241,6 +251,83 @@ function StayControls({ stay: s, areas, me, canRemove, stays, name, onPhoto }: {
 }
 
 type TripDays = { start: string; end: string }
+
+// A run of nights written like the nights on a card, check-in to check-out: "13 – 15 Jun (2 nights)"
+const runText = (r: DayRange) => {
+  const n = { checkIn: r.first, checkOut: addDays(r.last, 1) }
+  return `${nightsRange(n)} (${nightsWord(nightCount(n))})`
+}
+
+// The trip's nights as a row of small blocks: dark when a booked stay covers the night, amber when two do,
+// empty when none does. Under it the nights still without a stay, so nobody arrives somewhere with no bed.
+function NightsBar({ tripDays, stays }: { tripDays: TripDays; stays: Stay[] }) {
+  const cover = nightsCover(tripDays, stays)
+  const total = cover.nights.length
+  if (total === 0) return null
+  const done = cover.gaps.length === 0
+  return (
+    <div className="flex flex-col gap-2.5 rounded-xl bg-white p-4 shadow-card">
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="font-bold">Nights booked</span>
+        <span className={cn('text-sm font-bold', done ? 'text-success' : 'text-muted')}>{cover.booked} of {total}</span>
+      </div>
+      <ol aria-label="Nights of the trip" className="flex gap-1">
+        {cover.nights.map(n => {
+          const state = n.stayIds.length > 1 ? 'booked twice' : n.stayIds.length ? 'booked' : 'no stay'
+          return (
+            <li
+              key={n.day}
+              title={`${shortDayText(n.day)}: ${state}`}
+              aria-label={`Night of ${shortDayText(n.day)}: ${state}`}
+              className={cn('h-2.5 flex-1 rounded-full', n.stayIds.length > 1 ? 'bg-chemin' : n.stayIds.length ? 'bg-sommet' : 'bg-line')}
+            />
+          )
+        })}
+      </ol>
+      {done && cover.doubles.length === 0 && <p className="text-sm font-semibold text-success">Every night has a stay.</p>}
+      {(!done || cover.doubles.length > 0) && (
+        <div role="status" className="flex flex-col gap-1 rounded-lg border border-chemin-line bg-chemin-light px-3 py-2 text-sm text-chemin-dark">
+          {!done && <p><strong>No stay booked</strong> for {cover.gaps.map(runText).join(', ')}.</p>}
+          {cover.doubles.length > 0 && <p><strong>Two stays booked</strong> for {cover.doubles.map(runText).join(', ')}.</p>}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// "Mark booked" once the nights are chosen; a filled "Booked" after that, which a tap takes back
+function BookedButton({ stay: s, name, onPhoto, stays }: { stay: Stay; name: string; onPhoto: boolean; stays: TripStays }) {
+  const [busy, setBusy] = useState(false)
+  const toast = useToast()
+  async function toggle() {
+    setBusy(true)
+    const problem = await stays.setBooked(s._id, !s.booked)
+    setBusy(false)
+    if (problem) toast(problem)
+  }
+  return (
+    <button
+      type="button"
+      aria-pressed={s.booked}
+      aria-label={`Booked: ${name}`}
+      disabled={busy}
+      onClick={toggle}
+      className={cn(
+        'flex min-h-10 shrink-0 items-center justify-center gap-1.5 rounded-[10px] px-3 text-sm font-bold whitespace-nowrap disabled:opacity-60',
+        s.booked ? 'bg-success text-white hover:bg-success/90'
+          : onPhoto ? 'border border-white/40 bg-white/15 text-white backdrop-blur-sm hover:bg-white/25'
+          : 'border border-line-strong bg-white text-subtle hover:bg-canvas',
+      )}
+    >
+      {s.booked && (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" aria-hidden="true">
+          <path d="M5 12.5l4.5 4.5L19 7.5" />
+        </svg>
+      )}
+      {s.booked ? 'Booked' : 'Mark booked'}
+    </button>
+  )
+}
 
 // "Choose nights", or once chosen "17 – 20 Jun · 3 nights · €360"; opens the NightsModal
 function NightsButton({ stay: s, name, onPhoto, onClick }: { stay: Stay; name: string; onPhoto: boolean; onClick: () => void }) {

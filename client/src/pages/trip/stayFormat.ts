@@ -30,6 +30,8 @@ export const nightCount = (n: StayNights) => daysIn(n.checkIn, n.checkOut) - 1
 export const nightsWord = (count: number) => `${count} ${count === 1 ? 'night' : 'nights'}`
 
 const shortDay = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' })
+// "12 Jun"
+export const shortDayText = (day: string) => shortDay.format(fromKey(day))
 // "17 – 20 Jun" or "29 Jun – 2 Jul"
 export function nightsRange(n: StayNights) {
   const a = fromKey(n.checkIn), b = fromKey(n.checkOut)

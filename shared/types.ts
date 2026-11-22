@@ -200,6 +200,8 @@ export interface ClientToServerEvents {
   'stay:remove': (stayId: string) => void
   // Choose the nights of a stay, or clear them with nights null. Answered like stay:add.
   'stay:nights': (data: { id: string; nights: StayNights | null }, done: (result: { ok: true } | { error: string }) => void) => void
+  // Mark a stay as booked or not booked. Clearing its nights also makes it not booked.
+  'stay:booked': (data: { id: string; booked: boolean }, done: (result: { ok: true } | { error: string }) => void) => void
   'area:add': (name: string, done: (result: { ok: true; id: string } | { error: string }) => void) => void
   'area:rename': (data: { id: string; name: string }) => void
 
@@ -341,6 +343,8 @@ export interface Stay {
   // The nights the group would stay, "YYYY-MM-DD": the first night and the morning they leave.
   // The price is per night, so the stay costs price × nights.
   nights?: StayNights
+  // The group booked it for these nights. Only a stay with nights can be booked.
+  booked: boolean
   addedByUserId: string       // may remove it, as may the organiser
   likeUserIds: string[]       // members who like it
   createdAt: string

@@ -13,6 +13,8 @@ export interface TripStays {
   remove: (stayId: string) => void
   // Choose the nights of a stay, or clear them with null. Resolves with an error message, or null when saved
   setNights: (stayId: string, nights: StayNights | null) => Promise<string | null>
+  // Mark a stay as booked or not. Resolves like setNights.
+  setBooked: (stayId: string, booked: boolean) => Promise<string | null>
   // Resolves with the new area's id, or with an error
   addArea: (name: string) => Promise<{ id: string } | { error: string }>
   renameArea: (id: string, name: string) => void
@@ -54,12 +56,18 @@ export function useTripStays(code: string): TripStays {
     })
   }), [socket])
 
+  // Resolves with the server's error message, or null when it saved the change
+  const answer = (resolve: (problem: string | null) => void) => (err: Error | null, result: { ok: true } | { error: string }) => {
+    if (err) return resolve('The server did not answer — please try again')
+    resolve('error' in result ? result.error : null)
+  }
   const setNights = useCallback((id: string, nights: StayNights | null) => new Promise<string | null>(resolve => {
     if (!socket?.connected) return resolve('You are offline — please try again')
-    socket.timeout(ADD_TIMEOUT_MS).emit('stay:nights', { id, nights }, (err: Error | null, result: { ok: true } | { error: string }) => {
-      if (err) return resolve('The server did not answer — please try again')
-      resolve('error' in result ? result.error : null)
-    })
+    socket.timeout(ADD_TIMEOUT_MS).emit('stay:nights', { id, nights }, answer(resolve))
+  }), [socket])
+  const setBooked = useCallback((id: string, booked: boolean) => new Promise<string | null>(resolve => {
+    if (!socket?.connected) return resolve('You are offline — please try again')
+    socket.timeout(ADD_TIMEOUT_MS).emit('stay:booked', { id, booked }, answer(resolve))
   }), [socket])
 
   const addArea = useCallback((name: string) => new Promise<{ id: string } | { error: string }>(resolve => {
@@ -75,5 +83,5 @@ export function useTripStays(code: string): TripStays {
   const remove = useCallback((id: string) => { socket?.emit('stay:remove', id) }, [socket])
   const renameArea = useCallback((id: string, name: string) => { socket?.emit('area:rename', { id, name }) }, [socket])
 
-  return { ...state, loaded, add, like, move, remove, setNights, addArea, renameArea }
+  return { ...state, loaded, add, like, move, remove, setNights, setBooked, addArea, renameArea }
 }

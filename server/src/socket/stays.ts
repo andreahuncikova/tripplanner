@@ -2,7 +2,7 @@ import { isValidObjectId, Types } from 'mongoose';
 import Group from '../models/Group';
 import Stay from '../models/Stay';
 import { checkAreaName, checkStayNights } from '../validation';
-import { addDays } from '../utils';
+import { addDay } from '../../../shared/nights';
 import { allowPreview, checkLink, getPreview, PreviewError } from '../preview';
 import { broadcastStays, MAX_AREAS, MAX_STAYS } from '../stays';
 import { sameId } from './helpers';
@@ -104,16 +104,38 @@ export default function register(socket: AppSocket, { io, sessions, userId }: Ct
       const { s, g } = open;
       // Once the dates are confirmed the nights must fit in them: the first day to the last day of the trip
       const trip = g.finalDate && g.tripDuration
-        ? { start: g.finalDate, end: addDays(g.finalDate, g.tripDuration - 1) } : null;
+        ? { start: g.finalDate, end: addDay(g.finalDate, g.tripDuration - 1) } : null;
       const check = checkStayNights(data.nights, trip);
       if (!check.ok) return reply({ error: check.error });
-      const nights = check.value ?? { checkIn: null, checkOut: null };
+      // A stay without nights cannot stay booked
+      const nights = check.value ?? { checkIn: null, checkOut: null, booked: false };
       const r = await Stay.updateOne({ _id: data.id, groupId: g._id }, nights);
       if (!r.matchedCount) return reply({ error: 'This stay no longer exists' });
       reply({ ok: true });
       await broadcastStays(io, s.code, g);
     } catch (e) {
       console.error('[stay:nights]', (e as Error).message);
+      reply({ error: 'Server error — please try again' });
+    }
+  });
+
+  // Mark a stay as booked (any member, whoever made the booking) or take it back
+  socket.on('stay:booked', async (data, done) => {
+    const reply = typeof done === 'function' ? done : () => {};
+    try {
+      if (!isValidObjectId(data?.id)) return reply({ error: 'This stay no longer exists' });
+      const open = await openTrip();
+      if (!open) return reply({ error: 'Open the trip first' });
+      const { s, g } = open;
+      const stay = await Stay.findOne({ _id: data.id, groupId: g._id }, { checkIn: 1, checkOut: 1 });
+      if (!stay) return reply({ error: 'This stay no longer exists' });
+      const booked = data.booked === true;
+      if (booked && !(stay.checkIn && stay.checkOut)) return reply({ error: 'Choose the nights first' });
+      await Stay.updateOne({ _id: stay._id }, { booked });
+      reply({ ok: true });
+      await broadcastStays(io, s.code, g);
+    } catch (e) {
+      console.error('[stay:booked]', (e as Error).message);
       reply({ error: 'Server error — please try again' });
     }
   });

@@ -28,6 +28,7 @@ export async function staysState(g: Pick<IGroup, 'areas'> & { _id: GroupId }): P
       ...(s.imageCredits?.length && { imageCredits: s.imageCredits }),
       complete: s.complete,
       ...(s.checkIn && s.checkOut && { nights: { checkIn: s.checkIn, checkOut: s.checkOut } }),
+      booked: !!(s.booked && s.checkIn && s.checkOut),
       addedByUserId: String(s.addedByUserId),
       likeUserIds: s.likeUserIds.map(String),
       createdAt: s.createdAt.toISOString(),

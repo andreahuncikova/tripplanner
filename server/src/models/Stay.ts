@@ -19,6 +19,7 @@ const StaySchema = new Schema({
   // The nights the group would stay, "YYYY-MM-DD": the first night and the morning they leave
   checkIn:  { type: String, default: null },
   checkOut: { type: String, default: null },
+  booked:   { type: Boolean, default: false },                // the group booked it for these nights
   addedByUserId: { type: Schema.Types.ObjectId, required: true },
   likeUserIds:   { type: [Schema.Types.ObjectId], default: [] },
   createdAt: { type: Date, default: Date.now },
