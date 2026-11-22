@@ -35,6 +35,7 @@ describe('parsePreview', () => {
       images: ['https://cf.example-cdn.com/images/casa-azul.jpg'],
       price: { amount: 1234.5, currency: 'EUR' },
       location: 'Lisbon, Portugal',
+      city: 'Lisbon',
       complete: true,
     });
   });
@@ -43,7 +44,7 @@ describe('parsePreview', () => {
     const p = parsePreview(homePage, 'https://www.airbnb.com/rooms/1');
     expect(p).toMatchObject({
       platform: 'airbnb', title: 'Loft with a view', image: 'https://img.example.com/loft.jpg',
-      price: { amount: 89, currency: 'EUR' }, location: 'Porto, Portugal', complete: true,
+      price: { amount: 89, currency: 'EUR' }, location: 'Porto, Portugal', city: 'Porto', complete: true,
     });
   });
 

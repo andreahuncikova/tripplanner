@@ -9,6 +9,19 @@ type GroupId = Types.ObjectId | string;
 export const MAX_STAYS = 100;
 export const MAX_AREAS = 20;
 
+// Names compared the way people read them: "Ubud", "ubud " and "Ubúd" are the same area
+export const sameName = (a: string, b: string) => {
+  const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase();
+  return norm(a) === norm(b);
+};
+
+// Which area a new stay from this city goes into: an existing area with the city's name,
+// 'new' when the trip has none yet (the caller makes it), or null to leave the stay without an area
+export function areaForCity<A extends { _id: unknown; name: string }>(areas: A[], city: string | undefined): A | 'new' | null {
+  if (!city?.trim()) return null;
+  return areas.find(a => sameName(a.name, city)) ?? (areas.length < MAX_AREAS ? 'new' : null);
+}
+
 // All stays and areas of a trip, as the client sees them (ids and dates as text)
 export async function staysState(g: Pick<IGroup, 'areas'> & { _id: GroupId }): Promise<StaysState> {
   const stays = await Stay.find({ groupId: g._id }).sort({ createdAt: -1, _id: -1 }).lean();
@@ -23,6 +36,8 @@ export async function staysState(g: Pick<IGroup, 'areas'> & { _id: GroupId }): P
       ...(s.image && { image: s.image }),
       ...(s.price?.amount != null && s.price.currency && { price: { amount: s.price.amount, currency: s.price.currency } }),
       ...(s.location && { location: s.location }),
+      ...(s.city && { city: s.city }),
+      ...(s.cityCredit === 'osm' && { cityCredit: 'osm' as const }),
       ...(s.placeId && { placeId: s.placeId }),
       ...(s.images?.length && { images: s.images }),
       ...(s.imageCredits?.length && { imageCredits: s.imageCredits }),

@@ -3,6 +3,7 @@
 import { checkLink, fetchPage, PreviewError } from './fetchPage';
 import { detailsFromUrl, parsePreview, platformOf } from './parse';
 import { findPlace, placePhotoPath } from './places';
+import { cityAt } from './osm';
 import type { LinkPreview } from '../types';
 
 export { checkLink, PreviewError };
@@ -48,7 +49,18 @@ async function withPlacePhoto(p: LinkPreview): Promise<LinkPreview> {
   const place = await findPlace([p.title, p.location].filter(Boolean).join(', '));
   if (!place) return p;
   const images = place.credits.map((_, n) => placePhotoPath(place.placeId, n));
-  return { ...p, image: images[0], images, placeId: place.placeId, imageCredits: place.credits };
+  const withPhotos: LinkPreview = { ...p, image: images[0], images, placeId: place.placeId, imageCredits: place.credits };
+  return withCity(withPhotos, place.at);
+}
+
+// A Booking link only tells the country ("Vietnam"). Where Google found the hotel, OpenStreetMap tells its city,
+// so the card says "Phu Quoc, Vietnam" and the stay can go into the Phu Quoc area (osm.ts says why not Google's address).
+async function withCity(p: LinkPreview, at?: { lat: number; lng: number }): Promise<LinkPreview> {
+  if (p.city || !at) return p;
+  const found = await cityAt(at.lat, at.lng);
+  if (!found) return p;
+  const country = found.country ?? p.location;
+  return { ...p, city: found.city, cityCredit: 'osm', location: [found.city, country].filter(Boolean).join(', ') };
 }
 
 // When the page gave no title or location, take what the address tells (only Booking addresses carry them)

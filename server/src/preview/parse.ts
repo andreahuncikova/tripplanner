@@ -174,6 +174,18 @@ function locationFrom(meta: Map<string, string>, ld: Json[]): string | undefined
   return undefined;
 }
 
+// The city alone ("Lisbon"), used to put the stay into an area of the same name (socket/stays.ts)
+function cityFrom(meta: Map<string, string>, ld: Json[]): string | undefined {
+  for (const o of ld) {
+    const a = o.address;
+    if (a && typeof a === 'object') {
+      const city = clean((a as Json).addressLocality, 60);
+      if (city) return city;
+    }
+  }
+  return clean(meta.get('og:locality'), 60);
+}
+
 // ── The preview ──────────────────────────────────────
 export function parsePreview(html: string, url: string): LinkPreview {
   const meta = metaTags(html);
@@ -193,6 +205,7 @@ export function parsePreview(html: string, url: string): LinkPreview {
   const image = images[0];
   const price = priceFrom(meta, stay.length ? stay : ld);
   const location = locationFrom(meta, stay.length ? stay : ld);
+  const city = cityFrom(meta, stay.length ? stay : ld);
 
   return {
     url,
@@ -201,6 +214,7 @@ export function parsePreview(html: string, url: string): LinkPreview {
     ...(image && { image, images }),
     ...(price && { price }),
     ...(location && { location }),
+    ...(city && { city }),
     complete: !!(title && image && price && location),
   };
 }

@@ -4,6 +4,7 @@ import { formatPrice, nightCount, nightsRange, nightsWord, platformName, shortDa
 import { addDays } from '../../lib/plan'
 import { nightsCover, type DayRange } from '@shared/nights'
 import PhotoCarousel from './PhotoCarousel'
+import OsmCredit from './OsmCredit'
 import { useAuth } from '../../auth/useAuth'
 import { Button, Card, Input, Modal, useToast } from '../../components/ui'
 import { cn } from '../../lib/cn'
@@ -69,6 +70,7 @@ export default function StaysSection({ stays, trip }: { stays: TripStays; trip: 
           ))}
         </ul>
       )}
+      {shown.some(s => s.cityCredit === 'osm') && <OsmCredit className="text-muted" />}
 
       <AreasModal open={areasOpen} onClose={() => setAreasOpen(false)} stays={stays} onAdded={setAreaId} />
       {/* The key opens it fresh for each stay, with that stay's nights filled in */}

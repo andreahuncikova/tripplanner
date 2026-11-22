@@ -12,6 +12,8 @@ const StaySchema = new Schema({
   image:    String,
   price:    { type: { amount: Number, currency: String }, default: undefined, _id: false },
   location: String,
+  city:     String,                                          // "Lisbon"; from the page, or from OpenStreetMap
+  cityCredit: String,                                        // 'osm' when OpenStreetMap must be credited
   placeId:  String,                                          // the photo is from Google Maps (preview/places.ts)
   images:   { type: [String], default: undefined },          // every photo, images[0] is image
   imageCredits: { type: [String], default: undefined },     // credit for each Google Maps photo

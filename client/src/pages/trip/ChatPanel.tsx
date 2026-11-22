@@ -8,6 +8,7 @@ import type { TripChat } from '../../socket/useTripChat'
 import type { TripStays } from '../../socket/useTripStays'
 import { formatPrice, platformName } from './stayFormat'
 import PhotoCarousel from './PhotoCarousel'
+import OsmCredit from './OsmCredit'
 
 // Same limit as MESSAGE_MAX on the server.
 const MESSAGE_MAX = 1000
@@ -145,6 +146,7 @@ function LinkCard({ preview: p, stays, inWindow }: { preview: LinkPreview; stays
             <span className="line-clamp-2 text-sm font-bold wrap-anywhere hover:underline">{name}</span>
             {details && <span className="text-xs text-white/85">{details}</span>}
           </a>
+          {p.cityCredit === 'osm' && <OsmCredit className="-mt-1 text-white/70" />}
           {saveButton}
         </div>
       </article>
@@ -160,6 +162,7 @@ function LinkCard({ preview: p, stays, inWindow }: { preview: LinkPreview; stays
           {details && <span className="text-xs text-muted">{details}</span>}
         </div>
       </a>
+      {p.cityCredit === 'osm' && <OsmCredit className="block px-3 pb-2 text-muted" />}
       {saveButton && <div className="border-t border-line px-3 py-1">{saveButton}</div>}
     </div>
   )

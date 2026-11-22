@@ -8,7 +8,7 @@ function fakeGoogle() {
     const json = (body: unknown) => new Response(JSON.stringify(body), { status: 200 });
     if (url.endsWith('/places:searchText')) {
       expect(JSON.parse(String(init?.body)).textQuery).toBe('Freebeach, Vietnam');
-      return json({ places: [{ id: PLACE, photos: [{ name: `places/${PLACE}/photos/p1`, authorAttributions: [{ displayName: 'Lan Nguyen' }] }] }] });
+      return json({ places: [{ id: PLACE, location: { latitude: 10.22, longitude: 103.96 }, photos: [{ name: `places/${PLACE}/photos/p1`, authorAttributions: [{ displayName: 'Lan Nguyen' }] }] }] });
     }
     if (url.endsWith(`/places/${PLACE}`)) return json({ photos: [{ name: `places/${PLACE}/photos/p1` }] });
     if (url.includes('/photos/p1/media')) return json({ photoUri: 'https://lh3.googleusercontent.com/p/photo-1' });
@@ -20,9 +20,11 @@ describe('Google Maps photos', () => {
   beforeEach(() => { vi.stubEnv('GOOGLE_PLACES_KEY', 'test-key'); });
   afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); });
 
-  it('finds the place by name and country and names the photo author', async () => {
+  it('finds the place by name and country, names the photo author and says where the place is', async () => {
     vi.stubGlobal('fetch', fakeGoogle());
-    expect(await findPlace('Freebeach, Vietnam')).toEqual({ placeId: PLACE, credits: ['Photo: Lan Nguyen · Google Maps'] });
+    expect(await findPlace('Freebeach, Vietnam')).toEqual({
+      placeId: PLACE, credits: ['Photo: Lan Nguyen · Google Maps'], at: { lat: 10.22, lng: 103.96 },
+    });
   });
 
   it('gets a fresh photo address only when asked, and keeps it for a while', async () => {

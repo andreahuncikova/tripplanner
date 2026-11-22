@@ -38,19 +38,31 @@ const creditOf = (photo: Photo) => {
   return author ? `Photo: ${author} · Google Maps` : 'Photo: Google Maps';
 };
 
-// The best match for "Freebeach, Vietnam" that has photos: its id and the credit for each photo, or null
-export async function findPlace(query: string): Promise<{ placeId: string; credits: string[] } | null> {
+export interface FoundPlace {
+  placeId: string
+  credits: string[]
+  // Where the place is. Only used at once to find its city on OpenStreetMap (osm.ts), never saved:
+  // Google allows keeping only the place id.
+  at?: { lat: number; lng: number }
+}
+
+// The best match for "Freebeach, Vietnam" that has photos: its id, the credit for each photo and where it is, or null
+export async function findPlace(query: string): Promise<FoundPlace | null> {
   if (!placesEnabled() || !query.trim()) return null;
   try {
-    const data = await google<{ places?: { id: string; photos?: Photo[] }[] }>('/places:searchText', {
+    const data = await google<{ places?: { id: string; photos?: Photo[]; location?: { latitude?: number; longitude?: number } }[] }>('/places:searchText', {
       method: 'POST',
-      headers: { 'X-Goog-FieldMask': 'places.id,places.photos' },
+      headers: { 'X-Goog-FieldMask': 'places.id,places.photos,places.location' },
       body: JSON.stringify({ textQuery: query.slice(0, 200), maxResultCount: 1 }),
     });
     const place = data.places?.[0];
     const photos = (place?.photos ?? []).slice(0, MAX_PLACE_PHOTOS);
     if (!place || !photos.length) return null;
-    return { placeId: place.id, credits: photos.map(creditOf) };
+    const { latitude: lat, longitude: lng } = place.location ?? {};
+    return {
+      placeId: place.id, credits: photos.map(creditOf),
+      ...(typeof lat === 'number' && typeof lng === 'number' && { at: { lat, lng } }),
+    };
   } catch (e) {
     console.error('[places:search]', (e as Error).message);
     return null;

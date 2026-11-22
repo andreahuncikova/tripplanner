@@ -4,7 +4,7 @@ import Stay from '../models/Stay';
 import { checkAreaName, checkStayNights } from '../validation';
 import { addDay } from '../../../shared/nights';
 import { allowPreview, checkLink, getPreview, PreviewError } from '../preview';
-import { broadcastStays, MAX_AREAS, MAX_STAYS } from '../stays';
+import { areaForCity, broadcastStays, MAX_AREAS, MAX_STAYS } from '../stays';
 import { sameId } from './helpers';
 import type { AppSocket, Ctx } from '../types';
 
@@ -22,6 +22,22 @@ export default function register(socket: AppSocket, { io, sessions, userId }: Ct
   const areaOf = (g: { areas: { _id: unknown }[] }, id: unknown) =>
     id != null && g.areas.some(a => String(a._id) === String(id)) ? String(id) : null;
 
+  // A stay added under All goes into the area of its city, e.g. a hotel in Ubud into "Ubud".
+  // When the trip has no such area yet, it is made, so the group does not have to make areas by hand.
+  // The areas are read again here, because reading the link took a few seconds and someone may have added one.
+  async function areaFromCity(groupId: unknown, city: string | undefined): Promise<string | null> {
+    const fresh = await Group.findById(groupId, { areas: 1 });
+    if (!fresh) return null;
+    const found = areaForCity(fresh.areas, city);
+    if (!found) return null;
+    if (found !== 'new') return String(found._id);
+    const name = checkAreaName(city);
+    if (!name.ok) return null;
+    fresh.areas.push({ name: name.value });
+    await fresh.save();
+    return String(fresh.areas.at(-1)!._id);
+  }
+
   socket.on('stay:add', async (data, done) => {
     const reply = typeof done === 'function' ? done : () => {};
     try {
@@ -37,13 +53,15 @@ export default function register(socket: AppSocket, { io, sessions, userId }: Ct
 
       const p = await getPreview(link);
       if (await Stay.exists({ groupId: g._id, url: p.url })) return reply({ error: 'This stay is already saved' });
+      const areaId = areaOf(g, data?.areaId) ?? await areaFromCity(g._id, p.city);
       await Stay.create({
-        groupId: g._id, areaId: areaOf(g, data?.areaId), addedByUserId: userId,
-        url: p.url, platform: p.platform, title: p.title, image: p.image, price: p.price, location: p.location, placeId: p.placeId, images: p.images, imageCredits: p.imageCredits,
+        groupId: g._id, areaId, addedByUserId: userId,
+        url: p.url, platform: p.platform, title: p.title, image: p.image, price: p.price, location: p.location,
+        city: p.city, cityCredit: p.cityCredit, placeId: p.placeId, images: p.images, imageCredits: p.imageCredits,
         complete: p.complete,
       });
       reply({ ok: true });
-      await broadcastStays(io, s.code, g);
+      await broadcastStays(io, s.code, (await Group.findById(g._id, { areas: 1 })) ?? g);
     } catch (e) {
       if (e instanceof PreviewError) return reply({ error: e.message });
       console.error('[stay:add]', (e as Error).message);

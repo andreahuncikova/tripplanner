@@ -311,6 +311,10 @@ export interface LinkPreview {
   images?: string[]           // every photo found, at most 6, for the photo browser on the stay card
   price?: { amount: number; currency: string }
   location?: string           // e.g. "Lisbon, Portugal"
+  // The city alone, e.g. "Lisbon". A new stay goes into the area of that name (made when there is none).
+  // cityCredit 'osm': the page gave no city, so it was found on OpenStreetMap, which must then be credited.
+  city?: string
+  cityCredit?: 'osm'
   // When the photos come from Google Maps instead of the page: they are then our own /api/places/… addresses,
   // placeId is the Google place, and imageCredits[i] must be shown with images[i]
   placeId?: string
@@ -337,6 +341,8 @@ export interface Stay {
   images?: string[]           // see LinkPreview
   price?: { amount: number; currency: string }
   location?: string
+  city?: string               // see LinkPreview
+  cityCredit?: 'osm'
   placeId?: string            // the photos are from Google Maps (see LinkPreview)
   imageCredits?: string[]
   complete: boolean           // the preview found title, photo, price and location
