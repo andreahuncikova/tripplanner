@@ -14,10 +14,10 @@ import { LogOutIcon, PlusIcon, TicketIcon } from '../components/layout/icons'
 // Link that looks like a button (Button itself is a <button>, these go to another page)
 const primaryLink = 'inline-flex min-h-12 items-center justify-center gap-2 rounded-[14px] bg-sommet px-5 font-bold lg:min-h-10 lg:rounded-md lg:px-4 lg:text-md text-white hover:bg-sommet-dark hover:text-white [&_svg]:size-4.5'
 const secondaryLink = 'inline-flex min-h-12 items-center justify-center gap-2 rounded-[14px] border border-line-strong bg-white px-5 font-semibold lg:min-h-10 lg:rounded-md lg:px-4 lg:text-md text-roche hover:bg-canvas hover:text-roche [&_svg]:size-4.5 [&_svg]:text-sommet'
-// The desktop actions sit in one dark box, like the section switch in a trip
+// The desktop actions sit in one white box, like the section switch in a trip
 const toolbarBase = 'inline-flex h-full items-center gap-2 rounded-sm px-3.5 text-sm whitespace-nowrap [&_svg]:size-4'
-const toolbarItem = `${toolbarBase} font-medium text-white/80 hover:bg-white/10 hover:text-white [&_svg]:text-ciel`
-const toolbarPrimary = `${toolbarBase} bg-white font-semibold text-roche hover:bg-ciel-light hover:text-roche [&_svg]:text-sommet`
+const toolbarItem = `${toolbarBase} font-medium text-subtle hover:bg-canvas hover:text-roche [&_svg]:text-sommet`
+const toolbarPrimary = `${toolbarBase} bg-sommet font-semibold text-white hover:bg-sommet-dark hover:text-white`
 
 // The background of a trip card without a photo (no destination yet, or no photo found); the same trip always gets the same one
 const backgrounds = ['from-sommet to-roche', 'from-[#3d6b7a] to-roche', 'from-chemin-dark to-roche']
@@ -61,18 +61,18 @@ export default function Dashboard() {
           <span className="text-sm text-muted lg:text-base">Hi, {firstName}</span>
           <h1 className="text-heading font-extrabold lg:text-display">Your trips</h1>
         </div>
-        {/* Desktop: Join, New trip and Log out in one dark box. Phones: the avatar and Log out as an icon;
+        {/* Desktop: Join, New trip and Log out in one white box. Phones: the avatar and Log out as an icon;
             Join and New trip are in their own row under the header. Until the profile page exists, log-out lives here. */}
         <div className="flex items-center gap-2">
-          <div className="hidden h-11 items-center gap-1 rounded-md bg-roche p-1 shadow-raised lg:flex">
+          <div className="hidden h-11 items-center gap-1 rounded-md bg-white p-1 lg:flex">
             {!empty && (
               <>
                 {joinButton(toolbarItem)}
                 <Link to="/new-trip" className={toolbarPrimary}><PlusIcon />New trip</Link>
-                <span aria-hidden="true" className="mx-1 h-5 w-px bg-white/15" />
+                <span aria-hidden="true" className="mx-1 h-5 w-px bg-line" />
               </>
             )}
-            <button type="button" onClick={logout} aria-label="Log out" title="Log out" className="flex size-9 items-center justify-center rounded-sm text-white/70 hover:bg-white/10 hover:text-white">
+            <button type="button" onClick={logout} aria-label="Log out" title="Log out" className="flex size-9 items-center justify-center rounded-sm text-muted hover:bg-canvas hover:text-roche">
               <LogOutIcon />
             </button>
           </div>

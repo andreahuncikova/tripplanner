@@ -66,20 +66,20 @@ export default function TripLayout() {
         </div>
         <div className="hidden lg:block">
           {trip && countdown(trip) && (
-            <span className="inline-flex h-10 items-center gap-2 rounded-md bg-roche px-4 text-sm font-semibold text-white shadow-raised [&_svg]:size-4.5 [&_svg]:text-ciel">
+            <span className="inline-flex h-10 items-center gap-2 rounded-md bg-white px-4 text-sm font-semibold text-roche [&_svg]:size-4.5 [&_svg]:text-sommet">
               <ItineraryIcon />{countdown(trip)}
             </span>
           )}
         </div>
 
-        <nav aria-label="Trip sections" className="hidden h-10 gap-1 rounded-md bg-roche p-1 shadow-raised lg:flex">
+        <nav aria-label="Trip sections" className="hidden h-10 gap-1 rounded-md bg-white p-1 lg:flex">
           {sections.map(s => locked(s) ? (
             <span
               key={s.path}
               role="link"
               aria-disabled="true"
               title={LOCKED}
-              className="flex cursor-not-allowed items-center gap-2 rounded-sm px-4 text-sm whitespace-nowrap text-white/35 [&_svg]:size-4 xl:px-5"
+              className="flex cursor-not-allowed items-center gap-2 rounded-sm px-4 text-sm whitespace-nowrap text-faint [&_svg]:size-4 xl:px-5"
             >
               <s.icon />{s.label}<span className="sr-only">, {LOCKED.toLowerCase()}</span><LockIcon />
             </span>
@@ -89,7 +89,7 @@ export default function TripLayout() {
               to={s.path}
               className={({ isActive }) => cn(
                 'flex items-center gap-2 rounded-sm px-4 text-sm whitespace-nowrap transition-colors [&_svg]:size-4 xl:px-5',
-                isActive ? 'bg-white font-semibold text-roche [&_svg]:text-sommet' : 'font-medium text-white/70 hover:bg-white/5 hover:text-white',
+                isActive ? 'bg-sommet font-semibold text-white [&_svg]:text-ciel' : 'font-medium text-subtle hover:bg-canvas hover:text-roche',
               )}
             >
               <s.icon />{s.label}
@@ -97,17 +97,17 @@ export default function TripLayout() {
           ))}
         </nav>
 
-        {/* Desktop: one dark box like the switch, with the members, Invite and the settings */}
-        <div className="flex items-center gap-1 lg:h-10 lg:justify-self-end lg:rounded-md lg:bg-roche lg:p-1 lg:shadow-raised">
+        {/* Desktop: one white box like the switch, with the members, Invite and the settings */}
+        <div className="flex items-center gap-1 lg:h-10 lg:justify-self-end lg:rounded-md lg:bg-white lg:p-1">
           {trip && (
             <span className="hidden px-2 xl:block" title={people(trip.members.length)}>
               <AvatarGroup people={trip.members.map(m => ({ name: m.username, color: m.color }))} max={4} />
             </span>
           )}
-          <button type="button" onClick={() => setInviteOpen(true)} className="flex items-center gap-1.5 rounded-md bg-ciel-light px-3.5 py-2.5 text-sm font-bold text-sommet hover:bg-ciel/40 lg:h-full lg:rounded-sm lg:bg-transparent lg:px-3.5 lg:py-0 lg:text-sm lg:font-medium lg:text-white/80 lg:hover:bg-white/10 lg:hover:text-white lg:[&_svg]:text-ciel">
+          <button type="button" onClick={() => setInviteOpen(true)} className="flex items-center gap-1.5 rounded-md bg-ciel-light px-3.5 py-2.5 text-sm font-bold text-sommet hover:bg-ciel/40 lg:h-full lg:rounded-sm lg:bg-transparent lg:px-3.5 lg:py-0 lg:text-sm lg:font-medium lg:text-subtle lg:hover:bg-canvas lg:hover:text-roche lg:[&_svg]:text-sommet">
             <span className="hidden lg:inline"><InviteIcon /></span>Invite
           </button>
-          <Link to={`/trips/${tripId}/settings`} aria-label="Trip settings" className="flex size-11 items-center justify-center rounded-md text-subtle hover:bg-canvas hover:text-roche lg:size-8 lg:rounded-sm lg:text-white/70 lg:hover:bg-white/10 lg:hover:text-white">
+          <Link to={`/trips/${tripId}/settings`} aria-label="Trip settings" className="flex size-11 items-center justify-center rounded-md text-subtle hover:bg-canvas hover:text-roche lg:size-8 lg:rounded-sm lg:text-muted lg:hover:bg-canvas lg:hover:text-roche">
             <MoreIcon />
           </Link>
         </div>

@@ -6,7 +6,7 @@ import { api } from '../../../lib/api'
 import { backStep } from '../../../lib/plan'
 import type { TripPlan } from '../../../socket/useTripPlan'
 import { Button, ConfirmModal } from '../../../components/ui'
-import { BudgetIcon, ItineraryIcon, StaysIcon } from '../../../components/layout/icons'
+import { BackIcon, BudgetIcon, ItineraryIcon, StaysIcon } from '../../../components/layout/icons'
 import DatesStep from './DatesStep'
 import DestinationStep from './DestinationStep'
 import { StepCard } from './StepGuide'
@@ -49,8 +49,10 @@ function ReadyStep({ state }: StepProps) {
     return () => { current = false }
   }, [state.inviteCode, state.approvedDest])
 
+  // No min-h-0 on the section: on a low window the tiles keep their height and the page scrolls,
+  // instead of running over Go back a step
   return (
-    <section aria-label="Plan" className="flex flex-1 flex-col gap-4 lg:min-h-0">
+    <section aria-label="Plan" className="flex flex-1 flex-col gap-4">
       {/* What the group agreed on is written next to the ticked steps in the dark card */}
       <StepCard step="done" title="You're ready to go" agreed={[state.approvedDest, state.finalDateLabel]}>
         The group agreed on where and when. Save places to stay in the Stays tab, plan the days in the Itinerary and add shared costs in the Budget.
@@ -101,8 +103,11 @@ function BackStep({ plan, state }: StepProps) {
   const step = backStep(state)
   if (!step) return null
   return (
-    <div className="border-t border-line pt-3">
-      <Button variant="link" onClick={() => setOpen(true)} className="text-muted">Go back a step</Button>
+    // Always the last row of the Plan tab, at the bottom of the window (the step above takes the free height)
+    <div className="mt-auto flex border-t border-line pt-4">
+      <Button variant="secondary" size="sm" onClick={() => setOpen(true)} className="gap-1.5 pl-2.5 [&_svg]:size-4.5">
+        <BackIcon />Go back a step
+      </Button>
       <ConfirmModal
         open={open}
         onClose={() => setOpen(false)}

@@ -1,7 +1,7 @@
 import { Outlet } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 
-// The frame around every page for logged-in users: the sidebar on desktop, the page next to it.
+// The frame around every page for logged-in users: the white sidebar on desktop, the page next to it.
 export default function AppShell() {
   return (
     <div className="flex min-h-dvh">

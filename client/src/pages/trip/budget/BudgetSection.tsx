@@ -38,7 +38,7 @@ export default function BudgetSection({ plan }: { plan: TripPlan }) {
   return (
     <div className="flex w-full flex-col gap-5">
       <div className="flex flex-col gap-3 lg:flex-row lg:gap-3.5">
-        <div className="flex flex-col gap-3.5 rounded-xl bg-roche p-4.5 text-white lg:flex-[2_1_260px] lg:gap-1.5 lg:px-5">
+        <div className="flex flex-col gap-3.5 rounded-xl bg-sommet p-4.5 text-white lg:flex-[2_1_260px] lg:gap-1.5 lg:px-5">
           <span className="text-caption text-line-strong">Group spent</span>
           <strong className="text-[32px] font-extrabold tracking-tight">{fx ? formatMoney(totals.spent, currency) : '…'}</strong>
           {/* Phones: the two numbers inside the dark card. Desktop: white cards next to it */}
@@ -89,7 +89,7 @@ export default function BudgetSection({ plan }: { plan: TripPlan }) {
 
 function Tile({ label, value, dark }: { label: string; value: string; dark?: boolean }) {
   return dark ? (
-    <div className="flex flex-1 flex-col rounded-md bg-roche-light px-3 py-2.5">
+    <div className="flex flex-1 flex-col rounded-md bg-white/10 px-3 py-2.5">
       <span className="text-xs text-line-strong">{label}</span><strong>{value}</strong>
     </div>
   ) : (

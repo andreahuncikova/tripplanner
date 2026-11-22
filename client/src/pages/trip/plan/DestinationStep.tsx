@@ -35,7 +35,7 @@ export default function DestinationStep({ plan, state, me, isOrganiser, organise
       <StepCard
         step={1}
         title="Where should we go?"
-        aside={<span className="hidden shrink-0 text-sm text-[#d5dde5] lg:inline">{voted.length} of {state.members.length} voted</span>}
+        aside={<span className="hidden shrink-0 text-sm text-white/85 lg:inline">{voted.length} of {state.members.length} voted</span>}
       >
         Suggest places and pick one favourite. {isOrganiser ? 'As organiser, you confirm' : `${organiser} confirms`} the winner once everyone has voted.
       </StepCard>
@@ -54,7 +54,6 @@ export default function DestinationStep({ plan, state, me, isOrganiser, organise
             onRemove={() => plan.removeDestination(d._id)}
           />
         ))}
-        {!state.destinations.length && <p className="rounded-lg bg-white p-4 text-sm text-muted">No places yet. Suggest the first one.</p>}
         </div>
 
         <form onSubmit={suggest} className="flex gap-2 rounded-lg border border-dashed border-line-strong bg-white p-1.5 lg:gap-2.5 lg:p-2.5">

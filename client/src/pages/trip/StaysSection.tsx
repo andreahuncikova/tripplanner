@@ -288,7 +288,7 @@ function NightsWarning({ tone, title, runs }: { tone: 'none' | 'double'; title: 
       </span>
       <div className="flex min-w-0 flex-col gap-1">
         <strong className="text-sm text-white">{title}</strong>
-        <ul className="flex flex-col gap-0.5 text-sm text-[#d5dde5]">
+        <ul className="flex flex-col gap-0.5 text-sm text-white/85">
           {runs.map(r => {
             const n = { checkIn: r.first, checkOut: addDays(r.last, 1) }
             return <li key={r.first}>{nightsRange(n)} · <span className={cn('font-semibold', color)}>{nightsWord(nightCount(n))}</span></li>
@@ -315,7 +315,7 @@ function NightsBar({ tripDays, stays }: { tripDays: TripDays; stays: Stay[] }) {
   }
   const ring = 2 * Math.PI * 18
   return (
-    <section aria-label="Nights" className="mb-4 flex flex-col gap-4 rounded-[18px] bg-roche p-4.5 text-white lg:p-5.5">
+    <section aria-label="Nights" className="mb-4 flex flex-col gap-4 rounded-[18px] bg-sommet p-4.5 text-white lg:p-5.5">
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:gap-8">
       {/* How many nights are booked, as a ring that fills up */}
       <div className="flex shrink-0 items-center gap-3.5 md:pt-1">
@@ -327,7 +327,7 @@ function NightsBar({ tripDays, stays }: { tripDays: TripDays; stays: Stay[] }) {
         </svg>
         <div className="flex flex-col leading-tight">
           <span className={cn('text-title font-extrabold', done && 'text-[#7fd6a0]')}>{cover.booked} of {total}</span>
-          <span className={cn('text-sm', done && cover.doubles.length === 0 ? 'font-semibold text-[#7fd6a0]' : 'text-[#9fb0c0]')}>
+          <span className={cn('text-sm', done && cover.doubles.length === 0 ? 'font-semibold text-[#7fd6a0]' : 'text-white/70')}>
             {done && cover.doubles.length === 0 ? 'Every night has a stay' : 'nights booked'}
           </span>
         </div>
@@ -346,7 +346,7 @@ function NightsBar({ tripDays, stays }: { tripDays: TripDays; stays: Stay[] }) {
                 n.stayIds.length > 1 ? 'border-[#ff8f80]' : n.stayIds.length ? 'border-ciel' : 'border-white/20',
               )}
             >
-              <span className="text-2xs font-bold tracking-wider text-[#9fb0c0] uppercase">{nightDay.format(date)}</span>
+              <span className="text-2xs font-bold tracking-wider text-white/70 uppercase">{nightDay.format(date)}</span>
               <span className="text-lg leading-6 font-semibold">{String(date.getDate()).padStart(2, '0')}</span>
               <span className={cn('truncate text-xs', n.stayIds.length ? 'font-semibold text-white' : 'text-chemin')}>
                 {n.stayIds.length ? n.stayIds.map(stayName).join(' + ') : 'No stay'}
