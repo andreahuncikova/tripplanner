@@ -90,7 +90,7 @@ export default function TripSettings() {
           ))}
         </Section>
 
-        <section aria-label="Leave or delete" className="mt-auto flex flex-col gap-2.5 lg:col-start-1 lg:row-start-2 lg:mt-0 lg:flex-row lg:flex-wrap lg:items-center lg:gap-3 lg:rounded-xl lg:bg-white lg:p-5">
+        <section aria-label="Leave or delete" className="mt-6 flex flex-col gap-2.5 lg:col-start-1 lg:row-start-2 lg:mt-0 lg:flex-row lg:flex-wrap lg:items-center lg:gap-3 lg:rounded-xl lg:bg-white lg:p-5">
           <div className="hidden lg:flex lg:basis-full lg:flex-col lg:gap-0.5">
             <strong>Leave or delete</strong>
             <span className="text-sm text-muted">{deleteNote}</span>

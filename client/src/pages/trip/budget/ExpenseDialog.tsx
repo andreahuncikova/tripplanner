@@ -110,7 +110,7 @@ function ExpenseForm({ plan, state, me, rates, expense, onDone }: {
         {converted !== null && <span className="text-caption text-muted">≈ {formatMoney(converted, state.currency)} at today's rate</span>}
       </div>
 
-      <fieldset className="flex flex-col gap-2">
+      <fieldset className="flex min-w-0 flex-col gap-2">
         <legend className="pb-2 text-sm font-bold">Paid by</legend>
         <div className="flex flex-wrap gap-2">
           {state.members.map(m => (
@@ -126,7 +126,7 @@ function ExpenseForm({ plan, state, me, rates, expense, onDone }: {
         </div>
       </fieldset>
 
-      <fieldset className="flex flex-col gap-2.5 rounded-lg border border-line p-3.5">
+      <fieldset className="flex min-w-0 flex-col gap-2.5 rounded-lg border border-line p-3.5">
         <legend className="px-1.5 text-sm font-bold">Split between</legend>
         <div role="radiogroup" aria-label="How to split" className="flex rounded-md bg-canvas p-1">
           {(['equal', 'exact'] as const).map(m => (

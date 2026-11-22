@@ -15,7 +15,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
   const show = useCallback((message: string, options: ToastOptions = {}) => {
     const id = nextId.current++
-    setToasts(list => [...list, { id, message, ...options }])
+    // At most two at once: several quick saves ("Expense added" three times) would otherwise stack over the page
+    setToasts(list => [...list.slice(-1), { id, message, ...options }])
     setTimeout(() => setToasts(list => list.filter(t => t.id !== id)), 4000)
   }, [])
 

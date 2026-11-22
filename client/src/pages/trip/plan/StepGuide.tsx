@@ -18,7 +18,7 @@ export function PlanProgress({ state, stayCount }: { state: TripState; stayCount
         return (
           <li key={name} aria-current={i === step ? 'step' : undefined} className="flex flex-1 flex-col gap-1.5">
             <span aria-hidden="true" className={cn('h-1.5 rounded-full', i <= step ? 'bg-sommet' : 'bg-line')} />
-            <span className={cn('text-xs lg:text-caption', i === step ? 'font-bold text-sommet' : done ? 'font-semibold text-subtle' : 'font-semibold text-muted')}>
+            <span className={cn('text-xs whitespace-nowrap lg:text-caption', i === step ? 'font-bold text-sommet' : done ? 'font-semibold text-subtle' : 'font-semibold text-muted')}>
               <span className="hidden lg:inline">{i + 1} </span>{name}
               {done && i !== step && <><span aria-hidden="true"> ✓</span><span className="sr-only">, done</span></>}
             </span>

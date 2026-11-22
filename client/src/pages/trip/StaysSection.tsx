@@ -59,7 +59,7 @@ export default function StaysSection({ stays, trip }: { stays: TripStays; trip: 
           {current ? `No stays in ${current.name} yet. Paste a link above to add one.` : 'No stays yet. Paste a Booking.com or Airbnb link above, and the group can like the ones they want.'}
         </Card>
       ) : (
-        <ul aria-label={current ? `Stays in ${current.name}` : 'All stays'} className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <ul aria-label={current ? `Stays in ${current.name}` : 'All stays'} className="grid items-start gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {shown.map(s => (
             <StayItem
               key={s._id}
@@ -519,7 +519,7 @@ function DetailsModal({ stay, trip, stays, onClose }: {
     <Modal open={!!stay} onClose={onClose} title={stay?.complete ? 'Edit details' : 'Add details'} description={stay ? platformName(stay) : ''}>
       <form onSubmit={submit} className="flex flex-col gap-4">
         <Input label="Name" placeholder="e.g. Casa Azul" maxLength={120} value={title} onChange={e => setTitle(e.target.value)} />
-        <div className="grid grid-cols-[1fr_auto] items-end gap-3">
+        <div className="grid grid-cols-2 items-start gap-3">
           <Input label="Price per night" inputMode="decimal" placeholder="e.g. 120" value={amount} onChange={e => { setAmount(e.target.value); setError('') }} />
           <CurrencySelect label="Currency" labelClassName="text-sm font-bold" value={currency} onChange={setCurrency} />
         </div>

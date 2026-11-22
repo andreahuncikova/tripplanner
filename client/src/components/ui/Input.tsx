@@ -25,7 +25,7 @@ export function Input({ label, hideLabel, error, hint, hintTone = 'muted', id, c
         aria-invalid={error ? true : undefined}
         aria-describedby={error || hint ? noteId : undefined}
         className={cn(
-          'w-full rounded-md border bg-white px-4 py-3.5 text-base text-roche placeholder:text-faint',
+          'w-full min-w-0 rounded-md border bg-white px-4 py-3.5 text-base text-roche placeholder:text-faint',
           'focus:border-sommet focus:outline-none focus:ring-1 focus:ring-sommet',
           error ? 'border-danger' : 'border-line-strong',
           className,

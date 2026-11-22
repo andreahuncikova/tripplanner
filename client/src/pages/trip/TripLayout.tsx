@@ -87,7 +87,7 @@ export default function TripLayout() {
         </div>
       )}
 
-      <main className={cn('flex-1 lg:px-8 lg:py-7', onChatTab ? 'flex min-h-0 flex-col lg:block' : 'px-5 py-4')}>
+      <main className={cn('flex-1 lg:px-8 lg:py-7', onChatTab ? 'flex min-h-0 flex-col lg:block' : 'px-5 py-4 lg:pb-28')}>
         <Outlet context={{ chat, plan, stays, trip } satisfies TripOutlet} />
       </main>
 
@@ -110,8 +110,9 @@ export default function TripLayout() {
 
       {trip && <InviteModal open={inviteOpen} onClose={() => setInviteOpen(false)} trip={trip} />}
 
-      {/* Desktop: the chat window and the bubble that opens it. */}
-      {chatOpen && (
+      {/* Desktop: the chat window and the bubble that opens it. Not on the Chat tab itself, where the chat is open
+          already and the bubble would cover its Send button on a smaller laptop. */}
+      {chatOpen && !onChatTab && (
         <section aria-label="Group chat" className="fixed right-7 bottom-26 z-30 hidden h-150 max-h-[calc(100dvh-260px)] w-95 flex-col overflow-hidden rounded-xl border border-line bg-white shadow-float lg:flex">
           <header className="flex items-center gap-3 border-b border-line pt-4 pr-4 pb-3.5 pl-5">
             <div className="flex min-w-0 flex-1 flex-col">
@@ -125,7 +126,7 @@ export default function TripLayout() {
           <ChatPanel chat={chat} stays={stays} inWindow />
         </section>
       )}
-      <button
+      {!onChatTab && <button
         type="button"
         aria-label={chatOpen ? 'Close group chat' : 'Open group chat'}
         aria-expanded={chatOpen}
@@ -136,7 +137,7 @@ export default function TripLayout() {
         )}
       >
         {chatOpen ? <ChevronDownIcon /> : <ChatIcon />}
-      </button>
+      </button>}
     </div>
   )
 }

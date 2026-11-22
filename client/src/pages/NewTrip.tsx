@@ -98,7 +98,7 @@ export default function NewTrip() {
             </div>
           </div>
 
-          <fieldset className="flex flex-col gap-2.5">
+          <fieldset className="flex min-w-0 flex-col gap-2.5">
             <legend className="pb-2.5 text-md font-bold">When are you going?</legend>
             <div className="flex flex-col gap-2.5 lg:flex-row lg:flex-wrap lg:items-start lg:gap-3">
               <DateOption
@@ -178,7 +178,7 @@ export default function NewTrip() {
   )
 }
 
-const fieldClass = 'w-full rounded-[10px] border border-line-strong bg-white p-3 text-md text-roche focus:border-sommet focus:ring-1 focus:ring-sommet focus:outline-none'
+const fieldClass = 'w-full min-w-0 rounded-[10px] border border-line-strong bg-white p-3 text-md text-roche focus:border-sommet focus:ring-1 focus:ring-sommet focus:outline-none'
 
 // One of the two choices under "When are you going?". The chosen one is highlighted and shows its fields.
 function DateOption({ checked, onSelect, title, text, wide, children }: {
