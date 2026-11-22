@@ -1,7 +1,8 @@
 import { isValidObjectId, Types } from 'mongoose';
 import Group from '../models/Group';
 import Stay from '../models/Stay';
-import { checkAreaName } from '../validation';
+import { checkAreaName, checkStayNights } from '../validation';
+import { addDays } from '../utils';
 import { allowPreview, checkLink, getPreview, PreviewError } from '../preview';
 import { broadcastStays, MAX_AREAS, MAX_STAYS } from '../stays';
 import { sameId } from './helpers';
@@ -14,7 +15,7 @@ export default function register(socket: AppSocket, { io, sessions, userId }: Ct
   async function openTrip() {
     const s = sessions[socket.id];
     if (!s) return null;
-    const g = await Group.findById(s.groupId, { areas: 1, adminUserId: 1 });
+    const g = await Group.findById(s.groupId, { areas: 1, adminUserId: 1, finalDate: 1, tripDuration: 1 });
     return g ? { s, g } : null;
   }
   // An area id from the client: one of this trip's areas, or null for "no area"
@@ -91,6 +92,30 @@ export default function register(socket: AppSocket, { io, sessions, userId }: Ct
       await stay.deleteOne();
       await broadcastStays(io, open.s.code, open.g);
     } catch (e) { console.error('[stay:remove]', (e as Error).message); }
+  });
+
+  // Choose the nights of a stay (any member, like moving it to an area), or clear them
+  socket.on('stay:nights', async (data, done) => {
+    const reply = typeof done === 'function' ? done : () => {};
+    try {
+      if (!isValidObjectId(data?.id)) return reply({ error: 'This stay no longer exists' });
+      const open = await openTrip();
+      if (!open) return reply({ error: 'Open the trip first' });
+      const { s, g } = open;
+      // Once the dates are confirmed the nights must fit in them: the first day to the last day of the trip
+      const trip = g.finalDate && g.tripDuration
+        ? { start: g.finalDate, end: addDays(g.finalDate, g.tripDuration - 1) } : null;
+      const check = checkStayNights(data.nights, trip);
+      if (!check.ok) return reply({ error: check.error });
+      const nights = check.value ?? { checkIn: null, checkOut: null };
+      const r = await Stay.updateOne({ _id: data.id, groupId: g._id }, nights);
+      if (!r.matchedCount) return reply({ error: 'This stay no longer exists' });
+      reply({ ok: true });
+      await broadcastStays(io, s.code, g);
+    } catch (e) {
+      console.error('[stay:nights]', (e as Error).message);
+      reply({ error: 'Server error — please try again' });
+    }
   });
 
   socket.on('area:add', async (name, done) => {

@@ -132,3 +132,10 @@ export function computeDateRanges(
   return ranges.filter(r => daysBetween(new Date(r.start + 'T12:00:00'), new Date(r.end + 'T12:00:00')) >= minDays).slice(0, 8);
 }
 
+
+// "YYYY-MM-DD" plus a number of days, counted in UTC so the server's time zone cannot shift the day
+export function addDays(day: string, days: number): string {
+  const d = new Date(day + 'T12:00:00Z');
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}

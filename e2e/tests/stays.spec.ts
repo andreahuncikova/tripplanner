@@ -96,3 +96,36 @@ test('a stay moves to another area and an area can be renamed', async ({ browser
   await areas(theo).getByRole('button', { name: 'Canggu · 1' }).click()
   await expect(theo.getByRole('list', { name: 'Stays in Canggu' }).getByRole('link', { name: 'rice-bungalows.invalid' })).toBeVisible()
 })
+
+test('the nights of a stay are chosen inside the trip dates and everyone sees them', async ({ browser }) => {
+  const mia = await (await browser.newContext()).newPage()
+  const theo = await (await browser.newContext()).newPage()
+  await signUp(mia, 'Mia')
+  await signUp(theo, 'Theo')
+  const { inviteCode: code } = await (await call(mia, 'POST', '/api/groups', {
+    name: 'Lisbon in June', currency: 'EUR', dates: { mode: 'known', start: '2027-06-10', end: '2027-06-15' },
+  })).json()
+  expect((await call(theo, 'POST', `/api/groups/${code}/join`)).ok()).toBe(true)
+
+  await mia.goto(`/trips/${code}/stays`)
+  await theo.goto(`/trips/${code}/stays`)
+  await addStay(mia, 'https://alfama-flat.invalid/rooms/7')
+
+  await mia.getByRole('button', { name: 'Choose nights for alfama-flat.invalid' }).click()
+  const dialog = mia.getByRole('dialog', { name: 'Nights' })
+  // Check-in starts on the first day of the trip
+  await expect(dialog.getByLabel('Check-in')).toHaveValue('2027-06-10')
+  await dialog.getByLabel('Check-in').fill('2027-06-12')
+  await dialog.getByLabel('Check-out').fill('2027-06-15')
+  await expect(dialog.getByText('3 nights')).toBeVisible()
+  await dialog.getByRole('button', { name: 'Save' }).click()
+  await expect(dialog).toBeHidden()
+
+  // Theo did not reload and sees the nights on the card
+  await expect(theo.getByRole('button', { name: /^Nights for alfama-flat\.invalid: 12 – 15 Jun · 3 nights/ })).toBeVisible()
+
+  // Clearing them brings back "Choose nights"
+  await theo.getByRole('button', { name: /^Nights for alfama-flat\.invalid/ }).click()
+  await theo.getByRole('dialog', { name: 'Nights' }).getByRole('button', { name: 'Clear nights' }).click()
+  await expect(mia.getByRole('button', { name: 'Choose nights for alfama-flat.invalid' })).toBeVisible()
+})

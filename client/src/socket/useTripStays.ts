@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import type { Area, Stay, StaysState } from '@shared/types'
+import type { Area, Stay, StayNights, StaysState } from '@shared/types'
 import { useSocket } from './useSocket'
 
 export interface TripStays {
@@ -11,6 +11,8 @@ export interface TripStays {
   like: (stayId: string) => void
   move: (stayId: string, areaId: string | null) => void
   remove: (stayId: string) => void
+  // Choose the nights of a stay, or clear them with null. Resolves with an error message, or null when saved
+  setNights: (stayId: string, nights: StayNights | null) => Promise<string | null>
   // Resolves with the new area's id, or with an error
   addArea: (name: string) => Promise<{ id: string } | { error: string }>
   renameArea: (id: string, name: string) => void
@@ -52,6 +54,14 @@ export function useTripStays(code: string): TripStays {
     })
   }), [socket])
 
+  const setNights = useCallback((id: string, nights: StayNights | null) => new Promise<string | null>(resolve => {
+    if (!socket?.connected) return resolve('You are offline — please try again')
+    socket.timeout(ADD_TIMEOUT_MS).emit('stay:nights', { id, nights }, (err: Error | null, result: { ok: true } | { error: string }) => {
+      if (err) return resolve('The server did not answer — please try again')
+      resolve('error' in result ? result.error : null)
+    })
+  }), [socket])
+
   const addArea = useCallback((name: string) => new Promise<{ id: string } | { error: string }>(resolve => {
     if (!socket?.connected) return resolve({ error: 'You are offline — please try again' })
     socket.timeout(ADD_TIMEOUT_MS).emit('area:add', name, (err: Error | null, result: { ok: true; id: string } | { error: string }) => {
@@ -65,5 +75,5 @@ export function useTripStays(code: string): TripStays {
   const remove = useCallback((id: string) => { socket?.emit('stay:remove', id) }, [socket])
   const renameArea = useCallback((id: string, name: string) => { socket?.emit('area:rename', { id, name }) }, [socket])
 
-  return { ...state, loaded, add, like, move, remove, addArea, renameArea }
+  return { ...state, loaded, add, like, move, remove, setNights, addArea, renameArea }
 }

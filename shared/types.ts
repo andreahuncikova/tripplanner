@@ -198,6 +198,8 @@ export interface ClientToServerEvents {
   'stay:like': (stayId: string) => void
   'stay:move': (data: { id: string; areaId: string | null }) => void
   'stay:remove': (stayId: string) => void
+  // Choose the nights of a stay, or clear them with nights null. Answered like stay:add.
+  'stay:nights': (data: { id: string; nights: StayNights | null }, done: (result: { ok: true } | { error: string }) => void) => void
   'area:add': (name: string, done: (result: { ok: true; id: string } | { error: string }) => void) => void
   'area:rename': (data: { id: string; name: string }) => void
 
@@ -336,9 +338,17 @@ export interface Stay {
   placeId?: string            // the photos are from Google Maps (see LinkPreview)
   imageCredits?: string[]
   complete: boolean           // the preview found title, photo, price and location
+  // The nights the group would stay, "YYYY-MM-DD": the first night and the morning they leave.
+  // The price is per night, so the stay costs price × nights.
+  nights?: StayNights
   addedByUserId: string       // may remove it, as may the organiser
   likeUserIds: string[]       // members who like it
   createdAt: string
+}
+
+export interface StayNights {
+  checkIn: string
+  checkOut: string
 }
 
 export interface StaysState {

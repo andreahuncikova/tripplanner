@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import type { Area, Stay, TripSummary } from '@shared/types'
-import { formatPrice, platformName } from './stayFormat'
+import { formatPrice, nightCount, nightsRange, nightsWord, platformName, stayTotal } from './stayFormat'
+import { addDays } from '../../lib/plan'
 import PhotoCarousel from './PhotoCarousel'
 import { useAuth } from '../../auth/useAuth'
 import { Button, Card, Input, Modal } from '../../components/ui'
@@ -19,6 +20,10 @@ export default function StaysSection({ stays, trip }: { stays: TripStays; trip: 
   const current = stays.areas.find(a => a._id === areaId) ?? null
   const shown = current ? stays.stays.filter(s => s.areaId === current._id) : stays.stays
   const count = (id: string) => stays.stays.filter(s => s.areaId === id).length
+  // The trip's first and last day once its dates are set; the nights of a stay must lie inside them
+  const tripDays: TripDays | null = trip?.finalDate && trip.tripDuration
+    ? { start: trip.finalDate, end: addDays(trip.finalDate, trip.tripDuration - 1) } : null
+  const [nightsFor, setNightsFor] = useState<Stay | null>(null)
 
   return (
     <section aria-labelledby="stays-title" className="flex flex-col gap-4">
@@ -57,12 +62,21 @@ export default function StaysSection({ stays, trip }: { stays: TripStays; trip: 
               me={user?._id}
               canRemove={!!user && (s.addedByUserId === user._id || trip?.adminUserId === user._id)}
               stays={stays}
+              onNights={() => setNightsFor(s)}
             />
           ))}
         </ul>
       )}
 
       <AreasModal open={areasOpen} onClose={() => setAreasOpen(false)} stays={stays} onAdded={setAreaId} />
+      {/* The key opens it fresh for each stay, with that stay's nights filled in */}
+      <NightsModal
+        key={nightsFor?._id ?? 'none'}
+        stay={nightsFor && (stays.stays.find(s => s._id === nightsFor._id) ?? nightsFor)}
+        tripDays={tripDays}
+        stays={stays}
+        onClose={() => setNightsFor(null)}
+      />
     </section>
   )
 }
@@ -121,13 +135,15 @@ function AddStayForm({ stays, areaId }: { stays: TripStays; areaId: string | nul
   )
 }
 
-function StayItem({ stay: s, areas, me, canRemove, stays }: {
-  stay: Stay; areas: Area[]; me?: string; canRemove: boolean; stays: TripStays
+function StayItem({ stay: s, areas, me, canRemove, stays, onNights }: {
+  stay: Stay; areas: Area[]; me?: string; canRemove: boolean; stays: TripStays; onNights: () => void
 }) {
   const name = s.title ?? platformName(s)
-  const details = [s.location, s.price && formatPrice(s.price)].filter(Boolean).join(' · ')
+  const details = [s.location, s.price && `${formatPrice(s.price)} / night`].filter(Boolean).join(' · ')
   const photos = s.images?.length ? s.images : s.image ? [s.image] : []
-  const controls = <StayControls stay={s} areas={areas} me={me} canRemove={canRemove} stays={stays} name={name} onPhoto={photos.length > 0} />
+  const onPhoto = photos.length > 0
+  const controls = <StayControls stay={s} areas={areas} me={me} canRemove={canRemove} stays={stays} name={name} onPhoto={onPhoto} />
+  const nights = <NightsButton stay={s} name={name} onPhoto={onPhoto} onClick={onNights} />
 
   // With photos: the photos fill the whole card and the text sits on them, white on a dark fade at the bottom
   if (photos.length) {
@@ -142,6 +158,7 @@ function StayItem({ stay: s, areas, me, canRemove, stays }: {
               <a href={s.url} target="_blank" rel="noopener noreferrer" className="line-clamp-2 font-bold text-white hover:text-white hover:underline">{name}</a>
               {details && <span className="text-sm text-white/85">{details}</span>}
             </div>
+            {nights}
             {controls}
           </div>
         </article>
@@ -159,7 +176,10 @@ function StayItem({ stay: s, areas, me, canRemove, stays }: {
           {details && <span className="text-sm text-muted">{details}</span>}
           {!s.complete && <span className="text-sm text-muted">The site did not share all details. You can add them later.</span>}
         </div>
-        <div className="mt-auto">{controls}</div>
+        <div className="mt-auto flex flex-col gap-3">
+          {nights}
+          {controls}
+        </div>
       </Card>
     </li>
   )
@@ -217,6 +237,112 @@ function StayControls({ stay: s, areas, me, canRemove, stays, name, onPhoto }: {
         </button>
       </div>
     </div>
+  )
+}
+
+type TripDays = { start: string; end: string }
+
+// "Choose nights", or once chosen "17 – 20 Jun · 3 nights · €360"; opens the NightsModal
+function NightsButton({ stay: s, name, onPhoto, onClick }: { stay: Stay; name: string; onPhoto: boolean; onClick: () => void }) {
+  const n = s.nights
+  const text = n
+    ? [nightsRange(n), nightsWord(nightCount(n)), s.price && formatPrice(stayTotal(s.price, n))].filter(Boolean).join(' · ')
+    : 'Choose nights'
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={n ? `Nights for ${name}: ${text}. Change` : `Choose nights for ${name}`}
+      className={cn(
+        'flex min-h-10 w-full items-center gap-2 rounded-[10px] px-3 text-left text-sm font-bold',
+        onPhoto ? 'border border-white/40 bg-white/15 text-white backdrop-blur-sm hover:bg-white/25'
+          : n ? 'bg-ciel-light text-sommet hover:bg-ciel/40'
+          : 'border border-dashed border-line-strong bg-white text-subtle hover:bg-canvas',
+      )}
+    >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" className="shrink-0">
+        <path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" />
+      </svg>
+      <span className="truncate">{text}</span>
+    </button>
+  )
+}
+
+// Check-in and check-out of one stay, with the total price as they change. Inside the trip dates once they are set.
+function NightsModal({ stay, tripDays, stays, onClose }: {
+  stay: Stay | null; tripDays: TripDays | null; stays: TripStays; onClose: () => void
+}) {
+  const [checkIn, setCheckIn] = useState(stay?.nights?.checkIn ?? tripDays?.start ?? '')
+  const [checkOut, setCheckOut] = useState(stay?.nights?.checkOut ?? '')
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+  const valid = !!checkIn && !!checkOut && checkOut > checkIn
+  const nights = valid ? { checkIn, checkOut } : null
+
+  async function save(value: typeof nights) {
+    if (!stay || busy) return
+    setBusy(true)
+    const problem = await stays.setNights(stay._id, value)
+    setBusy(false)
+    if (problem) setError(problem)
+    else onClose()
+  }
+
+  function submit(e: FormEvent) {
+    e.preventDefault()
+    if (nights) save(nights)
+  }
+
+  const name = stay ? stay.title ?? platformName(stay) : ''
+  return (
+    <Modal open={!!stay} onClose={onClose} title="Nights" description={name}>
+      <form onSubmit={submit} className="flex flex-col gap-4">
+        <div className="grid grid-cols-2 gap-3">
+          <Input
+            label="Check-in"
+            type="date"
+            value={checkIn}
+            min={tripDays?.start}
+            max={tripDays ? addDays(tripDays.end, -1) : undefined}
+            onChange={e => {
+              const v = e.target.value
+              setCheckIn(v)
+              setError('')
+              // Keep check-out after check-in
+              if (v && checkOut && checkOut <= v) setCheckOut(addDays(v, 1))
+            }}
+          />
+          <Input
+            label="Check-out"
+            type="date"
+            value={checkOut}
+            min={checkIn ? addDays(checkIn, 1) : tripDays?.start}
+            max={tripDays?.end}
+            onChange={e => { setCheckOut(e.target.value); setError('') }}
+          />
+        </div>
+        {tripDays && <p className="text-caption text-muted">The trip is {nightsRange({ checkIn: tripDays.start, checkOut: tripDays.end })}.</p>}
+
+        <div aria-live="polite" className="flex items-baseline justify-between rounded-lg bg-canvas px-4 py-3">
+          <span className="font-semibold">{nights ? nightsWord(nightCount(nights)) : 'Choose the days'}</span>
+          {nights && stay?.price && (
+            <span className="text-right">
+              <strong className="text-lg">{formatPrice(stayTotal(stay.price, nights))}</strong>
+              <span className="block text-caption text-muted">{formatPrice(stay.price)} × {nightCount(nights)}</span>
+            </span>
+          )}
+        </div>
+        {!stay?.price && nights && <p className="text-caption text-muted">The link did not share a price, so there is no total yet.</p>}
+        {error && <p role="alert" className="text-caption text-danger">{error}</p>}
+
+        <div className="flex items-center justify-between gap-2">
+          {stay?.nights ? (
+            <Button type="button" variant="link" size="sm" className="px-0" disabled={busy} onClick={() => save(null)}>Clear nights</Button>
+          ) : <span />}
+          <Button type="submit" disabled={!nights || busy}>{busy ? 'Saving…' : 'Save'}</Button>
+        </div>
+      </form>
+    </Modal>
   )
 }
 

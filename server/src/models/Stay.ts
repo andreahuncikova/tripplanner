@@ -16,6 +16,9 @@ const StaySchema = new Schema({
   images:   { type: [String], default: undefined },          // every photo, images[0] is image
   imageCredits: { type: [String], default: undefined },     // credit for each Google Maps photo
   complete: { type: Boolean, default: false },
+  // The nights the group would stay, "YYYY-MM-DD": the first night and the morning they leave
+  checkIn:  { type: String, default: null },
+  checkOut: { type: String, default: null },
   addedByUserId: { type: Schema.Types.ObjectId, required: true },
   likeUserIds:   { type: [Schema.Types.ObjectId], default: [] },
   createdAt: { type: Date, default: Date.now },

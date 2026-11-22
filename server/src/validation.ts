@@ -211,6 +211,23 @@ export function checkConfirmDates(range: { start: string; end: string }, start: 
   return { ok: true, value: { start: first, days: tripDays } };
 }
 
+// ── Stays ─────────────────────────────────────────────
+// The nights of one stay: checkIn is the first night, checkOut the morning the group leaves.
+// When the trip dates are known (first and last day), the nights must lie inside them;
+// null clears the nights again.
+export function checkStayNights(
+  nights: unknown, trip: { start: string; end: string } | null,
+): Result<{ checkIn: string; checkOut: string } | null> {
+  if (nights == null) return { ok: true, value: null };
+  const d = (typeof nights === 'object' ? nights : {}) as Record<string, unknown>;
+  const checkIn = text(d.checkIn), checkOut = text(d.checkOut);
+  if (!isDay(checkIn) || !isDay(checkOut)) return { ok: false, error: 'Please choose the check-in and check-out day' };
+  if (checkOut <= checkIn) return { ok: false, error: 'Check-out must be after check-in' };
+  if (dayDiff(checkIn, checkOut) > MAX_TRIP_DAYS) return { ok: false, error: `A stay can be at most ${MAX_TRIP_DAYS} nights` };
+  if (trip && (checkIn < trip.start || checkOut > trip.end)) return { ok: false, error: 'The nights must be within the trip dates' };
+  return { ok: true, value: { checkIn, checkOut } };
+}
+
 // ── Expenses ──────────────────────────────────────────
 const EXPENSE_TEXT_MAX = 80;
 const EXPENSE_MAX = 1_000_000_000;   // a billion, enough for Indonesian rupiah or Vietnamese dong

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { checkAreaName } from '../src/validation';
+import { checkAreaName, checkStayNights } from '../src/validation';
 import { MESSAGE_MAX, checkLogin, checkMessage, checkConfirmDates, checkDestinationName, checkNewTrip, checkPasswordChange, checkTripChanges, checkTripLength, cleanUnavailableDays, checkRegister, normalizeInviteCode } from '../src/validation';
 
 const valid = { email: 'mia@example.com', password: 'password1', username: 'Mia Novak' };
@@ -242,5 +242,38 @@ describe('planning steps', () => {
   it('without a start or a length, takes the whole window', () => {
     expect(checkConfirmDates({ start: '2027-03-10', end: '2027-03-24' }, undefined, null))
       .toEqual({ ok: true, value: { start: '2027-03-10', days: 15 } });
+  });
+});
+
+describe('checkStayNights', () => {
+  const trip = { start: '2027-06-10', end: '2027-06-20' };
+
+  it('accepts nights inside the trip, check-out on its last day', () => {
+    expect(checkStayNights({ checkIn: '2027-06-17', checkOut: '2027-06-20' }, trip))
+      .toEqual({ ok: true, value: { checkIn: '2027-06-17', checkOut: '2027-06-20' } });
+  });
+
+  it('clears the nights with null', () => {
+    expect(checkStayNights(null, trip)).toEqual({ ok: true, value: null });
+  });
+
+  it('needs at least one night', () => {
+    expect(checkStayNights({ checkIn: '2027-06-12', checkOut: '2027-06-12' }, trip).ok).toBe(false);
+    expect(checkStayNights({ checkIn: '2027-06-13', checkOut: '2027-06-12' }, trip).ok).toBe(false);
+  });
+
+  it('refuses nights outside the trip dates', () => {
+    expect(checkStayNights({ checkIn: '2027-06-09', checkOut: '2027-06-12' }, trip).ok).toBe(false);
+    expect(checkStayNights({ checkIn: '2027-06-18', checkOut: '2027-06-21' }, trip).ok).toBe(false);
+  });
+
+  it('allows any nights while the trip has no dates yet', () => {
+    expect(checkStayNights({ checkIn: '2027-08-01', checkOut: '2027-08-05' }, null).ok).toBe(true);
+  });
+
+  it('refuses days that do not exist and anything that is not a day', () => {
+    expect(checkStayNights({ checkIn: '2027-02-30', checkOut: '2027-03-02' }, null).ok).toBe(false);
+    expect(checkStayNights({ checkIn: { $gt: '' }, checkOut: '2027-03-02' }, null).ok).toBe(false);
+    expect(checkStayNights('2027-03-01', null).ok).toBe(false);
   });
 });
