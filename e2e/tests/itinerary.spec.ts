@@ -29,7 +29,7 @@ async function tripWithDates(browser: Browser) {
 }
 
 async function addActivity(page: Page, what: string, day: string, time = '', place = '') {
-  await page.getByRole('button', { name: '+ Add activity' }).click()
+  await page.getByRole('button', { name: 'Add activity', exact: true }).click()
   const dialog = page.getByRole('dialog', { name: 'Add activity' })
   await dialog.getByLabel('What').fill(what)
   await dialog.getByLabel('Day').selectOption({ label: day })
@@ -60,8 +60,8 @@ test('a trip with dates opens on the itinerary, and activities appear for everyo
   await addActivity(mia, 'Land in Denpasar', 'Day 1 · 12 Mar', '10:40')
   await addActivity(mia, 'Rafting', 'No day yet')
 
-  // Theo did not reload: the day is in order of time, and the idea is listed apart
-  const day = theo.getByRole('list', { name: 'Activities of the day' })
+  // Theo did not reload: the first day is in order of time, and the idea is listed apart
+  const day = theo.getByRole('list', { name: 'Activities on Friday 12 March' })
   await expect(day.getByRole('listitem')).toHaveText([/10:40\s*Land in Denpasar/, /19:30\s*Dinner in Ubud.*Locavore, Ubud/])
   await expect(theo.getByRole('region', { name: 'Ideas without a day' })).toContainText('Rafting')
   await expect(theo.getByRole('link', { name: 'Locavore, Ubud' })).toHaveAttribute('href', /google\.com\/maps\/search/)
@@ -74,7 +74,7 @@ test('a trip with dates opens on the itinerary, and activities appear for everyo
   await edit.getByRole('button', { name: 'Save' }).click()
   await expect(theo.getByRole('region', { name: 'Ideas without a day' })).toHaveCount(0)
   await theo.getByRole('group', { name: 'Days of the trip' }).getByRole('button', { name: /^Saturday 13 March/ }).click()
-  await expect(theo.getByRole('list', { name: 'Activities of the day' })).toContainText('Rafting')
+  await expect(theo.getByRole('list', { name: 'Activities on Saturday 13 March' })).toContainText('Rafting')
 })
 
 test('the stay for each night shows on its day', async ({ browser }) => {

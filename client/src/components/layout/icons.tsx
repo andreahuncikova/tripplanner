@@ -1,7 +1,7 @@
 // Line icons from the mockups (24×24, drawn with the current text colour).
 const base = {
   width: 22, height: 22, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor',
-  strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true,
+  strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true,
 } as const
 
 export const PlanIcon = () => <svg {...base}><path d="M9 11l3 3 8-8" /><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9" /></svg>
@@ -12,6 +12,11 @@ export const ChatIcon = () => <svg {...base}><path d="M21 12a8 8 0 0 1-11.5 7.2L
 export const BackIcon = () => <svg {...base} width={24} height={24}><path d="M15 18l-6-6 6-6" /></svg>
 export const MoreIcon = () => <svg {...base}><circle cx="12" cy="5" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="12" cy="19" r="1.5" /></svg>
 export const AllTripsIcon = () => <svg {...base} width={18} height={18}><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></svg>
+export const PlusIcon = () => <svg {...base} width={16} height={16} strokeWidth={2.2}><path d="M12 5v14M5 12h14" /></svg>
+export const PinIcon = () => <svg {...base} width={14} height={14}><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z" /><circle cx="12" cy="9.5" r="2.5" /></svg>
+export const EditIcon = () => <svg {...base} width={16} height={16}><path d="M4 20h4L19 9l-4-4L4 16v4zM14 6l4 4" /></svg>
+export const InviteIcon = () => <svg {...base} width={16} height={16}><circle cx="9" cy="8" r="3.5" /><path d="M2.5 20a6.5 6.5 0 0 1 13 0M19 8v6M16 11h6" /></svg>
+export const PanelIcon = () => <svg {...base} width={18} height={18}><rect x="3" y="4" width="18" height="16" rx="2.5" /><path d="M9.5 4v16" /></svg>
 export const CloseIcon = () => <svg {...base} width={20} height={20}><path d="M6 6l12 12M18 6L6 18" /></svg>
 export const ChevronDownIcon = () => <svg {...base} width={24} height={24} strokeWidth={2.2}><path d="M6 9l6 6 6-6" /></svg>
 export const SendIcon = () => <svg {...base} width={20} height={20}><path d="M5 12h14M13 6l6 6-6 6" /></svg>

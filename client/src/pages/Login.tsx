@@ -75,7 +75,7 @@ export default function Login() {
         </Link>
 
         {/* Starts at the same height on both tabs, so the heading and tabs do not move when the sign-up form adds a field */}
-        <div className="mx-auto flex w-full max-w-[420px] flex-col gap-[18px] lg:gap-5 lg:pt-[max(2rem,12vh)] lg:pb-8">
+        <div className="mx-auto flex w-full max-w-[420px] flex-col gap-[18px] lg:gap-5 lg:pt-[max(1.5rem,7vh)] lg:pb-4">
           <h1 className="font-display text-display font-extrabold tracking-[-0.02em] lg:text-[44px] lg:tracking-[-0.03em]">
             {mode === 'login' ? 'Welcome back' : 'Create your account'}
           </h1>
@@ -88,7 +88,7 @@ export default function Login() {
           />
 
           {/* key: a fresh form for each mode, so the browser offers the right saved passwords */}
-          <form key={mode} onSubmit={onSubmit} className="flex flex-col gap-[18px] lg:gap-5">
+          <form key={mode} onSubmit={onSubmit} className="flex flex-col gap-[18px] lg:gap-4">
             {mode === 'signup' && (
               <Input label="Your name" name="username" autoComplete="name" maxLength={30} required />
             )}

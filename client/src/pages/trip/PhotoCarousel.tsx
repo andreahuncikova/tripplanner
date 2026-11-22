@@ -4,7 +4,7 @@ import { imageSrc } from './stayFormat'
 
 // The photos of a stay, filling their box, one at a time. Arrows and dots move between them,
 // a swipe does too on phones. A photo from Google Maps carries its credit in the corner, as Google asks.
-export default function PhotoCarousel({ images, credits, label }: { images: string[]; credits?: string[]; label: string }) {
+export default function PhotoCarousel({ images, credits, label, href }: { images: string[]; credits?: string[]; label: string; href?: string }) {
   const [index, setIndex] = useState(0)
   const touchX = useRef<number | null>(null)
   const count = images.length
@@ -25,14 +25,22 @@ export default function PhotoCarousel({ images, credits, label }: { images: stri
         if (Math.abs(dx) > 40) go(dx < 0 ? i + 1 : i - 1)
       }}
     >
-      <img
-        key={images[i]}
-        src={imageSrc(images[i])}
-        alt=""
-        loading="lazy"
-        referrerPolicy="no-referrer"
-        className="h-full w-full object-cover"
-      />
+      {/* With a link the whole photo opens it. Left out of the tab order and for screen readers,
+          which reach the same link through the stay's name. */}
+      {href ? (
+        <a href={href} target="_blank" rel="noopener noreferrer" tabIndex={-1} aria-hidden="true" className="block h-full w-full">
+          <img key={images[i]} src={imageSrc(images[i])} alt="" loading="lazy" referrerPolicy="no-referrer" className="h-full w-full object-cover" />
+        </a>
+      ) : (
+        <img
+          key={images[i]}
+          src={imageSrc(images[i])}
+          alt=""
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          className="h-full w-full object-cover"
+        />
+      )}
 
       {credits?.[i] && (
         <span className="absolute top-2 right-2 max-w-[70%] truncate rounded bg-roche/70 px-1.5 py-0.5 text-2xs text-white">
@@ -62,7 +70,7 @@ function ArrowButton({ side, label, onClick }: { side: 'left' | 'right'; label: 
       aria-label={label}
       onClick={onClick}
       className={cn(
-        'absolute top-[40%] flex size-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/85 text-roche shadow-raised hover:bg-white',
+        'absolute top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/85 text-roche shadow-raised hover:bg-white',
         side === 'left' ? 'left-2' : 'right-2',
       )}
     >

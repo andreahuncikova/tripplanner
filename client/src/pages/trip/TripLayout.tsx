@@ -1,16 +1,18 @@
 import { useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useMatch, useParams } from 'react-router-dom'
 import { cn } from '../../lib/cn'
-import { people } from '../../lib/trips'
+import { countdown, people } from '../../lib/trips'
 import { useTripChat } from '../../socket/useTripChat'
 import { useTripPlan } from '../../socket/useTripPlan'
 import { useTripStays } from '../../socket/useTripStays'
 import {
-  BackIcon, BudgetIcon, ChatIcon, ChevronDownIcon, CloseIcon, ItineraryIcon, MoreIcon, PlanIcon, StaysIcon,
+  BackIcon, BudgetIcon, ChatIcon, ChevronDownIcon, CloseIcon, InviteIcon, ItineraryIcon, MoreIcon, PlanIcon, StaysIcon,
 } from '../../components/layout/icons'
+import { AvatarGroup } from '../../components/ui'
 import ChatPanel from './ChatPanel'
 import InviteModal from './InviteModal'
 import OnlineStatus from './OnlineStatus'
+import { PLAN_STEPS, currentStep } from '../../lib/plan'
 import { PlanProgress } from './plan/StepGuide'
 import type { TripOutlet } from './tripOutlet'
 import { useTripSummary } from './useTripSummary'
@@ -46,39 +48,59 @@ export default function TripLayout() {
 
   return (
     <div className={cn('flex flex-col pb-24 lg:min-h-dvh lg:pb-0', onChatTab ? 'h-dvh lg:h-auto' : 'min-h-dvh')}>
-      <header className="sticky top-0 z-20 flex flex-col gap-4 border-b border-line bg-white px-3 pt-3 pb-2.5 lg:static lg:px-8 lg:pt-6 lg:pb-0">
-        <div className="flex items-center gap-1 lg:gap-4">
-          <Link to="/dashboard" aria-label="Back to trips" className="flex size-11 items-center justify-center text-roche hover:text-roche lg:hidden">
-            <BackIcon />
-          </Link>
-          <div className="flex min-w-0 flex-1 flex-col">
-            <h1 className="truncate text-lead font-bold lg:text-2xl lg:font-extrabold">{trip?.name ?? 'Trip'}</h1>
-            {onChatTab && <span className="lg:hidden"><OnlineStatus online={chat.online} /></span>}
-            {trip && <span className={cn('text-caption text-muted lg:text-sm', onChatTab && 'hidden lg:inline')}>{people(trip.members.length)}</span>}
-          </div>
-          <button type="button" onClick={() => setInviteOpen(true)} className="rounded-md bg-ciel-light px-3.5 py-2.5 text-sm font-bold text-sommet hover:bg-ciel/40">Invite</button>
-          <Link to={`/trips/${tripId}/settings`} aria-label="Trip settings" className="flex size-11 items-center justify-center rounded-md text-subtle hover:text-roche lg:border lg:border-line">
-            <MoreIcon />
-          </Link>
+      {/* Desktop: on the page itself; the countdown to the trip on the left, the sections as a switch
+          in the middle, the people and actions on the right. The trip's name, place and dates are in the sidebar there,
+          so the name here is only for screen readers. */}
+      <header className="sticky top-0 z-20 flex items-center gap-1 border-b border-line bg-white px-3 pt-3 pb-2.5 lg:static lg:mx-8 lg:grid lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:gap-6 lg:border-0 lg:bg-transparent lg:px-0 lg:py-5">
+        <Link to="/dashboard" aria-label="Back to trips" className="flex size-11 items-center justify-center text-roche hover:text-roche lg:hidden">
+          <BackIcon />
+        </Link>
+        <div className="flex min-w-0 flex-1 flex-col lg:sr-only">
+          <h1 className="truncate text-lead font-bold lg:text-title lg:font-extrabold">{trip?.name ?? 'Trip'}</h1>
+          {onChatTab && <span className="lg:hidden"><OnlineStatus online={chat.online} /></span>}
+          {trip && <span className={cn('text-caption text-muted lg:hidden', onChatTab && 'hidden')}>{people(trip.members.length)}</span>}
+        </div>
+        <div className="hidden lg:block">
+          {trip && countdown(trip) && (
+            <span className="inline-flex h-10 items-center gap-2 rounded-md bg-roche px-4 text-sm font-semibold text-white shadow-raised [&_svg]:size-4.5 [&_svg]:text-ciel">
+              <ItineraryIcon />{countdown(trip)}
+            </span>
+          )}
         </div>
 
-        <nav aria-label="Trip sections" className="hidden gap-7 lg:flex">
+        <nav aria-label="Trip sections" className="hidden h-10 gap-1 rounded-md bg-roche p-1 shadow-raised lg:flex">
           {sections.map(s => (
             <NavLink
               key={s.path}
               to={s.path}
               className={({ isActive }) => cn(
-                'border-b-3 pb-3.5',
-                isActive ? 'border-sommet font-bold text-sommet' : 'border-transparent font-semibold text-subtle hover:text-roche',
+                'flex items-center gap-2 rounded-sm px-4 text-sm whitespace-nowrap transition-colors [&_svg]:size-4 xl:px-5',
+                isActive ? 'bg-white font-semibold text-roche [&_svg]:text-sommet' : 'font-medium text-white/70 hover:bg-white/5 hover:text-white',
               )}
             >
-              {s.label}
+              <s.icon />{s.label}
             </NavLink>
           ))}
         </nav>
+
+        {/* Desktop: one dark box like the switch, with the members, Invite and the settings */}
+        <div className="flex items-center gap-1 lg:h-10 lg:justify-self-end lg:rounded-md lg:bg-roche lg:p-1 lg:shadow-raised">
+          {trip && (
+            <span className="hidden px-2 xl:block" title={people(trip.members.length)}>
+              <AvatarGroup people={trip.members.map(m => ({ name: m.username, color: m.color }))} max={4} />
+            </span>
+          )}
+          <button type="button" onClick={() => setInviteOpen(true)} className="flex items-center gap-1.5 rounded-md bg-ciel-light px-3.5 py-2.5 text-sm font-bold text-sommet hover:bg-ciel/40 lg:h-full lg:rounded-sm lg:bg-transparent lg:px-3.5 lg:py-0 lg:text-sm lg:font-medium lg:text-white/80 lg:hover:bg-white/10 lg:hover:text-white lg:[&_svg]:text-ciel">
+            <span className="hidden lg:inline"><InviteIcon /></span>Invite
+          </button>
+          <Link to={`/trips/${tripId}/settings`} aria-label="Trip settings" className="flex size-11 items-center justify-center rounded-md text-subtle hover:bg-canvas hover:text-roche lg:size-8 lg:rounded-sm lg:text-white/70 lg:hover:bg-white/10 lg:hover:text-white">
+            <MoreIcon />
+          </Link>
+        </div>
       </header>
 
-      {showSteps && plan.state && (
+      {/* Once every step is done the itinerary does not repeat it: the header already says where and when */}
+      {showSteps && plan.state && !(section === 'itinerary' && currentStep(plan.state.phase, stays.stays.length) === PLAN_STEPS.length - 1) && (
         <div className="border-b border-line bg-white px-5 pt-3 pb-3.5 lg:border-0 lg:bg-transparent lg:px-8 lg:pt-7 lg:pb-0">
           {/* On the Plan tab as wide as the step below it */}
           <div className={cn('mx-auto w-full', section === 'plan' && (plan.state.phase === 'calendar' || plan.state.phase === 'date_vote' ? 'lg:max-w-245' : 'lg:max-w-180'))}>
@@ -87,7 +109,7 @@ export default function TripLayout() {
         </div>
       )}
 
-      <main className={cn('flex-1 lg:px-8 lg:py-7', onChatTab ? 'flex min-h-0 flex-col lg:block' : 'px-5 py-4 lg:pb-28')}>
+      <main className={cn('flex-1 lg:px-8 lg:pt-10 lg:pb-7', onChatTab ? 'flex min-h-0 flex-col lg:block' : 'px-5 py-4 lg:pb-24')}>
         <Outlet context={{ chat, plan, stays, trip } satisfies TripOutlet} />
       </main>
 

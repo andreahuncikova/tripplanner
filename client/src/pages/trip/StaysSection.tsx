@@ -3,7 +3,7 @@ import type { Area, Stay, StayDetailsInput, TripSummary } from '@shared/types'
 import { formatPrice, imageSrc, nightCount, nightsRange, nightsWord, platformName, shortDayText, stayTotal } from './stayFormat'
 import { uploadFile } from '../../lib/files'
 import { CurrencySelect } from '../../components/CurrencySelect'
-import { addDays } from '../../lib/plan'
+import { addDays, fromKey } from '../../lib/plan'
 import { nightsCover, type DayRange } from '@shared/nights'
 import PhotoCarousel from './PhotoCarousel'
 import OsmCredit from './OsmCredit'
@@ -32,14 +32,14 @@ export default function StaysSection({ stays, trip }: { stays: TripStays; trip: 
 
   return (
     <section aria-labelledby="stays-title" className="flex flex-col gap-4">
-      {/* The title, and the one main action of the tab next to it on a computer */}
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <h2 id="stays-title" className="text-2xl font-extrabold">Stays</h2>
-        <AddStayForm stays={stays} areaId={current?._id ?? null} />
-      </div>
+      {/* The tab in the menu already says where we are, so the title is only for screen readers */}
+      <h2 id="stays-title" className="sr-only">Stays</h2>
       {tripDays && stays.loaded && <NightsBar tripDays={tripDays} stays={stays.stays} />}
 
-      <div role="group" aria-label="Areas" className="flex flex-wrap gap-2">
+      {/* The areas to filter by on the left, and the one main action of the tab on the right on a computer */}
+      <div className="flex flex-col-reverse gap-3 lg:flex-row lg:items-center lg:justify-between">
+      {/* One white switch like the menu: the areas to filter by, and the button to manage them at its end */}
+      <div role="group" aria-label="Areas" className="flex w-fit max-w-full flex-wrap items-center gap-1 rounded-md bg-white p-1 shadow-card">
         <AreaChip label={`All · ${stays.stays.length}`} active={!current} onClick={() => setAreaId(null)} />
         {stays.areas.map(a => (
           <AreaChip key={a._id} label={`${a.name} · ${count(a._id)}`} active={current?._id === a._id} onClick={() => setAreaId(a._id)} />
@@ -47,10 +47,12 @@ export default function StaysSection({ stays, trip }: { stays: TripStays; trip: 
         <button
           type="button"
           onClick={() => setAreasOpen(true)}
-          className="min-h-9 rounded-full border border-dashed border-faint px-3.5 text-sm font-semibold text-subtle hover:border-subtle hover:bg-white"
+          className="ml-1 min-h-8 border-l border-line pr-2.5 pl-3.5 text-sm font-semibold text-sommet hover:text-sommet-dark"
         >
           {stays.areas.length ? '+ Areas' : '+ Add area'}
         </button>
+      </div>
+      <AddStayForm stays={stays} areaId={current?._id ?? null} />
       </div>
 
       {!stays.loaded ? (
@@ -60,7 +62,7 @@ export default function StaysSection({ stays, trip }: { stays: TripStays; trip: 
           {current ? `No stays in ${current.name} yet. Paste a link above to add one.` : 'No stays yet. Paste a Booking.com or Airbnb link above, and the group can like the ones they want.'}
         </Card>
       ) : (
-        <ul aria-label={current ? `Stays in ${current.name}` : 'All stays'} className="grid items-start gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <ul aria-label={current ? `Stays in ${current.name}` : 'All stays'} className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {shown.map(s => (
             <StayItem
               key={s._id}
@@ -104,8 +106,8 @@ function AreaChip({ label, active, onClick }: { label: string; active: boolean; 
       aria-pressed={active}
       onClick={onClick}
       className={cn(
-        'min-h-9 rounded-full px-3.5 text-sm whitespace-nowrap',
-        active ? 'bg-roche font-bold text-white' : 'border border-line bg-white font-semibold text-subtle hover:border-line-strong hover:text-roche',
+        'min-h-8 rounded-sm px-3.5 text-sm whitespace-nowrap transition-colors',
+        active ? 'bg-roche font-semibold text-white' : 'font-medium text-muted hover:bg-canvas hover:text-roche',
       )}
     >
       {label}
@@ -134,8 +136,8 @@ function AddStayForm({ stays, areaId }: { stays: TripStays; areaId: string | nul
   return (
     <form onSubmit={submit} className="flex flex-col gap-1.5 lg:w-110">
       <div className={cn(
-        'flex items-center gap-2 rounded-full border bg-white py-1 pr-1 pl-3.5 focus-within:border-sommet focus-within:ring-1 focus-within:ring-sommet',
-        error ? 'border-danger' : 'border-line',
+        'flex items-center gap-2 rounded-md border bg-white py-1 pr-1 pl-3.5 focus-within:border-sommet focus-within:ring-1 focus-within:ring-sommet',
+        error ? 'border-danger' : 'border-transparent shadow-card',
       )}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" className="shrink-0 text-faint">
           <path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" />
@@ -155,7 +157,7 @@ function AddStayForm({ stays, areaId }: { stays: TripStays; areaId: string | nul
         <button
           type="submit"
           disabled={!url.trim() || busy || !stays.loaded}
-          className="min-h-9 shrink-0 rounded-full bg-sommet px-4 text-sm font-bold text-white hover:bg-sommet-dark disabled:cursor-not-allowed disabled:opacity-40"
+          className="min-h-8 shrink-0 rounded-sm bg-sommet px-4 text-sm font-bold text-white hover:bg-sommet-dark disabled:cursor-not-allowed disabled:opacity-40"
         >
           {busy ? 'Adding…' : 'Add'}
         </button>
@@ -165,140 +167,111 @@ function AddStayForm({ stays, areaId }: { stays: TripStays; areaId: string | nul
   )
 }
 
+// Frosted glass on the photo: the small round and pill buttons of a card
+const glass = 'border border-white/25 bg-white/15 text-white backdrop-blur-md hover:bg-white/25'
+
 function StayItem({ stay: s, areas, me, canRemove, stays, onNights, onDetails }: {
   stay: Stay; areas: Area[]; me?: string; canRemove: boolean; stays: TripStays; onNights: () => void; onDetails: () => void
 }) {
   const name = s.title ?? platformName(s)
   const details = [s.location, s.price && `${formatPrice(s.price)} / night`].filter(Boolean).join(' · ')
   const photos = s.images?.length ? s.images : s.image ? [s.image] : []
-  const onPhoto = photos.length > 0
-  const controls = <StayControls stay={s} areas={areas} me={me} canRemove={canRemove} stays={stays} name={name} onPhoto={onPhoto} />
-  const nights = (
-    // Side by side when the card is wide enough, else Booked goes under the nights so they are not cut off
-    <div className="@container">
-      <div className="flex flex-col gap-2 @xs:flex-row @xs:items-center">
-        <div className="min-w-0 flex-1"><NightsButton stay={s} name={name} onPhoto={onPhoto} onClick={onNights} /></div>
-        {s.nights && <BookedButton stay={s} name={name} onPhoto={onPhoto} stays={stays} />}
-      </div>
-    </div>
-  )
 
-  // With photos: the photos fill the whole card and the text sits on them, white on a dark fade at the bottom
-  if (photos.length) {
-    return (
-      <li>
-        <article className="relative isolate flex h-80 flex-col justify-end overflow-hidden rounded-xl bg-roche shadow-card">
-          <PhotoCarousel images={photos} credits={s.imageCredits} label={name} />
-          <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-3/5 bg-linear-to-t from-black/85 via-black/45 to-transparent" />
-          <button
-            type="button"
-            onClick={onDetails}
-            aria-label={`Edit details of ${name}`}
-            title="Edit details"
-            className="absolute top-3 right-3 z-10 flex size-10 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm hover:bg-black/60"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-              <path d="M4 20h4L19 9l-4-4L4 16v4zM14 6l4 4" />
-            </svg>
-          </button>
-          <div className="relative flex flex-col gap-3 p-4 text-white">
-            <div className="flex flex-col gap-0.5">
-              {s.title && <span className="text-xs font-bold tracking-wider text-white/80 uppercase">{platformName(s)}</span>}
-              <a href={s.url} target="_blank" rel="noopener noreferrer" className="line-clamp-2 font-bold text-white hover:text-white hover:underline">{name}</a>
-              {details && <span className="text-sm text-white/85">{details}</span>}
-            </div>
-            {nights}
-            {controls}
-          </div>
-        </article>
-      </li>
-    )
-  }
-
+  // The photo fills the card, with the area and the like on top and the name, the nights and the rest on a dark fade
+  // at the bottom. A stay without photos gets a dark gradient in its place, so every card looks the same.
   return (
     <li>
-      <Card className={cn('flex h-full flex-col gap-3', !s.title && 'border border-dashed border-line-strong shadow-none')}>
-        <div className="flex flex-col gap-1">
-          {/* Without a title the name already is the platform, so it is not written twice */}
-          {s.title && <span className="text-xs font-bold tracking-wider text-muted uppercase">{platformName(s)}</span>}
-          <a href={s.url} target="_blank" rel="noopener noreferrer" className="font-bold text-roche hover:text-sommet">{name}</a>
-          {details && <span className="text-sm text-muted">{details}</span>}
-          <span className="text-sm text-muted">
-            {s.complete ? '' : 'The site did not share all details. '}
-            <button type="button" onClick={onDetails} aria-label={`Add details of ${name}`} className="font-bold text-sommet hover:text-sommet-dark">
-              Add details
+      <article className="relative isolate flex h-84 flex-col justify-between overflow-hidden rounded-lg bg-linear-to-br from-sommet-dark to-roche shadow-card">
+        {photos.length ? (
+          <PhotoCarousel images={photos} credits={s.imageCredits} label={name} href={s.url} />
+        ) : (
+          <a href={s.url} target="_blank" rel="noopener noreferrer" tabIndex={-1} aria-hidden="true" className="absolute inset-0" />
+        )}
+        <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-20 bg-linear-to-b from-black/35 to-transparent" />
+
+        <div className="pointer-events-none relative z-10 flex items-start justify-between gap-2 p-3 [&_a,&_button,&_select]:pointer-events-auto">
+          <AreaSelect stay={s} areas={areas} stays={stays} name={name} />
+          <LikeButton stay={s} me={me} stays={stays} />
+        </div>
+
+        <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-linear-to-t from-black/80 via-black/40 to-transparent" />
+        <div className="pointer-events-none relative z-10 flex flex-col gap-2.5 p-4 text-white [&_a,&_button,&_select]:pointer-events-auto">
+          <div className="flex min-w-0 flex-col">
+            {/* Without a title the name already is the platform, so it is not written twice */}
+            {s.title && <span className="text-2xs font-bold tracking-wider text-white/70 uppercase">{platformName(s)}</span>}
+            <a href={s.url} target="_blank" rel="noopener noreferrer" className="truncate font-bold text-white hover:text-white hover:underline">{name}</a>
+            {details && <span className="truncate text-sm text-white/80">{details}</span>}
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="min-w-0 flex-1"><NightsButton stay={s} name={name} onPhoto onClick={onNights} /></div>
+            {s.nights && <BookedButton stay={s} name={name} onPhoto stays={stays} />}
+            <button
+              type="button"
+              onClick={onDetails}
+              aria-label={`${photos.length ? 'Edit' : 'Add'} details of ${name}`}
+              title={photos.length ? 'Edit details' : 'Add details'}
+              className={cn('flex size-9 shrink-0 items-center justify-center rounded-sm', glass)}
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                <path d="M4 20h4L19 9l-4-4L4 16v4zM14 6l4 4" />
+              </svg>
             </button>
-          </span>
+            {canRemove && (
+              <button
+                type="button"
+                onClick={() => stays.remove(s._id)}
+                aria-label={`Remove ${name}`}
+                title="Remove"
+                className={cn('flex size-9 shrink-0 items-center justify-center rounded-sm', glass)}
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                  <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />
+                </svg>
+              </button>
+            )}
+          </div>
         </div>
-        <div className="mt-auto flex flex-col gap-3">
-          {nights}
-          {controls}
-        </div>
-      </Card>
+      </article>
     </li>
   )
 }
 
-// Area, Remove and Like under a stay; light versions when they sit on its photos
-function StayControls({ stay: s, areas, me, canRemove, stays, name, onPhoto }: {
-  stay: Stay; areas: Area[]; me?: string; canRemove: boolean; stays: TripStays; name: string; onPhoto: boolean
-}) {
+// The area as a small glass pill with its own arrow, instead of the browser's square list
+function AreaSelect({ stay: s, areas, stays, name }: { stay: Stay; areas: Area[]; stays: TripStays; name: string }) {
+  return (
+    <label className="relative flex min-w-0 items-center">
+      <span className="sr-only">Area for {name}</span>
+      <select
+        value={s.areaId ?? ''}
+        onChange={e => stays.move(s._id, e.target.value || null)}
+        className={cn('min-h-8 max-w-44 cursor-pointer appearance-none truncate rounded-sm py-1 pr-7 pl-3 text-xs font-bold [&>option]:text-roche', glass)}
+      >
+        <option value="">No area</option>
+        {areas.map(a => <option key={a._id} value={a._id}>{a.name}</option>)}
+      </select>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true" className="pointer-events-none absolute right-2.5 text-white">
+        <path d="M6 9l6 6 6-6" />
+      </svg>
+    </label>
+  )
+}
+
+function LikeButton({ stay: s, me, stays }: { stay: Stay; me?: string; stays: TripStays }) {
   const liked = !!me && s.likeUserIds.includes(me)
   const likes = s.likeUserIds.length
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2">
-      {/* The area as a small pill with its own arrow, instead of the browser's square list */}
-      <label className="relative flex min-w-0 items-center text-sm">
-        <span className="sr-only">Area for {name}</span>
-        <select
-          value={s.areaId ?? ''}
-          onChange={e => stays.move(s._id, e.target.value || null)}
-          className={cn(
-            'min-h-9 max-w-44 cursor-pointer appearance-none truncate rounded-full py-1 pr-8 pl-3.5 text-sm font-semibold',
-            onPhoto ? 'border border-white/40 bg-white/15 text-white backdrop-blur-sm [&>option]:text-roche' : 'border border-line bg-white text-subtle hover:border-line-strong',
-          )}
-        >
-          <option value="">No area</option>
-          {areas.map(a => <option key={a._id} value={a._id}>{a.name}</option>)}
-        </select>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"
-          className={cn('pointer-events-none absolute right-3', onPhoto ? 'text-white' : 'text-subtle')}>
-          <path d="M6 9l6 6 6-6" />
-        </svg>
-      </label>
-      <div className="flex items-center gap-1.5">
-        {canRemove && (
-          <button
-            type="button"
-            onClick={() => stays.remove(s._id)}
-            aria-label={`Remove ${name}`}
-            title="Remove"
-            className={cn('flex size-9 items-center justify-center rounded-full', onPhoto ? 'text-white/80 hover:bg-white/15 hover:text-white' : 'text-muted hover:bg-danger-light hover:text-danger')}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-              <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />
-            </svg>
-          </button>
-        )}
-        <button
-          type="button"
-          aria-pressed={liked}
-          aria-label={`${liked ? 'Liked by you' : 'Like'}, ${likes} ${likes === 1 ? 'like' : 'likes'}`}
-          onClick={() => stays.like(s._id)}
-          className={cn(
-            'flex min-h-9 items-center gap-1.5 rounded-full px-3 text-sm font-bold',
-            liked ? 'bg-[#FDE7E1] text-[#9A2E14]'
-              : onPhoto ? 'border border-white/40 bg-white/15 text-white backdrop-blur-sm hover:bg-white/25'
-              : 'border border-line bg-white text-subtle hover:border-line-strong',
-          )}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill={liked ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" aria-hidden="true">
-            <path d="M12 21s-8-5.3-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 5.7-8 11-8 11z" />
-          </svg>
-          {likes}
-        </button>
-      </div>
-    </div>
+    <button
+      type="button"
+      aria-pressed={liked}
+      aria-label={`${liked ? 'Liked by you' : 'Like'}, ${likes} ${likes === 1 ? 'like' : 'likes'}`}
+      onClick={() => stays.like(s._id)}
+      className={cn('flex min-h-8 items-center gap-1.5 rounded-sm px-3 text-xs font-bold', liked ? 'bg-white text-danger' : glass)}
+    >
+      <svg width="15" height="15" viewBox="0 0 24 24" fill={liked ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" aria-hidden="true">
+        <path d="M12 21s-8-5.3-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 5.7-8 11-8 11z" />
+      </svg>
+      {likes}
+    </button>
   )
 }
 
@@ -310,40 +283,70 @@ const runText = (r: DayRange) => {
   return `${nightsRange(n)} (${nightsWord(nightCount(n))})`
 }
 
-// The trip's nights as a row of small blocks: dark when a booked stay covers the night, amber when two do,
-// empty when none does. Under it the nights still without a stay, so nobody arrives somewhere with no bed.
+// The trip's nights in the style of the Itinerary calendar: a small tile for each night with its day, its date and
+// the stay that covers it. The line on top is blue when a booked stay covers the night, amber when two do, grey
+// when none does. Under the tiles the nights still without a stay, so nobody arrives somewhere with no bed.
+const nightDay = new Intl.DateTimeFormat('en-GB', { weekday: 'short' })
+
 function NightsBar({ tripDays, stays }: { tripDays: TripDays; stays: Stay[] }) {
   const cover = nightsCover(tripDays, stays)
   const total = cover.nights.length
   if (total === 0) return null
   const done = cover.gaps.length === 0
+  const stayName = (id: string) => {
+    const s = stays.find(x => x._id === id)
+    return s ? s.title ?? platformName(s) : ''
+  }
+  const ring = 2 * Math.PI * 18
   return (
-    <div className="flex flex-col gap-2.5 rounded-xl bg-white p-4 shadow-card">
-      <div className="flex items-baseline justify-between gap-3">
-        <span className="font-bold">Nights booked</span>
-        <span className={cn('text-sm font-bold', done ? 'text-success' : 'text-muted')}>{cover.booked} of {total}</span>
+    <section aria-label="Nights" className="mb-4 flex flex-col gap-4 md:flex-row md:items-start md:gap-8">
+      {/* How many nights are booked, as a ring that fills up */}
+      <div className="flex shrink-0 items-center gap-3.5 md:pt-1">
+        <svg width="52" height="52" viewBox="0 0 44 44" aria-hidden="true" className="-rotate-90">
+          <circle cx="22" cy="22" r="18" fill="none" strokeWidth="4.5" className="stroke-line-strong/50" />
+          <circle cx="22" cy="22" r="18" fill="none" strokeWidth="4.5" strokeLinecap="round"
+            strokeDasharray={ring} strokeDashoffset={ring * (1 - cover.booked / total)}
+            className={cn('transition-[stroke-dashoffset] duration-700', done ? 'stroke-success' : 'stroke-sommet')} />
+        </svg>
+        <div className="flex flex-col leading-tight">
+          <span className={cn('text-title font-extrabold', done && 'text-success')}>{cover.booked} of {total}</span>
+          <span className={cn('text-sm', done && cover.doubles.length === 0 ? 'font-semibold text-success' : 'text-muted')}>
+            {done && cover.doubles.length === 0 ? 'Every night has a stay' : 'nights booked'}
+          </span>
+        </div>
       </div>
-      <ol aria-label="Nights of the trip" className="flex gap-1">
+      <div className="flex min-w-0 flex-1 flex-col gap-3">
+      <ol aria-label="Nights of the trip" className="flex gap-2 overflow-x-auto pb-1">
         {cover.nights.map(n => {
           const state = n.stayIds.length > 1 ? 'booked twice' : n.stayIds.length ? 'booked' : 'no stay'
+          const date = fromKey(n.day)
           return (
             <li
               key={n.day}
               title={`${shortDayText(n.day)}: ${state}`}
               aria-label={`Night of ${shortDayText(n.day)}: ${state}`}
-              className={cn('h-2.5 flex-1 rounded-full', n.stayIds.length > 1 ? 'bg-chemin' : n.stayIds.length ? 'bg-sommet' : 'bg-line')}
-            />
+              className={cn(
+                'flex min-w-24 flex-1 flex-col gap-0.5 border-t-2 pt-2',
+                n.stayIds.length > 1 ? 'border-chemin' : n.stayIds.length ? 'border-sommet' : 'border-line-strong',
+              )}
+            >
+              <span className="text-2xs font-bold tracking-wider text-muted uppercase">{nightDay.format(date)}</span>
+              <span className="text-lg leading-6 font-semibold">{String(date.getDate()).padStart(2, '0')}</span>
+              <span className={cn('truncate text-xs', n.stayIds.length ? 'font-semibold text-roche' : 'text-chemin-dark')}>
+                {n.stayIds.length ? n.stayIds.map(stayName).join(' + ') : 'No stay'}
+              </span>
+            </li>
           )
         })}
       </ol>
-      {done && cover.doubles.length === 0 && <p className="text-sm font-semibold text-success">Every night has a stay.</p>}
       {(!done || cover.doubles.length > 0) && (
-        <div role="status" className="flex flex-col gap-1 rounded-lg border border-chemin-line bg-chemin-light px-3 py-2 text-sm text-chemin-dark">
-          {!done && <p><strong>No stay booked</strong> for {cover.gaps.map(runText).join(', ')}.</p>}
-          {cover.doubles.length > 0 && <p><strong>Two stays booked</strong> for {cover.doubles.map(runText).join(', ')}.</p>}
+        <div role="status" className="flex flex-col gap-0.5 text-sm text-chemin-dark">
+          {!done && <p className="flex items-start gap-2"><span aria-hidden="true" className="mt-1.5 size-2 shrink-0 rounded-full bg-chemin" /><span><strong>No stay booked</strong> for {cover.gaps.map(runText).join(', ')}.</span></p>}
+          {cover.doubles.length > 0 && <p className="flex items-start gap-2"><span aria-hidden="true" className="mt-1.5 size-2 shrink-0 rounded-full bg-chemin" /><span><strong>Two stays booked</strong> for {cover.doubles.map(runText).join(', ')}.</span></p>}
         </div>
       )}
-    </div>
+      </div>
+    </section>
   )
 }
 
@@ -365,7 +368,7 @@ function BookedButton({ stay: s, name, onPhoto, stays }: { stay: Stay; name: str
       disabled={busy}
       onClick={toggle}
       className={cn(
-        'flex min-h-9 shrink-0 items-center justify-center gap-1.5 rounded-full px-3.5 text-sm font-bold whitespace-nowrap disabled:opacity-60',
+        'flex min-h-9 shrink-0 items-center justify-center gap-1.5 rounded-sm px-3.5 text-sm font-bold whitespace-nowrap disabled:opacity-60',
         s.booked ? 'bg-success text-white hover:bg-success/90'
           : onPhoto ? 'border border-white/40 bg-white/15 text-white backdrop-blur-sm hover:bg-white/25'
           : 'border border-line bg-white text-subtle hover:border-line-strong',
@@ -393,7 +396,7 @@ function NightsButton({ stay: s, name, onPhoto, onClick }: { stay: Stay; name: s
       onClick={onClick}
       aria-label={n ? `Nights for ${name}: ${text}. Change` : `Choose nights for ${name}`}
       className={cn(
-        'flex min-h-9 w-full items-center gap-2 rounded-full px-3.5 text-left text-sm font-semibold',
+        'flex min-h-9 w-full items-center gap-2 rounded-sm px-3.5 text-left text-sm font-semibold',
         onPhoto ? 'border border-white/40 bg-white/15 text-white backdrop-blur-sm hover:bg-white/25'
           : n ? 'bg-ciel-light text-sommet hover:bg-ciel/40'
           : 'border border-dashed border-line-strong bg-white text-subtle hover:bg-canvas',
