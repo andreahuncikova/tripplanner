@@ -3,6 +3,7 @@ import Group, { GroupDoc, IGroup } from '../models/Group';
 import { ts } from '../utils';
 import { addSystemMessage, deleteMessages } from '../messages';
 import { deleteStays, removeLikes } from '../stays';
+import { deleteTripFiles } from '../files';
 import type { ChatMessage, IO, OnlineUser, Session, Sessions, TripState } from '../types';
 
 // Returns the list of users currently connected to a specific group room.
@@ -42,11 +43,12 @@ function removeMemberTraces(g: IGroup, userId: Id) {
   g.readyUserIds = without(g.readyUserIds) as typeof g.readyUserIds;
 }
 
-// Deletes a trip together with its chat messages and stays
+// Deletes a trip together with its chat messages, stays and chat files
 async function deleteTrip(g: GroupDoc) {
   await g.deleteOne();
   await deleteMessages(g._id);
   await deleteStays(g._id);
+  await deleteTripFiles(g._id);
 }
 
 // Only the person who added an expense may change or delete it. In the old app the admin could change

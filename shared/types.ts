@@ -350,6 +350,22 @@ export interface Stay {
   createdAt: string
 }
 
+// ── Files ─────────────────────────────────────────────
+
+// avatar: a profile photo (only photos, at most 2 MB). chat: a photo or a PDF sent in a trip's chat (at most 10 MB).
+export type FileKind = 'avatar' | 'chat'
+
+// Answer of POST /api/files?kind=…(&trip=<invite code> for chat): the saved file.
+// url is our own /api/files/<id>; in the client it needs API_URL in front (lib/files.ts fileSrc).
+// The id is long and random, so only who was given the address can open the file.
+export interface UploadedFile {
+  id: string
+  url: string
+  type: 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif' | 'application/pdf'
+  size: number                // bytes
+  name: string                // the original file name, only for showing it
+}
+
 export interface StayNights {
   checkIn: string
   checkOut: string

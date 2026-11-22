@@ -13,6 +13,7 @@ import authRoutes          from './routes/auth';
 import groupRoutes         from './routes/groups';
 import previewRoutes       from './routes/preview';
 import placesRoutes        from './routes/places';
+import fileRoutes          from './routes/files';
 import type { ClientToServerEvents, ServerToClientEvents, SocketData, Sessions } from './types';
 
 // Create the Express app and wrap it in a plain HTTP server.
@@ -56,6 +57,7 @@ app.use('/api/auth',   requireDb, authRoutes);
 app.use('/api/groups', requireDb, groupRoutes);
 app.use('/api/preview', requireDb, previewRoutes);   // reads photo, title, price and location from a stay link
 app.use('/api/places',  requireDb, placesRoutes);    // photos from Google Maps for stays without one
+app.use('/api/files',   requireDb, fileRoutes);      // chat photos and files, profile photos (files.ts)
 
 // ── Currency exchange rates  ─────────────────────
 // Every currency the budget can convert, from ExchangeRate-API or Frankfurter (see fx.ts)
