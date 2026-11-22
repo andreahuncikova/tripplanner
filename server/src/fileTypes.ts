@@ -24,9 +24,10 @@ export function detectType(buf: Buffer): FileType | null {
 export const UPLOAD_RULES: Record<FileKind, { types: FileType[]; maxBytes: number }> = {
   avatar: { types: ['image/jpeg', 'image/png', 'image/webp'], maxBytes: 2 * 1024 * 1024 },
   chat:   { types: ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf'], maxBytes: 10 * 1024 * 1024 },
+  stay:   { types: ['image/jpeg', 'image/png', 'image/webp'], maxBytes: 10 * 1024 * 1024 },
 };
 
-export const isFileKind = (v: unknown): v is FileKind => v === 'avatar' || v === 'chat';
+export const isFileKind = (v: unknown): v is FileKind => v === 'avatar' || v === 'chat' || v === 'stay';
 
 const mb = (bytes: number) => `${Math.round(bytes / 1024 / 1024)} MB`;
 
@@ -37,7 +38,7 @@ export function checkUpload(kind: FileKind, buf: Buffer): { ok: true; type: File
   if (buf.length > rules.maxBytes) return { ok: false, error: `The file is too large — at most ${mb(rules.maxBytes)}` };
   const type = detectType(buf);
   if (!type || !rules.types.includes(type)) {
-    return { ok: false, error: kind === 'avatar' ? 'Please choose a JPG, PNG or WebP photo' : 'Only photos (JPG, PNG, WebP, GIF) and PDF files can be sent' };
+    return { ok: false, error: kind === 'chat' ? 'Only photos (JPG, PNG, WebP, GIF) and PDF files can be sent' : 'Please choose a JPG, PNG or WebP photo' };
   }
   return { ok: true, type };
 }

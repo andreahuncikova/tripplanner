@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import type { Area, Stay, StayNights, StaysState } from '@shared/types'
+import type { Area, Stay, StayDetailsInput, StayNights, StaysState } from '@shared/types'
 import { useSocket } from './useSocket'
 
 export interface TripStays {
@@ -15,6 +15,8 @@ export interface TripStays {
   setNights: (stayId: string, nights: StayNights | null) => Promise<string | null>
   // Mark a stay as booked or not. Resolves like setNights.
   setBooked: (stayId: string, booked: boolean) => Promise<string | null>
+  // Save the details form of a stay. Resolves like setNights.
+  editDetails: (stayId: string, details: StayDetailsInput) => Promise<string | null>
   // Resolves with the new area's id, or with an error
   addArea: (name: string) => Promise<{ id: string } | { error: string }>
   renameArea: (id: string, name: string) => void
@@ -69,6 +71,10 @@ export function useTripStays(code: string): TripStays {
     if (!socket?.connected) return resolve('You are offline — please try again')
     socket.timeout(ADD_TIMEOUT_MS).emit('stay:booked', { id, booked }, answer(resolve))
   }), [socket])
+  const editDetails = useCallback((id: string, details: StayDetailsInput) => new Promise<string | null>(resolve => {
+    if (!socket?.connected) return resolve('You are offline — please try again')
+    socket.timeout(ADD_TIMEOUT_MS).emit('stay:edit', { id, ...details }, answer(resolve))
+  }), [socket])
 
   const addArea = useCallback((name: string) => new Promise<{ id: string } | { error: string }>(resolve => {
     if (!socket?.connected) return resolve({ error: 'You are offline — please try again' })
@@ -83,5 +89,5 @@ export function useTripStays(code: string): TripStays {
   const remove = useCallback((id: string) => { socket?.emit('stay:remove', id) }, [socket])
   const renameArea = useCallback((id: string, name: string) => { socket?.emit('area:rename', { id, name }) }, [socket])
 
-  return { ...state, loaded, add, like, move, remove, setNights, setBooked, addArea, renameArea }
+  return { ...state, loaded, add, like, move, remove, setNights, setBooked, editDetails, addArea, renameArea }
 }

@@ -202,6 +202,8 @@ export interface ClientToServerEvents {
   'stay:nights': (data: { id: string; nights: StayNights | null }, done: (result: { ok: true } | { error: string }) => void) => void
   // Mark a stay as booked or not booked. Clearing its nights also makes it not booked.
   'stay:booked': (data: { id: string; booked: boolean }, done: (result: { ok: true } | { error: string }) => void) => void
+  // Fill in or correct the details of a stay by hand, when the link gave none or wrong ones
+  'stay:edit': (data: StayDetailsInput & { id: string }, done: (result: { ok: true } | { error: string }) => void) => void
   'area:add': (name: string, done: (result: { ok: true; id: string } | { error: string }) => void) => void
   'area:rename': (data: { id: string; name: string }) => void
 
@@ -359,7 +361,8 @@ export interface Stay {
 // ── Files ─────────────────────────────────────────────
 
 // avatar: a profile photo (only photos, at most 2 MB). chat: a photo or a PDF sent in a trip's chat (at most 10 MB).
-export type FileKind = 'avatar' | 'chat'
+// stay: a photo of a stay added by hand (only photos, at most 10 MB). chat and stay files belong to a trip.
+export type FileKind = 'avatar' | 'chat' | 'stay'
 
 // Answer of POST /api/files?kind=…(&trip=<invite code> for chat): the saved file.
 // url is our own /api/files/<id>; in the client it needs API_URL in front (lib/files.ts fileSrc).
@@ -370,6 +373,16 @@ export interface UploadedFile {
   type: 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif' | 'application/pdf'
   size: number                // bytes
   name: string                // the original file name, only for showing it
+}
+
+// The details form of a stay. All four fields are sent and replace what the preview found;
+// an empty title or location means none. image: 'keep' the photos it has, null to remove them,
+// or the url of a photo just uploaded with kind 'stay' (UploadedFile.url).
+export interface StayDetailsInput {
+  title: string
+  price: { amount: number; currency: string } | null   // per night
+  location: string
+  image: 'keep' | null | string
 }
 
 export interface StayNights {

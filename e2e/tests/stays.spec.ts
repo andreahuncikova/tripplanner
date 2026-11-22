@@ -163,3 +163,36 @@ test('a booked stay fills its nights and the tab warns about nights without a st
   await theo.getByRole('button', { name: 'Booked: ribeira-loft.invalid' }).click()
   await expect(mia.getByText('0 of 5')).toBeVisible()
 })
+
+test('details a site does not share are added by hand, with a photo, and everyone sees them', async ({ browser }) => {
+  const { mia, theo, code } = await tripWithTwo(browser)
+  await mia.goto(`/trips/${code}/stays`)
+  await theo.goto(`/trips/${code}/stays`)
+  await addStay(mia, 'https://www.booking.invalid/hotel/id/jungle.html')
+
+  await mia.getByRole('button', { name: 'Add details of booking.invalid' }).click()
+  const dialog = mia.getByRole('dialog', { name: 'Add details' })
+  await dialog.getByLabel('Name').fill('Jungle Villa')
+  await dialog.getByLabel('Price per night').fill('85,50')
+  await dialog.getByLabel('Currency').selectOption('EUR')
+  await dialog.getByLabel('Location').fill('Ubud, Indonesia')
+  // The first bytes of a JPG are enough for the server; the browser cannot draw it, so it is sent as it is
+  await dialog.getByText('Add photo').setInputFiles({
+    name: 'villa.jpg', mimeType: 'image/jpeg', buffer: Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.from('test photo')]),
+  })
+  await dialog.getByRole('button', { name: 'Save' }).click()
+  await expect(dialog).toBeHidden()
+
+  // Theo did not reload: the card has the name, the place, the price per night and the photo
+  await expect(theo.getByRole('link', { name: 'Jungle Villa' })).toBeVisible()
+  await expect(theo.getByText('Ubud, Indonesia · €86 / night')).toBeVisible()
+  await expect(theo.getByRole('button', { name: 'Edit details of Jungle Villa' })).toBeVisible()
+
+  // Anyone can correct it later; an empty price removes it
+  await theo.getByRole('button', { name: 'Edit details of Jungle Villa' }).click()
+  const edit = theo.getByRole('dialog', { name: 'Edit details' })
+  await expect(edit.getByLabel('Price per night')).toHaveValue('85.5')
+  await edit.getByLabel('Price per night').fill('')
+  await edit.getByRole('button', { name: 'Save' }).click()
+  await expect(mia.getByText('Ubud, Indonesia', { exact: true })).toBeVisible()
+})

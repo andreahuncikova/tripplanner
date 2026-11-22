@@ -228,6 +228,40 @@ export function checkStayNights(
   return { ok: true, value: { checkIn, checkOut } };
 }
 
+// The details form of a stay (StayDetailsInput). Text is trimmed and may be empty (= none),
+// the price is per night and rounded to cents, and a new photo must be one of our own uploaded files.
+export const STAY_TEXT_MAX = 120;
+const STAY_PRICE_MAX = 1_000_000_000;   // a billion, as for expenses (rupiah, dong)
+export interface CheckedStayDetails {
+  title: string | null;
+  price: { amount: number; currency: string } | null;
+  location: string | null;
+  image: 'keep' | null | string;
+}
+export function checkStayDetails(body: unknown): Result<CheckedStayDetails> {
+  const b = (body ?? {}) as Record<string, unknown>;
+  const title = text(b.title).trim().replace(/\s+/g, ' ');
+  const location = text(b.location).trim().replace(/\s+/g, ' ');
+  if (title.length > STAY_TEXT_MAX) return { ok: false, error: `The name can have at most ${STAY_TEXT_MAX} characters` };
+  if (location.length > STAY_TEXT_MAX) return { ok: false, error: `The location can have at most ${STAY_TEXT_MAX} characters` };
+
+  let price: CheckedStayDetails['price'] = null;
+  if (b.price != null) {
+    const p = (typeof b.price === 'object' ? b.price : {}) as Record<string, unknown>;
+    const amount = typeof p.amount === 'number' ? p.amount : NaN;
+    const currency = text(p.currency).trim().toUpperCase();
+    if (!Number.isFinite(amount) || amount <= 0 || amount > STAY_PRICE_MAX) return { ok: false, error: 'Please enter a price per night above 0' };
+    if (!/^[A-Z]{3}$/.test(currency)) return { ok: false, error: 'Please choose a currency' };
+    price = { amount: Math.round(amount * 100) / 100, currency };
+  }
+
+  const image = b.image === 'keep' || b.image === null ? b.image : text(b.image);
+  if (image !== 'keep' && image !== null && !/^\/api\/files\/[a-f0-9]{48}$/.test(image)) {
+    return { ok: false, error: 'Please upload the photo again' };
+  }
+  return { ok: true, value: { title: title || null, price, location: location || null, image } };
+}
+
 // ── Expenses ──────────────────────────────────────────
 const EXPENSE_TEXT_MAX = 80;
 const EXPENSE_MAX = 1_000_000_000;   // a billion, enough for Indonesian rupiah or Vietnamese dong

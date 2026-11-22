@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { checkAreaName, checkStayNights } from '../src/validation';
+import { checkAreaName, checkStayDetails, checkStayNights } from '../src/validation';
 import { MESSAGE_MAX, checkLogin, checkMessage, checkConfirmDates, checkDestinationName, checkNewTrip, checkPasswordChange, checkTripChanges, checkTripLength, cleanUnavailableDays, checkRegister, normalizeInviteCode } from '../src/validation';
 
 const valid = { email: 'mia@example.com', password: 'password1', username: 'Mia Novak' };
@@ -275,5 +275,34 @@ describe('checkStayNights', () => {
     expect(checkStayNights({ checkIn: '2027-02-30', checkOut: '2027-03-02' }, null).ok).toBe(false);
     expect(checkStayNights({ checkIn: { $gt: '' }, checkOut: '2027-03-02' }, null).ok).toBe(false);
     expect(checkStayNights('2027-03-01', null).ok).toBe(false);
+  });
+});
+
+describe('checkStayDetails', () => {
+  const photo = '/api/files/' + 'a1'.repeat(24);
+
+  it('takes the form, trims it and rounds the price to cents', () => {
+    expect(checkStayDetails({ title: '  Casa  Azul ', price: { amount: 89.456, currency: 'eur' }, location: 'Lisbon, Portugal', image: photo }))
+      .toEqual({ ok: true, value: { title: 'Casa Azul', price: { amount: 89.46, currency: 'EUR' }, location: 'Lisbon, Portugal', image: photo } });
+  });
+
+  it('lets fields be empty, and keeps or removes the photo', () => {
+    expect(checkStayDetails({ title: '', price: null, location: ' ', image: 'keep' }))
+      .toEqual({ ok: true, value: { title: null, price: null, location: null, image: 'keep' } });
+    expect(checkStayDetails({ title: 'A', price: null, location: '', image: null }).ok).toBe(true);
+  });
+
+  it('refuses a price of zero or below, and a missing currency', () => {
+    expect(checkStayDetails({ title: 'A', price: { amount: 0, currency: 'EUR' }, location: '', image: 'keep' }).ok).toBe(false);
+    expect(checkStayDetails({ title: 'A', price: { amount: '50', currency: 'EUR' }, location: '', image: 'keep' }).ok).toBe(false);
+    expect(checkStayDetails({ title: 'A', price: { amount: 50, currency: '' }, location: '', image: 'keep' }).ok).toBe(false);
+  });
+
+  it('refuses a photo that is not one of our own files, and text that is too long', () => {
+    expect(checkStayDetails({ title: 'A', price: null, location: '', image: 'https://evil.example/x.jpg' }).ok).toBe(false);
+    expect(checkStayDetails({ title: 'A', price: null, location: '', image: '/api/files/../../etc' }).ok).toBe(false);
+    expect(checkStayDetails({ title: 'x'.repeat(121), price: null, location: '', image: 'keep' }).ok).toBe(false);
+    expect(checkStayDetails({ title: { $gt: '' }, price: null, location: '', image: 'keep' }))
+      .toEqual({ ok: true, value: { title: null, price: null, location: null, image: 'keep' } });
   });
 });

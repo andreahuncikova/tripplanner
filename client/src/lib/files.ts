@@ -9,11 +9,11 @@ import { API_URL, ApiError, getToken } from './api'
 //
 // Throws an ApiError with a message that can be shown to the user.
 
-export type UploadTarget = { kind: 'avatar' } | { kind: 'chat'; trip: string }
+export type UploadTarget = { kind: 'avatar' } | { kind: 'chat' | 'stay'; trip: string }
 
 // The longest side of a photo after it is made smaller. A phone photo of 4000 px and 4 MB becomes
 // about 200–400 KB, which matters because all files share the free database's 512 MB.
-const MAX_SIDE = { avatar: 512, chat: 1600 } as const
+const MAX_SIDE = { avatar: 512, chat: 1600, stay: 1600 } as const
 const JPEG_QUALITY = 0.85
 
 // Our files are on the server (Render), not on Vercel, so the address needs the server in front
@@ -21,7 +21,7 @@ export const fileSrc = (url: string) => (url.startsWith('/') ? API_URL + url : u
 
 export async function uploadFile(file: File, target: UploadTarget): Promise<UploadedFile> {
   const body = await shrinkPhoto(file, MAX_SIDE[target.kind])
-  const query = target.kind === 'chat' ? `?kind=chat&trip=${encodeURIComponent(target.trip)}` : '?kind=avatar'
+  const query = target.kind === 'avatar' ? '?kind=avatar' : `?kind=${target.kind}&trip=${encodeURIComponent(target.trip)}`
   const token = getToken()
   let res: Response
   try {

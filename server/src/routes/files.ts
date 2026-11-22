@@ -28,7 +28,7 @@ const readLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// POST /api/files?kind=avatar or ?kind=chat&trip=<invite code>
+// POST /api/files?kind=avatar, or ?kind=chat or ?kind=stay with &trip=<invite code>
 // The body is the file itself (not a form), with its name in the X-File-Name header.
 // Answer 201 with an UploadedFile, or 400/404/413/507 with { error }.
 router.post(
@@ -45,9 +45,9 @@ router.post(
       const check = checkUpload(kind, body);
       if (!check.ok) return res.status(body.length > UPLOAD_RULES[kind].maxBytes ? 413 : 400).json({ error: check.error });
 
-      // A chat file belongs to a trip, and only its members may send one
+      // A chat file or a stay photo belongs to a trip, and only its members may upload one
       let groupId: Types.ObjectId | null = null;
-      if (kind === 'chat') {
+      if (kind !== 'avatar') {
         const code = normalizeInviteCode(req.query.trip);
         const g = code ? await Group.findOne({ inviteCode: code }, { members: 1 }) : null;
         if (!g || !g.members.some(m => String(m.userId) === String(user._id))) return res.status(404).json({ error: 'Trip not found' });

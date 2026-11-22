@@ -1,7 +1,9 @@
 import { isValidObjectId, Types } from 'mongoose';
 import Group from '../models/Group';
 import Stay from '../models/Stay';
-import { checkAreaName, checkStayNights } from '../validation';
+import { checkAreaName, checkStayDetails, checkStayNights } from '../validation';
+import { isKnownCurrency } from '../fx';
+import { deleteFile, findFile } from '../files';
 import { addDay } from '../../../shared/nights';
 import { allowPreview, checkLink, getPreview, PreviewError } from '../preview';
 import { areaForCity, broadcastStays, MAX_AREAS, MAX_STAYS } from '../stays';
@@ -101,13 +103,18 @@ export default function register(socket: AppSocket, { io, sessions, userId }: Ct
       if (!isValidObjectId(stayId)) return;
       const open = await openTrip();
       if (!open) return;
-      const stay = await Stay.findOne({ _id: stayId, groupId: open.g._id }, { addedByUserId: 1 });
+      const stay = await Stay.findOne({ _id: stayId, groupId: open.g._id }, { addedByUserId: 1, image: 1 });
       if (!stay) return;
       if (!sameId(stay.addedByUserId, userId) && !sameId(open.g.adminUserId, userId)) {
         socket.emit('err', 'Only who added a stay, or the organiser, can remove it');
         return;
       }
       await stay.deleteOne();
+      // A photo uploaded by hand goes with the stay
+      if (stay.image?.startsWith('/api/files/')) {
+        const f = await findFile(stay.image.slice('/api/files/'.length));
+        if (f) await deleteFile(f._id).catch(() => {});
+      }
       await broadcastStays(io, open.s.code, open.g);
     } catch (e) { console.error('[stay:remove]', (e as Error).message); }
   });
@@ -154,6 +161,56 @@ export default function register(socket: AppSocket, { io, sessions, userId }: Ct
       await broadcastStays(io, s.code, g);
     } catch (e) {
       console.error('[stay:booked]', (e as Error).message);
+      reply({ error: 'Server error — please try again' });
+    }
+  });
+
+  // Fill in or correct a stay by hand (any member, like the nights). The form sends all four fields,
+  // which replace what the link preview found.
+  socket.on('stay:edit', async (data, done) => {
+    const reply = typeof done === 'function' ? done : () => {};
+    try {
+      if (!isValidObjectId(data?.id)) return reply({ error: 'This stay no longer exists' });
+      const check = checkStayDetails(data);
+      if (!check.ok) return reply({ error: check.error });
+      const d = check.value;
+      if (d.price && !(await isKnownCurrency(d.price.currency))) return reply({ error: 'There is no exchange rate for this currency' });
+      const open = await openTrip();
+      if (!open) return reply({ error: 'Open the trip first' });
+      const { s, g } = open;
+      const stay = await Stay.findOne({ _id: data.id, groupId: g._id });
+      if (!stay) return reply({ error: 'This stay no longer exists' });
+
+      // A new photo must be a stay photo uploaded to this trip, so nobody can show another trip's file here
+      const fileOf = (url: string | null | undefined) => (url?.startsWith('/api/files/') ? url.slice('/api/files/'.length) : null);
+      let newPhoto: string | null = null;
+      if (d.image !== 'keep' && d.image !== null) {
+        const f = await findFile(fileOf(d.image)!);
+        if (!f || f.meta.kind !== 'stay' || String(f.meta.groupId) !== String(g._id)) return reply({ error: 'Please upload the photo again' });
+        newPhoto = d.image;
+      }
+      // The photo it had before, when it was uploaded by hand and is now replaced or removed: deleted to save space
+      const oldUpload = d.image !== 'keep' ? fileOf(stay.image) : null;
+
+      // A location typed by hand: its first part is the city ("Ubud, Indonesia" → "Ubud"), and OpenStreetMap
+      // is no longer its source. An unchanged location keeps its city and credit.
+      if (d.location !== (stay.location ?? null)) {
+        stay.set({ city: d.location?.split(',')[0].trim() || undefined, cityCredit: undefined });
+      }
+      stay.set({ title: d.title ?? undefined, price: d.price ?? undefined, location: d.location ?? undefined });
+      if (d.image !== 'keep') {
+        stay.set({ image: newPhoto ?? undefined, images: newPhoto ? [newPhoto] : undefined, placeId: undefined, imageCredits: undefined });
+      }
+      stay.complete = !!(stay.title && stay.image && stay.price?.amount != null && stay.location);
+      await stay.save();
+      if (oldUpload && oldUpload !== fileOf(newPhoto)) {
+        const old = await findFile(oldUpload);
+        if (old) await deleteFile(old._id).catch(() => {});
+      }
+      reply({ ok: true });
+      await broadcastStays(io, s.code, g);
+    } catch (e) {
+      console.error('[stay:edit]', (e as Error).message);
       reply({ error: 'Server error — please try again' });
     }
   });

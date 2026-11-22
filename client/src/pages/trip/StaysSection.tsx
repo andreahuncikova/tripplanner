@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from 'react'
-import type { Area, Stay, TripSummary } from '@shared/types'
-import { formatPrice, nightCount, nightsRange, nightsWord, platformName, shortDayText, stayTotal } from './stayFormat'
+import type { Area, Stay, StayDetailsInput, TripSummary } from '@shared/types'
+import { formatPrice, imageSrc, nightCount, nightsRange, nightsWord, platformName, shortDayText, stayTotal } from './stayFormat'
+import { uploadFile } from '../../lib/files'
+import { CurrencySelect } from '../../components/CurrencySelect'
 import { addDays } from '../../lib/plan'
 import { nightsCover, type DayRange } from '@shared/nights'
 import PhotoCarousel from './PhotoCarousel'
@@ -26,6 +28,7 @@ export default function StaysSection({ stays, trip }: { stays: TripStays; trip: 
   const tripDays: TripDays | null = trip?.finalDate && trip.tripDuration
     ? { start: trip.finalDate, end: addDays(trip.finalDate, trip.tripDuration - 1) } : null
   const [nightsFor, setNightsFor] = useState<Stay | null>(null)
+  const [detailsFor, setDetailsFor] = useState<Stay | null>(null)
 
   return (
     <section aria-labelledby="stays-title" className="flex flex-col gap-4">
@@ -66,6 +69,7 @@ export default function StaysSection({ stays, trip }: { stays: TripStays; trip: 
               canRemove={!!user && (s.addedByUserId === user._id || trip?.adminUserId === user._id)}
               stays={stays}
               onNights={() => setNightsFor(s)}
+              onDetails={() => setDetailsFor(s)}
             />
           ))}
         </ul>
@@ -80,6 +84,13 @@ export default function StaysSection({ stays, trip }: { stays: TripStays; trip: 
         tripDays={tripDays}
         stays={stays}
         onClose={() => setNightsFor(null)}
+      />
+      <DetailsModal
+        key={detailsFor ? `d-${detailsFor._id}` : 'd-none'}
+        stay={detailsFor && (stays.stays.find(s => s._id === detailsFor._id) ?? detailsFor)}
+        trip={trip}
+        stays={stays}
+        onClose={() => setDetailsFor(null)}
       />
     </section>
   )
@@ -139,8 +150,8 @@ function AddStayForm({ stays, areaId }: { stays: TripStays; areaId: string | nul
   )
 }
 
-function StayItem({ stay: s, areas, me, canRemove, stays, onNights }: {
-  stay: Stay; areas: Area[]; me?: string; canRemove: boolean; stays: TripStays; onNights: () => void
+function StayItem({ stay: s, areas, me, canRemove, stays, onNights, onDetails }: {
+  stay: Stay; areas: Area[]; me?: string; canRemove: boolean; stays: TripStays; onNights: () => void; onDetails: () => void
 }) {
   const name = s.title ?? platformName(s)
   const details = [s.location, s.price && `${formatPrice(s.price)} / night`].filter(Boolean).join(' · ')
@@ -164,6 +175,17 @@ function StayItem({ stay: s, areas, me, canRemove, stays, onNights }: {
         <article className="relative isolate flex h-80 flex-col justify-end overflow-hidden rounded-xl bg-roche shadow-card">
           <PhotoCarousel images={photos} credits={s.imageCredits} label={name} />
           <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-3/5 bg-linear-to-t from-black/85 via-black/45 to-transparent" />
+          <button
+            type="button"
+            onClick={onDetails}
+            aria-label={`Edit details of ${name}`}
+            title="Edit details"
+            className="absolute top-3 right-3 z-10 flex size-10 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm hover:bg-black/60"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+              <path d="M4 20h4L19 9l-4-4L4 16v4zM14 6l4 4" />
+            </svg>
+          </button>
           <div className="relative flex flex-col gap-3 p-4 text-white">
             <div className="flex flex-col gap-0.5">
               {s.title && <span className="text-xs font-bold tracking-wider text-white/80 uppercase">{platformName(s)}</span>}
@@ -186,7 +208,12 @@ function StayItem({ stay: s, areas, me, canRemove, stays, onNights }: {
           {s.title && <span className="text-xs font-bold tracking-wider text-muted uppercase">{platformName(s)}</span>}
           <a href={s.url} target="_blank" rel="noopener noreferrer" className="font-bold text-roche hover:text-sommet">{name}</a>
           {details && <span className="text-sm text-muted">{details}</span>}
-          {!s.complete && <span className="text-sm text-muted">The site did not share all details. You can add them later.</span>}
+          <span className="text-sm text-muted">
+            {s.complete ? '' : 'The site did not share all details. '}
+            <button type="button" onClick={onDetails} aria-label={`Add details of ${name}`} className="font-bold text-sommet hover:text-sommet-dark">
+              Add details
+            </button>
+          </span>
         </div>
         <div className="mt-auto flex flex-col gap-3">
           {nights}
@@ -430,6 +457,93 @@ function NightsModal({ stay, tripDays, stays, onClose }: {
           ) : <span />}
           <Button type="submit" disabled={!nights || busy}>{busy ? 'Saving…' : 'Save'}</Button>
         </div>
+      </form>
+    </Modal>
+  )
+}
+
+// Fill in or correct a stay by hand: for links whose site shares nothing (Booking), or a wrong price.
+// A new photo is uploaded to our file storage first, then the form is saved.
+function DetailsModal({ stay, trip, stays, onClose }: {
+  stay: Stay | null; trip: TripSummary | null; stays: TripStays; onClose: () => void
+}) {
+  const [title, setTitle] = useState(stay?.title ?? '')
+  const [amount, setAmount] = useState(stay?.price ? String(stay.price.amount) : '')
+  const [currency, setCurrency] = useState(stay?.price?.currency ?? trip?.currency ?? 'EUR')
+  const [location, setLocation] = useState(stay?.location ?? '')
+  // 'keep' the photos it has, null to remove them, or a photo picked now
+  const [photo, setPhoto] = useState<'keep' | null | File>('keep')
+  const [preview, setPreview] = useState<string | null>(null)
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+
+  const current = stay?.image
+  const shownPhoto = photo instanceof File ? preview : photo === 'keep' && current ? imageSrc(current) : null
+  const price = Number(amount.replace(',', '.'))
+
+  function pick(file: File | undefined) {
+    if (!file) return
+    if (!/^image\/(jpeg|png|webp)$/.test(file.type)) { setError('Please choose a JPG, PNG or WebP photo'); return }
+    setError('')
+    setPhoto(file)
+    const reader = new FileReader()
+    reader.onload = () => setPreview(typeof reader.result === 'string' ? reader.result : null)
+    reader.readAsDataURL(file)
+  }
+
+  async function submit(e: FormEvent) {
+    e.preventDefault()
+    if (!stay || !trip || busy) return
+    if (amount.trim() && !(price > 0)) { setError('Please enter a price per night above 0'); return }
+    setBusy(true)
+    setError('')
+    let image: StayDetailsInput['image'] = photo instanceof File ? 'keep' : photo
+    if (photo instanceof File) {
+      try {
+        image = (await uploadFile(photo, { kind: 'stay', trip: trip.inviteCode })).url
+      } catch (err) {
+        setBusy(false)
+        setError((err as Error).message)
+        return
+      }
+    }
+    const problem = await stays.editDetails(stay._id, {
+      title, location, image, price: amount.trim() ? { amount: price, currency } : null,
+    })
+    setBusy(false)
+    if (problem) setError(problem)
+    else onClose()
+  }
+
+  return (
+    <Modal open={!!stay} onClose={onClose} title={stay?.complete ? 'Edit details' : 'Add details'} description={stay ? platformName(stay) : ''}>
+      <form onSubmit={submit} className="flex flex-col gap-4">
+        <Input label="Name" placeholder="e.g. Casa Azul" maxLength={120} value={title} onChange={e => setTitle(e.target.value)} />
+        <div className="grid grid-cols-[1fr_auto] items-end gap-3">
+          <Input label="Price per night" inputMode="decimal" placeholder="e.g. 120" value={amount} onChange={e => { setAmount(e.target.value); setError('') }} />
+          <CurrencySelect label="Currency" labelClassName="text-sm font-bold" value={currency} onChange={setCurrency} />
+        </div>
+        <Input label="Location" placeholder="e.g. Ubud, Indonesia" maxLength={120} value={location} onChange={e => setLocation(e.target.value)}
+          hint="City first, then the country" />
+
+        <div className="flex flex-col gap-2">
+          <span className="text-sm font-bold">Photo</span>
+          <div className="flex items-center gap-3">
+            {shownPhoto
+              ? <img src={shownPhoto} alt="" className="size-16 shrink-0 rounded-lg object-cover" />
+              : <div className="size-16 shrink-0 rounded-lg bg-canvas" aria-hidden="true" />}
+            <label className="cursor-pointer rounded-md border border-line-strong px-3.5 py-2 text-sm font-bold text-roche hover:bg-canvas focus-within:ring-2 focus-within:ring-sommet">
+              {shownPhoto ? 'Change photo' : 'Add photo'}
+              <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={e => pick(e.target.files?.[0])} />
+            </label>
+            {shownPhoto && (
+              <Button type="button" variant="link" size="sm" className="px-1" onClick={() => { setPhoto(null); setPreview(null) }}>Remove</Button>
+            )}
+          </div>
+        </div>
+
+        {error && <p role="alert" className="text-caption text-danger">{error}</p>}
+        <Button type="submit" disabled={busy}>{busy ? 'Saving…' : 'Save'}</Button>
       </form>
     </Modal>
   )
