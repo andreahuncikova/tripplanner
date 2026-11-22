@@ -323,11 +323,11 @@ function NightsBar({ tripDays, stays }: { tripDays: TripDays; stays: Stay[] }) {
           <circle cx="22" cy="22" r="18" fill="none" strokeWidth="4.5" className="stroke-white/15" />
           <circle cx="22" cy="22" r="18" fill="none" strokeWidth="4.5" strokeLinecap="round"
             strokeDasharray={ring} strokeDashoffset={ring * (1 - cover.booked / total)}
-            className={cn('transition-[stroke-dashoffset] duration-700', done ? 'stroke-success' : 'stroke-ciel')} />
+            className="stroke-ciel transition-[stroke-dashoffset] duration-700" />
         </svg>
         <div className="flex flex-col leading-tight">
-          <span className={cn('text-title font-extrabold', done && 'text-[#7fd6a0]')}>{cover.booked} of {total}</span>
-          <span className={cn('text-sm', done && cover.doubles.length === 0 ? 'font-semibold text-[#7fd6a0]' : 'text-white/70')}>
+          <span className={cn('text-title font-extrabold', done && 'text-ciel')}>{cover.booked} of {total}</span>
+          <span className={cn('text-sm', done && cover.doubles.length === 0 ? 'font-semibold text-ciel' : 'text-white/70')}>
             {done && cover.doubles.length === 0 ? 'Every night has a stay' : 'nights booked'}
           </span>
         </div>

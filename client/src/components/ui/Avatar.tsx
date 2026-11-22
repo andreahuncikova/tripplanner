@@ -1,22 +1,31 @@
 import { cn } from '../../lib/cn'
+import { fileSrc } from '../../lib/files'
 
 const sizes = {
   xs: 'size-5.5 text-[10px]',
   sm: 'size-7 text-2xs',
   md: 'size-9 text-sm',
   lg: 'size-11 text-base',
+  xl: 'size-24 text-4xl',
 }
 
 export interface AvatarProps {
   name: string
   // The user's own colour, given by the server when they sign up.
   color: string
+  // The profile photo ("/api/files/<id>"); without one the coloured letter is shown
+  photo?: string | null
   size?: keyof typeof sizes
   className?: string
 }
 
-// A coloured circle with the first letter of the name.
-export function Avatar({ name, color, size = 'md', className }: AvatarProps) {
+// The person's photo in a circle, or a coloured circle with the first letter of the name.
+export function Avatar({ name, color, photo, size = 'md', className }: AvatarProps) {
+  if (photo) {
+    return (
+      <img src={fileSrc(photo)} alt={name} title={name} loading="lazy" className={cn('inline-block shrink-0 rounded-full bg-line object-cover', sizes[size], className)} />
+    )
+  }
   return (
     <span
       title={name}
@@ -30,7 +39,7 @@ export function Avatar({ name, color, size = 'md', className }: AvatarProps) {
 }
 
 export interface AvatarGroupProps {
-  people: { name: string; color: string }[]
+  people: { name: string; color: string; photo?: string | null }[]
   // How many avatars to show before "+N".
   max?: number
   size?: keyof typeof sizes

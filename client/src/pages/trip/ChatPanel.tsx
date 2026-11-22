@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
-import type { ChatMessage, LinkPreview } from '@shared/types'
+import type { ChatMessage, LinkPreview, Member } from '@shared/types'
 import { useAuth } from '../../auth/useAuth'
 import { Avatar, useToast } from '../../components/ui'
 import { SendIcon } from '../../components/layout/icons'
@@ -17,7 +17,8 @@ const MESSAGE_MAX = 1000
 // and the floating window on desktop (inWindow), where the messages sit on a lighter background with bordered bubbles.
 // Photos and files come with the chat files task (Sprint 3).
 // stays: lets a link card save its link to the Stays tab
-export default function ChatPanel({ chat, inWindow, stays }: { chat: TripChat; inWindow?: boolean; stays?: TripStays }) {
+// `members` gives each message the current profile photo of who wrote it
+export default function ChatPanel({ chat, inWindow, stays, members }: { chat: TripChat; inWindow?: boolean; stays?: TripStays; members?: Member[] }) {
   const { user } = useAuth()
   const [text, setText] = useState('')
   const list = useRef<HTMLOListElement>(null)
@@ -43,7 +44,7 @@ export default function ChatPanel({ chat, inWindow, stays }: { chat: TripChat; i
             <li className="mb-auto text-center text-sm text-muted">No messages yet. Say hi to the group!</li>
           )}
           {chat.messages.map((m, i) => (
-            <Message key={m._id ?? i} message={m} mine={!m.system && m.userId === user?._id} inWindow={inWindow} stays={stays} />
+            <Message key={m._id ?? i} message={m} mine={!m.system && m.userId === user?._id} inWindow={inWindow} stays={stays} photo={members?.find(x => x.userId === m.userId)?.photo} />
           ))}
         </ol>
 
@@ -168,7 +169,7 @@ function LinkCard({ preview: p, stays, inWindow }: { preview: LinkPreview; stays
   )
 }
 
-function Message({ message: m, mine, inWindow, stays }: { message: ChatMessage; mine: boolean; inWindow?: boolean; stays?: TripStays }) {
+function Message({ message: m, mine, inWindow, stays, photo }: { message: ChatMessage; mine: boolean; inWindow?: boolean; stays?: TripStays; photo?: string | null }) {
   // From the server itself, e.g. "Group created" or "Mia left the group".
   if (m.system) {
     return (
@@ -182,7 +183,7 @@ function Message({ message: m, mine, inWindow, stays }: { message: ChatMessage; 
   const card = m.preview && <LinkCard preview={m.preview} stays={stays} inWindow={inWindow} />
 
   // Your own messages on the right, with your avatar beside them as the others have theirs.
-  // The avatar shows the profile photo once profiles have photos (Profile task).
+  // The avatar shows the profile photo when the person has one.
   if (mine) {
     return (
       <li className="flex max-w-[85%] items-end gap-2 self-end">
@@ -191,14 +192,14 @@ function Message({ message: m, mine, inWindow, stays }: { message: ChatMessage; 
           <p className={cn(text, 'rounded-lg rounded-br-[4px] bg-sommet text-white')}><Linked text={m.text} /></p>
           {card}
         </div>
-        <Avatar name={m.username ?? '?'} color={m.color ?? '#5b6676'} size="sm" />
+        <Avatar name={m.username ?? '?'} color={m.color ?? '#5b6676'} photo={photo} size="sm" />
       </li>
     )
   }
 
   return (
     <li className="flex max-w-[85%] items-end gap-2">
-      <Avatar name={m.username ?? '?'} color={m.color ?? '#5b6676'} size="sm" />
+      <Avatar name={m.username ?? '?'} color={m.color ?? '#5b6676'} photo={photo} size="sm" />
       <div className="flex min-w-0 flex-col gap-1">
         {meta}
         <p className={cn(text, 'rounded-lg rounded-bl-[4px] bg-white', inWindow && 'border border-line')}><Linked text={m.text} /></p>

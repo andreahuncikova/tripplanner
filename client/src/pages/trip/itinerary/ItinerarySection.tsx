@@ -286,7 +286,7 @@ function ActivityCard({ activity: a, author, canChange, onEdit }: {
           </button>
         )}
         <span title={`Added by ${a.addedBy}`} className="flex size-9 items-center justify-center">
-          <Avatar name={a.addedBy} color={author?.color ?? '#8a96a6'} size="xs" />
+          <Avatar name={a.addedBy} color={author?.color ?? '#8a96a6'} photo={author?.photo} size="xs" />
           <span className="sr-only">, added by {a.addedBy}</span>
         </span>
       </div>

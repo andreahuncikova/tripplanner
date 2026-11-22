@@ -48,6 +48,40 @@ export function checkPasswordChange(body: unknown): Result<{ currentPassword: st
   return { ok: true, value: { currentPassword, newPassword } };
 }
 
+// The profile: a new name and/or photo. The photo is the address of an avatar the user uploaded
+// ("/api/files/<id>", checked against the file storage in routes/auth.ts), or null to remove it.
+export function checkProfile(body: unknown): Result<{ username?: string; photoId?: string | null }> {
+  const b = (body ?? {}) as Record<string, unknown>;
+  const value: { username?: string; photoId?: string | null } = {};
+  if ('username' in b) {
+    const username = text(b.username).trim();
+    if (!username) return { ok: false, error: 'Please enter your name' };
+    if (username.length > USERNAME_MAX) return { ok: false, error: `Your name can be at most ${USERNAME_MAX} characters` };
+    value.username = username;
+  }
+  if ('photo' in b) {
+    if (b.photo === null) value.photoId = null;
+    else {
+      const id = /^\/api\/files\/([a-f0-9]{48})$/.exec(text(b.photo))?.[1];
+      if (!id) return { ok: false, error: 'That photo could not be found — please upload it again' };
+      value.photoId = id;
+    }
+  }
+  if (!('username' in value) && !('photoId' in value)) return { ok: false, error: 'Nothing to change' };
+  return { ok: true, value };
+}
+
+// A new e-mail address for the account; the current password proves it is really the owner
+export function checkEmailChange(body: unknown, current: string): Result<{ email: string; password: string }> {
+  const b = (body ?? {}) as Record<string, unknown>;
+  const email = normalizeEmail(b.email);
+  const password = text(b.password);
+  if (!email || !password) return { ok: false, error: 'Please enter the new e-mail and your password' };
+  if (!looksLikeEmail(email)) return { ok: false, error: 'Please enter a valid email address' };
+  if (email === current) return { ok: false, error: 'This is already your e-mail' };
+  return { ok: true, value: { email, password } };
+}
+
 export function checkLogin(body: unknown): Result<{ email: string; password: string }> {
   const b = (body ?? {}) as Record<string, unknown>;
   const email = normalizeEmail(b.email);

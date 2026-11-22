@@ -8,6 +8,8 @@ import Dashboard from './pages/Dashboard'
 import JoinTrip from './pages/JoinTrip'
 import NewTrip from './pages/NewTrip'
 import NotFound from './pages/NotFound'
+import Profile from './pages/Profile'
+import ConfirmEmail from './pages/ConfirmEmail'
 import UiGallery from './pages/UiGallery'
 import TripLayout from './pages/trip/TripLayout'
 import TripSettings from './pages/trip/TripSettings'
@@ -21,6 +23,8 @@ export const router = createBrowserRouter([
     children: [
       { index: true,   element: <Landing /> },
       { path: 'login', element: <Login /> },
+      // The link in the e-mail that confirms a new address; works without logging in
+      { path: 'confirm-email', element: <ConfirmEmail /> },
       // Overview of the UI components, for checking them against the mockups.
       { path: 'ui',    element: <UiGallery /> },
       {
@@ -34,6 +38,7 @@ export const router = createBrowserRouter([
               // Also the target of invite links: /join?code=A3BF92C1
               { path: 'join',      element: <JoinTrip /> },
               { path: 'new-trip',  element: <NewTrip /> },
+              { path: 'profile',   element: <Profile /> },
               // Its own screen without the trip's tabs, as in the mockups
               { path: 'trips/:tripId/settings', element: <TripSettings /> },
               {

@@ -53,9 +53,10 @@ export default function TripLayout() {
   return (
     <div className={cn('flex flex-col pb-24 lg:min-h-dvh lg:pb-0', onChatTab ? 'h-dvh lg:h-auto' : 'min-h-dvh', onPlanTab && 'lg:h-dvh lg:min-h-0')}>
       {/* Desktop: on the page itself; the countdown to the trip on the left, the sections as a switch
-          in the middle, the people and actions on the right. The trip's name, place and dates are in the sidebar there,
-          so the name here is only for screen readers. */}
-      <header className="sticky top-0 z-20 flex items-center gap-1 border-b border-line bg-white px-4 pt-3 pb-2.5 lg:static lg:mx-12 lg:grid lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:gap-6 lg:border-0 lg:bg-transparent lg:px-0 lg:py-5 xl:mx-16">
+          in the space between them, the people and actions on the right. The middle column takes only the space that is
+          left, so the switch can never run under the people when a trip has many members. The trip's name, place and
+          dates are in the sidebar there, so the name here is only for screen readers. */}
+      <header className="sticky top-0 z-20 flex items-center gap-1 border-b border-line bg-white px-4 pt-3 pb-2.5 lg:static lg:mx-12 lg:grid lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:gap-6 lg:border-0 lg:bg-transparent lg:px-0 lg:py-5 xl:mx-16">
         <Link to="/dashboard" aria-label="Back to trips" className="flex size-11 items-center justify-center text-roche hover:text-roche lg:hidden">
           <BackIcon />
         </Link>
@@ -72,7 +73,7 @@ export default function TripLayout() {
           )}
         </div>
 
-        <nav aria-label="Trip sections" className="hidden h-10 gap-1 rounded-md bg-white p-1 lg:flex">
+        <nav aria-label="Trip sections" className="hidden h-10 gap-1 justify-self-center rounded-md bg-white p-1 lg:flex">
           {sections.map(s => locked(s) ? (
             <span
               key={s.path}
@@ -101,7 +102,7 @@ export default function TripLayout() {
         <div className="flex items-center gap-1 lg:h-10 lg:justify-self-end lg:rounded-md lg:bg-white lg:p-1">
           {trip && (
             <span className="hidden px-2 xl:block" title={people(trip.members.length)}>
-              <AvatarGroup people={trip.members.map(m => ({ name: m.username, color: m.color }))} max={4} />
+              <AvatarGroup people={trip.members.map(m => ({ name: m.username, color: m.color, photo: m.photo }))} max={4} />
             </span>
           )}
           <button type="button" onClick={() => setInviteOpen(true)} className="flex items-center gap-1.5 rounded-md bg-ciel-light px-3.5 py-2.5 text-sm font-bold text-sommet hover:bg-ciel/40 lg:h-full lg:rounded-sm lg:bg-transparent lg:px-3.5 lg:py-0 lg:text-sm lg:font-medium lg:text-subtle lg:hover:bg-canvas lg:hover:text-roche lg:[&_svg]:text-sommet">
@@ -155,7 +156,7 @@ export default function TripLayout() {
               <CloseIcon />
             </button>
           </header>
-          <ChatPanel chat={chat} stays={stays} inWindow />
+          <ChatPanel chat={chat} stays={stays} members={trip?.members} inWindow />
         </section>
       )}
       {!onChatTab && <button

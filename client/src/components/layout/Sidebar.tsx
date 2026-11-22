@@ -108,14 +108,24 @@ export function Sidebar() {
       </nav>
 
       {user && (
-        <div className={cn('mt-auto flex items-center gap-2.5 border-t border-line pt-4', collapsed ? 'justify-center' : 'px-2.5')}>
-          <Avatar name={user.username} color={user.color} size="sm" />
+        <div className="mt-auto border-t border-line pt-3">
+        <NavLink
+          to="/profile"
+          title={collapsed ? 'Profile and payments' : undefined}
+          className={({ isActive }) => cn(
+            'flex items-center gap-2.5 rounded-lg py-2 text-roche hover:bg-canvas hover:text-roche',
+            collapsed ? 'justify-center' : 'px-2.5',
+            isActive && 'bg-canvas',
+          )}
+        >
+          <Avatar name={user.username} color={user.color} photo={user.photo} size="sm" />
           {!collapsed && (
             <span className="flex min-w-0 flex-col leading-tight">
               <strong className="truncate text-sm">{user.username}</strong>
               <span className="text-xs text-muted">Profile and payments</span>
             </span>
           )}
+        </NavLink>
         </div>
       )}
     </aside>

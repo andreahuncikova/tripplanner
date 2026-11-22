@@ -48,6 +48,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }))
   }
 
+  function updateSession(r: { token?: string; user: User }) {
+    if (r.token) { saveToken(r.token); setToken(r.token) }
+    setUser(r.user)
+  }
+
+  async function refresh() {
+    if (!getToken()) return
+    const r = await api<{ user: User }>('/api/auth/me')
+    setUser(r.user)
+  }
+
   async function logout() {
     await api('/api/auth/logout', { method: 'POST' }).catch(() => {})
     saveToken(null)
@@ -56,7 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, token, loading, login, register, logout, updateSession, refresh }}>
       {children}
     </AuthContext.Provider>
   )

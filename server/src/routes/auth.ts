@@ -1,10 +1,14 @@
+import crypto from 'crypto';
 import { Router, Request } from 'express';
 import jwt from 'jsonwebtoken';
 import rateLimit from 'express-rate-limit';
 import User, { SafeUser } from '../models/User';
-import { JWT_SECRET, JWT_EXPIRES, COLORS } from '../config';
+import Group from '../models/Group';
+import { JWT_SECRET, JWT_EXPIRES, COLORS, CLIENT_URLS } from '../config';
+import { deleteFile, fileUrl, findFile } from '../files';
+import { sendMail } from '../mailer';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
-import { checkLogin, checkPasswordChange, checkRegister } from '../validation';
+import { checkEmailChange, checkLogin, checkPasswordChange, checkProfile, checkRegister } from '../validation';
 
 const router = Router();
 
@@ -19,9 +23,10 @@ function issueToken(user: SafeUser & { tokenVersion: number }): string {
 
 // Max 10 failed attempts per IP address in 15 minutes, so passwords cannot be guessed by trying many times.
 // Successful requests are not counted, so a normal user is never blocked.
+// The end-to-end tests try wrong passwords on purpose from one address, so their server sets AUTH_RATE_LIMIT higher.
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  limit: 10,
+  limit: Number(process.env.AUTH_RATE_LIMIT) || 10,
   skipSuccessfulRequests: true,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
@@ -87,6 +92,127 @@ router.post('/password', authLimiter, authMiddleware, async (req: Request, res) 
     res.json({ token: issueToken(user), user: user.toSafe() });
   } catch (e) {
     console.error('[password]', (e as Error).message);
+    res.status(500).json({ error: 'Server error — please try again' });
+  }
+});
+
+// PATCH /api/auth/profile — a new name and/or photo ({ username }, { photo: "/api/files/<id>" } or { photo: null }).
+// The trips keep a copy of each member's name and photo, so those copies change too. The name is also in the log-in
+// token, which the chat uses for new messages, so the answer has a new token with the new name.
+router.patch('/profile', authMiddleware, async (req: Request, res) => {
+  try {
+    const input = checkProfile(req.body);
+    if (!input.ok) return res.status(400).json({ error: input.error });
+    const user = await User.findById((req as AuthRequest).user._id);
+    if (!user) return res.status(404).json({ error: 'not found' });
+    const oldPhoto = user.photo;
+
+    const { username, photoId } = input.value;
+    if (photoId) {
+      // Only a profile photo this user uploaded themselves (POST /api/files?kind=avatar)
+      const file = await findFile(photoId);
+      if (!file || file.meta.kind !== 'avatar' || String(file.meta.uploadedByUserId) !== String(user._id))
+        return res.status(400).json({ error: 'That photo could not be found — please upload it again' });
+      user.photo = fileUrl(photoId);
+    } else if (photoId === null) user.photo = null;
+    if (username) user.username = username;
+    await user.save();
+
+    await Group.updateMany(
+      { 'members.userId': user._id },
+      { $set: { 'members.$[m].username': user.username, 'members.$[m].photo': user.photo } },
+      { arrayFilters: [{ 'm.userId': user._id }] },
+    );
+    await Group.updateMany({ adminUserId: user._id }, { adminUsername: user.username });
+
+    // A replaced photo is deleted, so old photos do not fill the storage
+    if (oldPhoto && oldPhoto !== user.photo) {
+      const old = await findFile(oldPhoto.split('/').pop()!);
+      if (old) await deleteFile(old._id).catch(e => console.error('[profile:photo]', (e as Error).message));
+    }
+    res.json({ token: issueToken(user), user: user.toSafe() });
+  } catch (e) {
+    console.error('[profile]', (e as Error).message);
+    res.status(500).json({ error: 'Server error — please try again' });
+  }
+});
+
+// How long the link that confirms a new e-mail works
+const EMAIL_LINK_HOURS = 24;
+const hashToken = (token: string) => crypto.createHash('sha256').update(token).digest('hex');
+
+// POST /api/auth/email — change the e-mail ({ email, password }). The new address only counts after its owner clicks
+// the link sent to it, so a typo cannot lock anyone out of the account. Until then the old e-mail still logs in.
+router.post('/email', authLimiter, authMiddleware, async (req: Request, res) => {
+  try {
+    const user = await User.findById((req as AuthRequest).user._id).select('+password');
+    if (!user) return res.status(404).json({ error: 'not found' });
+    const input = checkEmailChange(req.body, user.email);
+    if (!input.ok) return res.status(400).json({ error: input.error });
+    if (!(await user.comparePassword(input.value.password)))
+      return res.status(401).json({ error: 'Your password is not correct' });
+    if (await User.exists({ email: input.value.email }))
+      return res.status(409).json({ error: 'Email already in use' });
+
+    const token = crypto.randomBytes(32).toString('hex');
+    user.pendingEmail = input.value.email;
+    user.set('emailTokenHash', hashToken(token));
+    user.set('emailTokenExpires', new Date(Date.now() + EMAIL_LINK_HOURS * 3600_000));
+    await user.save();
+
+    const link = `${CLIENT_URLS[0]}/confirm-email?token=${token}`;
+    await sendMail({
+      to: input.value.email,
+      subject: 'Confirm your new e-mail for TripPlanner',
+      text: `Hi ${user.username},\n\nopen this link to use ${input.value.email} for TripPlanner from now on:\n${link}\n\n`
+        + `The link works for ${EMAIL_LINK_HOURS} hours. If you did not ask for this, you can ignore this e-mail.`,
+    });
+    // Only for the end-to-end tests, which cannot read e-mails (EMAIL_DEV_LINKS is never set on Render)
+    const dev = process.env.EMAIL_DEV_LINKS === '1' ? { devLink: link } : {};
+    res.json({ user: user.toSafe(), ...dev });
+  } catch (e) {
+    console.error('[email]', (e as Error).message);
+    res.status(500).json({ error: 'Server error — please try again' });
+  }
+});
+
+// DELETE /api/auth/email — forget the new e-mail that was not confirmed yet
+router.delete('/email', authMiddleware, async (req: Request, res) => {
+  try {
+    const user = await User.findById((req as AuthRequest).user._id);
+    if (!user) return res.status(404).json({ error: 'not found' });
+    user.pendingEmail = null;
+    user.set('emailTokenHash', null);
+    user.set('emailTokenExpires', null);
+    await user.save();
+    res.json({ user: user.toSafe() });
+  } catch (e) {
+    console.error('[email:cancel]', (e as Error).message);
+    res.status(500).json({ error: 'Server error — please try again' });
+  }
+});
+
+// POST /api/auth/email/confirm — { token } from the link in the e-mail. Needs no log-in: the link may be opened
+// on another device. The token is random, works once, and only for EMAIL_LINK_HOURS.
+router.post('/email/confirm', authLimiter, async (req, res) => {
+  try {
+    const token = typeof req.body?.token === 'string' && /^[a-f0-9]{64}$/.test(req.body.token) ? req.body.token : null;
+    const user = token && await User.findOne({ emailTokenHash: hashToken(token), emailTokenExpires: { $gt: new Date() } });
+    if (!user || !user.pendingEmail)
+      return res.status(400).json({ error: 'This link does not work any more. Ask for a new one in your profile.' });
+    if (await User.exists({ email: user.pendingEmail, _id: { $ne: user._id } }))
+      return res.status(409).json({ error: 'Someone has started using this e-mail in the meantime' });
+
+    user.email = user.pendingEmail;
+    user.pendingEmail = null;
+    user.set('emailTokenHash', null);
+    user.set('emailTokenExpires', null);
+    await user.save();
+    res.json({ email: user.email });
+  } catch (e) {
+    if ((e as { code?: number }).code === 11000)
+      return res.status(409).json({ error: 'Someone has started using this e-mail in the meantime' });
+    console.error('[email:confirm]', (e as Error).message);
     res.status(500).json({ error: 'Server error — please try again' });
   }
 });

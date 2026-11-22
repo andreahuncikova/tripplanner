@@ -79,7 +79,11 @@ export default function Dashboard() {
           <button type="button" onClick={logout} aria-label="Log out" title="Log out" className="flex size-11 items-center justify-center rounded-full text-subtle hover:bg-canvas hover:text-roche lg:hidden">
             <LogOutIcon />
           </button>
-          {user && <Avatar name={user.username} color={user.color} size="lg" className="lg:hidden" />}
+          {user && (
+            <Link to="/profile" aria-label="Your profile" className="rounded-full lg:hidden">
+              <Avatar name={user.username} color={user.color} photo={user.photo} size="lg" />
+            </Link>
+          )}
         </div>
       </header>
 
@@ -188,8 +192,9 @@ function TripCard({ trip }: { trip: TripSummary }) {
             <span className="truncate text-xs text-white/80 lg:text-sm">{place} · {tripDates(trip)}</span>
           </div>
           <div className="flex items-center justify-between gap-2">
-            <AvatarGroup people={trip.members.map(m => ({ name: m.username, color: m.color }))} max={3} />
-            {soon && <span className="truncate text-xs font-bold text-chemin lg:text-caption">{soon}</span>}
+            {/* The countdown always fits; with many members the avatars give way */}
+            <span className="min-w-0 overflow-hidden"><AvatarGroup people={trip.members.map(m => ({ name: m.username, color: m.color, photo: m.photo }))} max={3} /></span>
+            {soon && <span className="shrink-0 text-xs font-bold whitespace-nowrap text-chemin lg:text-caption">{soon}</span>}
           </div>
           <div role="img" aria-label={ready ? 'All planning steps done' : `Step ${step + 1} of ${PLAN_STEPS.length}: ${PLAN_STEPS[step]}`} className="flex gap-1">
             {PLAN_STEPS.map((name, i) => (

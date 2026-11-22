@@ -119,7 +119,7 @@ function ExpenseForm({ plan, state, me, rates, expense, onDone }: {
               payer === m.userId ? 'border-2 border-sommet bg-ciel-light font-bold' : 'border border-line-strong font-semibold',
             )}>
               <input type="radio" name="payer" value={m.userId} checked={payer === m.userId} onChange={() => setPayer(m.userId)} className="sr-only" />
-              <Avatar name={m.username} color={m.color} size="sm" />
+              <Avatar name={m.username} color={m.color} photo={m.photo} size="sm" />
               {label(m.userId, m.username)}
             </label>
           ))}

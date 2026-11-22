@@ -8,6 +8,12 @@ export interface IUser {
   username: string;
   color: string;
   tokenVersion: number;
+  photo: string | null;
+  // A new e-mail waits here until its owner clicks the link sent to it (routes/auth.ts).
+  // Only a hash of the link's token is kept, so a copy of the database cannot be used to confirm it.
+  pendingEmail: string | null;
+  emailTokenHash: string | null;
+  emailTokenExpires: Date | null;
 }
 
 // The user data that is safe to send to the browser (no password)
@@ -16,6 +22,8 @@ export interface SafeUser {
   email: string;
   username: string;
   color: string;
+  photo: string | null;
+  pendingEmail: string | null;
 }
 
 interface IUserMethods {
@@ -34,6 +42,11 @@ const UserSchema = new Schema<IUser, UserModel, IUserMethods>({
   // Every log-in token remembers this number. Changing the password raises it,
   // so all tokens made before the change stop working (see middleware/auth.ts).
   tokenVersion: { type: Number, default: 0 },
+  // The profile photo: "/api/files/<id>" in the file storage (files.ts), or null for the coloured letter
+  photo: { type: String, default: null },
+  pendingEmail:      { type: String, default: null, lowercase: true, trim: true },
+  emailTokenHash:    { type: String, default: null, select: false },
+  emailTokenExpires: { type: Date,   default: null, select: false },
 });
 
 // Hash password before saving
@@ -49,7 +62,7 @@ UserSchema.methods.comparePassword = function(candidate: string) {
 
 // Return safe user data
 UserSchema.methods.toSafe = function() {
-  return { _id: this._id, email: this.email, username: this.username, color: this.color };
+  return { _id: this._id, email: this.email, username: this.username, color: this.color, photo: this.photo ?? null, pendingEmail: this.pendingEmail ?? null };
 };
 
 export default model<IUser, UserModel>('User', UserSchema);

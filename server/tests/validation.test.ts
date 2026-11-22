@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { checkActivity, checkAreaName, checkStayDetails, checkStayNights } from '../src/validation';
+import { checkActivity, checkAreaName, checkEmailChange, checkProfile, checkStayDetails, checkStayNights } from '../src/validation';
 import { MESSAGE_MAX, checkLogin, checkMessage, checkConfirmDates, checkDestinationName, checkNewTrip, checkPasswordChange, checkTripChanges, checkTripLength, cleanUnavailableDays, checkRegister, normalizeInviteCode } from '../src/validation';
 
 const valid = { email: 'mia@example.com', password: 'password1', username: 'Mia Novak' };
@@ -332,5 +332,37 @@ describe('checkActivity', () => {
     expect(checkActivity({ text: 'x'.repeat(81) }, trip).ok).toBe(false);
     expect(checkActivity({ text: 'A', note: 'x'.repeat(501) }, trip).ok).toBe(false);
     expect(checkActivity({ text: { $gt: '' } }, trip).ok).toBe(false);
+  });
+});
+
+describe('checkProfile', () => {
+  const photo = '/api/files/' + 'a1'.repeat(24);
+
+  it('takes a new name, trimmed, and a photo from the file storage', () => {
+    expect(checkProfile({ username: '  Mia K ' })).toEqual({ ok: true, value: { username: 'Mia K' } });
+    expect(checkProfile({ photo })).toEqual({ ok: true, value: { photoId: 'a1'.repeat(24) } });
+    expect(checkProfile({ photo: null })).toEqual({ ok: true, value: { photoId: null } });
+  });
+
+  it('refuses an empty or too long name, a photo from somewhere else, and nothing at all', () => {
+    expect(checkProfile({ username: '   ' }).ok).toBe(false);
+    expect(checkProfile({ username: 'x'.repeat(31) }).ok).toBe(false);
+    expect(checkProfile({ photo: 'https://evil.example/me.jpg' }).ok).toBe(false);
+    expect(checkProfile({ photo: { $ne: null } }).ok).toBe(false);
+    expect(checkProfile({})).toEqual({ ok: false, error: 'Nothing to change' });
+  });
+});
+
+describe('checkEmailChange', () => {
+  it('takes a new address in lower case with the password', () => {
+    expect(checkEmailChange({ email: ' New@Example.com ', password: 'secret12' }, 'mia@example.com'))
+      .toEqual({ ok: true, value: { email: 'new@example.com', password: 'secret12' } });
+  });
+
+  it('refuses the same address, a wrong shape, a missing password and objects', () => {
+    expect(checkEmailChange({ email: 'MIA@example.com', password: 'x' }, 'mia@example.com')).toEqual({ ok: false, error: 'This is already your e-mail' });
+    expect(checkEmailChange({ email: 'not-an-email', password: 'x' }, 'mia@example.com').ok).toBe(false);
+    expect(checkEmailChange({ email: 'new@example.com' }, 'mia@example.com').ok).toBe(false);
+    expect(checkEmailChange({ email: { $gt: '' }, password: 'x' }, 'mia@example.com').ok).toBe(false);
   });
 });

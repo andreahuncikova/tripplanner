@@ -56,8 +56,9 @@ const AreaSchema = new Schema({
   name: { type: String, required: true },
 });
 
+// username and photo are copies from the user, updated when they change their profile (routes/auth.ts)
 const MemberSchema = new Schema({
-  userId: Schema.Types.ObjectId, username: String, color: String,
+  userId: Schema.Types.ObjectId, username: String, color: String, photo: { type: String, default: null },
   joinedAt: { type: Date, default: Date.now },
 }, { _id: false });
 

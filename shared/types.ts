@@ -10,6 +10,10 @@ export interface User {
   email: string
   username: string
   color: string
+  // The profile photo ("/api/files/<id>"), or null: then the coloured letter is shown
+  photo: string | null
+  // A new e-mail waiting for its owner to click the link sent to it
+  pendingEmail: string | null
 }
 
 // Someone with the trip open right now.
@@ -22,6 +26,7 @@ export interface Member {
   userId: string
   username: string
   color: string
+  photo?: string | null
   joinedAt: string
 }
 
