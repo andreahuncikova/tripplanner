@@ -1,16 +1,17 @@
 import { useState } from 'react'
-import type { Expense, TripState } from '@shared/types'
+import type { Expense, Member, TripState } from '@shared/types'
 import { useAuth } from '../../../auth/useAuth'
 import { budgetTotals, formatMoney } from '../../../lib/budget'
-import { convert } from '@shared/money'
+import { convert, paypalLink, PAYPAL_CURRENCIES, settleUp, type Transfer } from '@shared/money'
 import { useFxRates } from '../../../lib/currencies'
+import { cn } from '../../../lib/cn'
 import type { TripPlan } from '../../../socket/useTripPlan'
-import { Button } from '../../../components/ui'
+import { Avatar, Button } from '../../../components/ui'
 import ExpenseDialog from './ExpenseDialog'
 
 // The Budget tab from the mockups: what the group spent, what you paid and your share, and the list of expenses.
 // Every amount is shown in the group's currency; an expense in another currency also shows what was really paid.
-// Settle up (who owes whom) comes with its own task.
+// Settle up says who pays whom so that everyone has paid their part, with a Pay button for your own debts.
 export default function BudgetSection({ plan }: { plan: TripPlan }) {
   const { user } = useAuth()
   const fx = useFxRates()
@@ -56,6 +57,10 @@ export default function BudgetSection({ plan }: { plan: TripPlan }) {
         <p className="text-caption text-chemin-dark">{totals.missing} {totals.missing === 1 ? 'expense is' : 'expenses are'} not in the totals, because the exchange rate is missing right now.</p>
       )}
 
+      {state.expenses.length > 0 && (
+        <SettleUp transfers={settleUp(state.expenses, currency, rates)} me={user._id} members={state.members} currency={currency} name={name} />
+      )}
+
       <section aria-labelledby="expenses-title" className="flex flex-col gap-2.5">
         <div className="flex items-center justify-between">
           <h2 id="expenses-title" className="text-base font-extrabold lg:text-[17px]">Expenses</h2>
@@ -96,6 +101,68 @@ function Tile({ label, value, dark }: { label: string; value: string; dark?: boo
     <div className="flex flex-col gap-1.5 rounded-xl bg-white px-5 py-4.5 lg:flex-[1_1_160px]">
       <span className="text-caption text-muted">{label}</span><strong className="text-2xl">{value}</strong>
     </div>
+  )
+}
+
+// Who pays whom at the end of the trip. Your own payments come first: what you owe has a Pay button that opens
+// the other person's PayPal.Me link with the amount, what you are owed says who pays you. The others' payments follow.
+function SettleUp({ transfers, me, members, currency, name }: {
+  transfers: Transfer[]; me: string; members: Member[]; currency: string; name: (id: string) => string
+}) {
+  const mine = transfers.filter(t => t.from === me || t.to === me)
+  const others = transfers.filter(t => t.from !== me && t.to !== me)
+  return (
+    <section aria-labelledby="settle-title" className="flex flex-col gap-2.5">
+      <div className="flex flex-col gap-0.5">
+        <h2 id="settle-title" className="text-base font-extrabold lg:text-[17px]">Settle up</h2>
+        <p className="text-caption text-muted">Who pays whom, so everyone has paid their part — in as few payments as possible.</p>
+      </div>
+      {transfers.length === 0 ? (
+        <p className="rounded-lg bg-white p-4 text-sm font-semibold text-success">Everyone is even — nobody owes anything.</p>
+      ) : (
+        <ul className="flex flex-col rounded-lg bg-white">
+          {[...mine, ...others].map(t => (
+            <TransferRow key={`${t.from}-${t.to}`} transfer={t} me={me} members={members} currency={currency} name={name} />
+          ))}
+        </ul>
+      )}
+    </section>
+  )
+}
+
+function TransferRow({ transfer: t, me, members, currency, name }: {
+  transfer: Transfer; me: string; members: Member[]; currency: string; name: (id: string) => string
+}) {
+  const iPay = t.from === me
+  const other = members.find(m => m.userId === (iPay ? t.to : t.from))
+  const payee = members.find(m => m.userId === t.to)
+  const text = iPay ? <>You owe <strong>{name(t.to)}</strong></>
+    : t.to === me ? <><strong>{name(t.from)}</strong> owes you</>
+    : <><strong>{name(t.from)}</strong> owes <strong>{name(t.to)}</strong></>
+  return (
+    <li className="flex flex-wrap items-center gap-3 border-b border-line px-3.5 py-3 last:border-b-0 lg:px-4">
+      <Avatar name={other?.username ?? '?'} color={other?.color ?? '#8a96a6'} photo={other?.photo} size="sm" />
+      <span className={cn('min-w-0 flex-1 text-md', !iPay && t.to !== me && 'text-subtle')}>{text}</span>
+      <span className="font-bold">{formatMoney(t.amount, currency)}</span>
+      {iPay && (payee?.paypalMe ? (
+        <a
+          href={paypalLink(payee.paypalMe, t.amount, currency)}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={`Pay ${name(t.to)} ${formatMoney(t.amount, currency)} with PayPal`}
+          className="inline-flex h-9 items-center rounded-md bg-sommet px-4 text-sm font-bold text-white no-underline hover:bg-sommet-dark hover:text-white"
+        >
+          Pay
+        </a>
+      ) : (
+        <span className="w-full text-caption text-muted lg:w-auto">
+          {payee ? `${name(t.to)} has not added a PayPal.Me link yet` : 'This person has left the trip'}
+        </span>
+      ))}
+      {iPay && payee?.paypalMe && !PAYPAL_CURRENCIES.includes(currency) && (
+        <span className="w-full text-caption text-muted">PayPal does not take {currency}, so type the amount in PayPal yourself.</span>
+      )}
+    </li>
   )
 }
 

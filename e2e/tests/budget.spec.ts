@@ -146,3 +146,32 @@ test('only the person who added an expense can change or delete it', async ({ br
   await form.getByRole('group', { name: 'Delete this expense?' }).getByRole('button', { name: 'Delete' }).click()
   await expect(mia.getByRole('listitem').filter({ hasText: 'Museum tickets' })).toHaveCount(0)
 })
+
+test('settle up says who pays whom, and Pay opens the PayPal.Me link with the amount', async ({ browser }) => {
+  const { mia, theo } = await budgetWithTwo(browser)
+  async function addExpense(page: Page, what: string, amount: string) {
+    await page.getByRole('button', { name: '+ Add expense' }).click()
+    const form = page.getByRole('dialog', { name: 'Add expense' })
+    await form.getByLabel('What was it?').fill(what)
+    await form.getByLabel('Amount', { exact: true }).fill(amount)
+    await form.getByRole('button', { name: 'Add expense' }).click()
+    await expect(form).toBeHidden()
+  }
+
+  await addExpense(mia, 'Apartment', '90')
+  const settle = (page: Page) => page.getByRole('region', { name: 'Settle up' })
+  await expect(settle(mia)).toContainText('Theo owes you€45')
+  // Mia has no PayPal.Me link yet, so Theo cannot pay with one tap
+  await expect(settle(theo)).toContainText('You owe Mia€45')
+  await expect(settle(theo)).toContainText('Mia has not added a PayPal.Me link yet')
+
+  // Mia adds her link in the profile; Theo's Pay button opens it with the amount
+  const token = await mia.evaluate(() => localStorage.getItem('tp_token'))
+  expect((await mia.request.fetch('/api/auth/profile', { method: 'PATCH', data: { paypalMe: 'paypal.me/MiaTravels' }, headers: { Authorization: `Bearer ${token}` } })).ok()).toBe(true)
+  await theo.reload()
+  await expect(settle(theo).getByRole('link', { name: 'Pay Mia €45 with PayPal' })).toHaveAttribute('href', 'https://paypal.me/MiaTravels/45.00EUR')
+
+  // Theo pays for the dinner: now they are even
+  await addExpense(theo, 'Dinner', '90')
+  await expect(settle(mia)).toContainText('Everyone is even')
+})
