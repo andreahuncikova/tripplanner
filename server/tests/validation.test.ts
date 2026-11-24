@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { checkActivity, checkAreaName, checkEmailChange, checkProfile, checkStayDetails, checkStayNights, paypalMeName } from '../src/validation';
+import { checkActivity, checkAreaName, checkEmailChange, checkProfile, checkStayDetails, checkStayNights, paypalMeName, checkPayment, mobilePayNumber } from '../src/validation';
 import { MESSAGE_MAX, checkLogin, checkMessage, checkConfirmDates, checkDestinationName, checkNewTrip, checkPasswordChange, checkTripChanges, checkTripLength, cleanUnavailableDays, checkRegister, normalizeInviteCode } from '../src/validation';
 
 const valid = { email: 'mia@example.com', password: 'password1', username: 'Mia Novak' };
@@ -381,5 +381,39 @@ describe('paypalMeName', () => {
     expect(checkProfile({ paypalMe: 'paypal.me/MiaK' })).toEqual({ ok: true, value: { paypalMe: 'MiaK' } });
     expect(checkProfile({ paypalMe: null })).toEqual({ ok: true, value: { paypalMe: null } });
     expect(checkProfile({ paypalMe: 'https://evil.example' }).ok).toBe(false);
+  });
+});
+
+describe('checkPayment', () => {
+  const members = ['mia', 'theo'];
+  it('accepts a payment to someone else in the trip, rounded to the currency', () => {
+    expect(checkPayment({ toUserId: 'mia', amount: 45.004 }, members, 'theo', 'EUR')).toEqual({ ok: true, value: { toUserId: 'mia', amount: 45 } });
+  });
+
+  it('refuses paying yourself, someone outside the trip, or no amount', () => {
+    expect(checkPayment({ toUserId: 'theo', amount: 5 }, members, 'theo', 'EUR').ok).toBe(false);
+    expect(checkPayment({ toUserId: 'eve', amount: 5 }, members, 'theo', 'EUR').ok).toBe(false);
+    for (const amount of [0, -5, 'a lot', null]) expect(checkPayment({ toUserId: 'mia', amount }, members, 'theo', 'EUR').ok).toBe(false);
+    expect(checkPayment({ toUserId: { $ne: '' }, amount: 5 }, members, 'theo', 'EUR').ok).toBe(false);
+  });
+});
+
+describe('mobilePayNumber', () => {
+  it('reads Danish and Finnish numbers as people write them', () => {
+    expect(mobilePayNumber('12 34 56 78')).toBe('+4512345678');
+    expect(mobilePayNumber('+45 12-34-56-78')).toBe('+4512345678');
+    expect(mobilePayNumber('0045 12345678')).toBe('+4512345678');
+    expect(mobilePayNumber('040 123 4567')).toBe('+358401234567');
+    expect(mobilePayNumber('+358 40 123 4567')).toBe('+358401234567');
+  });
+
+  it('refuses what is not a number MobilePay uses', () => {
+    for (const v of ['123', '1234567', '+44 7700 900123', 'abc', { $ne: '' }]) expect(mobilePayNumber(v)).toBeNull();
+  });
+
+  it('is part of the profile, and empty removes it', () => {
+    expect(checkProfile({ mobilePay: '12345678' })).toEqual({ ok: true, value: { mobilePay: '+4512345678' } });
+    expect(checkProfile({ mobilePay: '' })).toEqual({ ok: true, value: { mobilePay: null } });
+    expect(checkProfile({ mobilePay: '123' }).ok).toBe(false);
   });
 });

@@ -1,17 +1,18 @@
-import { useState } from 'react'
-import type { Expense, Member, TripState } from '@shared/types'
+import { useState, type ReactNode } from 'react'
+import type { Expense, Member, Payment, TripState } from '@shared/types'
 import { useAuth } from '../../../auth/useAuth'
-import { budgetTotals, formatMoney } from '../../../lib/budget'
-import { convert, paypalLink, PAYPAL_CURRENCIES, settleUp, type Transfer } from '@shared/money'
+import { budgetTotals, formatMoney, formatPhone } from '../../../lib/budget'
+import { convert, decimals, paypalLink, PAYPAL_CURRENCIES, settleUp, type Transfer } from '@shared/money'
 import { useFxRates } from '../../../lib/currencies'
 import { cn } from '../../../lib/cn'
 import type { TripPlan } from '../../../socket/useTripPlan'
-import { Avatar, Button } from '../../../components/ui'
+import { Avatar, Button, useToast } from '../../../components/ui'
 import ExpenseDialog from './ExpenseDialog'
 
 // The Budget tab from the mockups: what the group spent, what you paid and your share, and the list of expenses.
 // Every amount is shown in the group's currency; an expense in another currency also shows what was really paid.
-// Settle up says who pays whom so that everyone has paid their part, with a Pay button for your own debts.
+// Settle up says who pays whom so that everyone has paid their part, with a Pay button for your own debts,
+// and the payments already made with their state: waiting for confirmation or confirmed.
 export default function BudgetSection({ plan }: { plan: TripPlan }) {
   const { user } = useAuth()
   const fx = useFxRates()
@@ -58,7 +59,10 @@ export default function BudgetSection({ plan }: { plan: TripPlan }) {
       )}
 
       {state.expenses.length > 0 && (
-        <SettleUp transfers={settleUp(state.expenses, currency, rates)} me={user._id} members={state.members} currency={currency} name={name} />
+        <SettleUp
+          plan={plan} transfers={settleUp(state.expenses, currency, rates, state.payments)} payments={state.payments}
+          me={user._id} members={state.members} currency={currency} name={name}
+        />
       )}
 
       <section aria-labelledby="expenses-title" className="flex flex-col gap-2.5">
@@ -104,34 +108,93 @@ function Tile({ label, value, dark }: { label: string; value: string; dark?: boo
   )
 }
 
-// Who pays whom at the end of the trip. Your own payments come first: what you owe has a Pay button that opens
-// the other person's PayPal.Me link with the amount, what you are owed says who pays you. The others' payments follow.
-function SettleUp({ transfers, me, members, currency, name }: {
-  transfers: Transfer[]; me: string; members: Member[]; currency: string; name: (id: string) => string
+// Who pays whom at the end of the trip, and the payments already made. Each payment goes through three states:
+// not paid (a line here) → paid (the payer tapped "I have paid") → confirmed (the person who got it said it arrived).
+// Paid and confirmed payments already count, so the lines above only show what is still left to pay.
+// Your own lines come first: what you owe has a Pay button that opens the other person's PayPal.Me link with the amount.
+function SettleUp({ plan, transfers, payments, me, members, currency, name }: {
+  plan: TripPlan; transfers: Transfer[]; payments: Payment[]; me: string; members: Member[]; currency: string; name: (id: string) => string
 }) {
-  const mine = transfers.filter(t => t.from === me || t.to === me)
-  const others = transfers.filter(t => t.from !== me && t.to !== me)
+  const toast = useToast()
+  const [busy, setBusy] = useState(false)
+  const mine = <T extends { from: string; to: string }>(x: T) => x.from === me || x.to === me
+  const lines = [...transfers.filter(mine), ...transfers.filter(t => !mine(t))]
+  const made = payments.map(p => ({ ...p, from: p.fromUserId, to: p.toUserId }))
+  const madeLines = [...made.filter(mine), ...made.filter(p => !mine(p))].reverse()
+
+  // Runs one of the payment actions and says how it went
+  async function run(action: Promise<string | null>, done: string) {
+    setBusy(true)
+    const error = await action
+    setBusy(false)
+    toast(error ?? done)
+  }
+
   return (
     <section aria-labelledby="settle-title" className="flex flex-col gap-2.5">
       <div className="flex flex-col gap-0.5">
         <h2 id="settle-title" className="text-base font-extrabold lg:text-[17px]">Settle up</h2>
         <p className="text-caption text-muted">Who pays whom, so everyone has paid their part — in as few payments as possible.</p>
       </div>
-      {transfers.length === 0 ? (
-        <p className="rounded-lg bg-white p-4 text-sm font-semibold text-success">Everyone is even — nobody owes anything.</p>
+      {lines.length === 0 ? (
+        <p className="rounded-lg bg-white p-4 text-sm font-semibold text-success">
+          {payments.length ? 'Everyone has paid their part.' : 'Everyone is even — nobody owes anything.'}
+        </p>
       ) : (
-        <ul className="flex flex-col rounded-lg bg-white">
-          {[...mine, ...others].map(t => (
-            <TransferRow key={`${t.from}-${t.to}`} transfer={t} me={me} members={members} currency={currency} name={name} />
+        <ul aria-label="Left to pay" className="flex flex-col rounded-lg bg-white">
+          {lines.map(t => (
+            <TransferRow
+              key={`${t.from}-${t.to}`} transfer={t} me={me} members={members} currency={currency} name={name} busy={busy}
+              onPaid={() => run(plan.markPaid(t.to, t.amount), `Marked as paid — ${name(t.to)} confirms it when the money is there`)}
+            />
           ))}
         </ul>
+      )}
+
+      {madeLines.length > 0 && (
+        <>
+          <h3 className="mt-1.5 text-md font-bold">Payments</h3>
+          <ul aria-label="Payments" className="flex flex-col rounded-lg bg-white">
+            {madeLines.map(p => (
+              <PaymentRow
+                key={p._id} payment={p} me={me} members={members} name={name} busy={busy}
+                onConfirm={() => run(plan.confirmPayment(p._id), 'Payment confirmed')}
+                onRemove={() => run(plan.removePayment(p._id), p.fromUserId === me ? 'Payment taken back' : `${name(p.fromUserId)} owes you this again`)}
+              />
+            ))}
+          </ul>
+        </>
       )}
     </section>
   )
 }
 
-function TransferRow({ transfer: t, me, members, currency, name }: {
-  transfer: Transfer; me: string; members: Member[]; currency: string; name: (id: string) => string
+// The state of a payment as a small label
+function Status({ kind, children }: { kind: 'unpaid' | 'paid' | 'confirmed'; children: ReactNode }) {
+  return (
+    <span className={cn('inline-flex h-6 shrink-0 items-center rounded-full px-2.5 text-2xs font-bold tracking-wide uppercase',
+      kind === 'unpaid' && 'bg-canvas text-muted',
+      kind === 'paid' && 'bg-chemin-light text-chemin-dark',
+      kind === 'confirmed' && 'bg-ciel-light text-sommet')}>
+      {children}
+    </span>
+  )
+}
+
+// Who pays whom, with the state under it on a phone and next to it on a computer
+function Who({ dim, status, children }: { dim: boolean; status: ReactNode; children: ReactNode }) {
+  return (
+    <div className="flex min-w-0 flex-1 flex-col items-start gap-1 lg:flex-row lg:items-center lg:justify-between lg:gap-3">
+      <span className={cn('text-md', dim && 'text-subtle')}>{children}</span>
+      {status}
+    </div>
+  )
+}
+
+const payLink = 'inline-flex min-h-10 items-center rounded-md bg-sommet px-4 text-sm font-bold text-white no-underline hover:bg-sommet-dark hover:text-white lg:min-h-9'
+
+function TransferRow({ transfer: t, me, members, currency, name, busy, onPaid }: {
+  transfer: Transfer; me: string; members: Member[]; currency: string; name: (id: string) => string; busy: boolean; onPaid: () => void
 }) {
   const iPay = t.from === me
   const other = members.find(m => m.userId === (iPay ? t.to : t.from))
@@ -140,27 +203,81 @@ function TransferRow({ transfer: t, me, members, currency, name }: {
     : t.to === me ? <><strong>{name(t.from)}</strong> owes you</>
     : <><strong>{name(t.from)}</strong> owes <strong>{name(t.to)}</strong></>
   return (
-    <li className="flex flex-wrap items-center gap-3 border-b border-line px-3.5 py-3 last:border-b-0 lg:px-4">
+    <li className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-line px-3.5 py-3 last:border-b-0 lg:px-4">
       <Avatar name={other?.username ?? '?'} color={other?.color ?? '#8a96a6'} photo={other?.photo} size="sm" />
-      <span className={cn('min-w-0 flex-1 text-md', !iPay && t.to !== me && 'text-subtle')}>{text}</span>
+      <Who dim={!iPay && t.to !== me} status={<Status kind="unpaid">Not paid</Status>}>{text}</Who>
       <span className="font-bold">{formatMoney(t.amount, currency)}</span>
-      {iPay && (payee?.paypalMe ? (
-        <a
-          href={paypalLink(payee.paypalMe, t.amount, currency)}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label={`Pay ${name(t.to)} ${formatMoney(t.amount, currency)} with PayPal`}
-          className="inline-flex h-9 items-center rounded-md bg-sommet px-4 text-sm font-bold text-white no-underline hover:bg-sommet-dark hover:text-white"
-        >
-          Pay
-        </a>
-      ) : (
-        <span className="w-full text-caption text-muted lg:w-auto">
-          {payee ? `${name(t.to)} has not added a PayPal.Me link yet` : 'This person has left the trip'}
-        </span>
-      ))}
+      {iPay && (
+        <div className="flex w-full flex-wrap items-center justify-end gap-2 lg:w-auto">
+          {payee?.paypalMe ? (
+            <a href={paypalLink(payee.paypalMe, t.amount, currency)} target="_blank" rel="noopener noreferrer"
+              aria-label={`Pay ${name(t.to)} ${formatMoney(t.amount, currency)} with PayPal`} className={payLink}>
+              Pay
+            </a>
+          ) : !payee?.mobilePay && (
+            <span className="mr-auto text-caption text-muted lg:mr-0">
+              {payee ? `${name(t.to)} has not added a way to pay yet` : 'This person has left the trip'}
+            </span>
+          )}
+          {/* Also for money paid another way, e.g. cash or MobilePay */}
+          {payee && <Button variant="secondary" size="sm" disabled={busy} onClick={onPaid}>I have paid</Button>}
+        </div>
+      )}
+      {iPay && payee?.mobilePay && <MobilePayLine number={payee.mobilePay} amount={t.amount} currency={currency} name={name(t.to)} />}
       {iPay && payee?.paypalMe && !PAYPAL_CURRENCIES.includes(currency) && (
         <span className="w-full text-caption text-muted">PayPal does not take {currency}, so type the amount in PayPal yourself.</span>
+      )}
+    </li>
+  )
+}
+
+// MobilePay has no payment link for private people, only for businesses, so the number and the amount are shown
+// to copy into the MobilePay app. After paying, "I have paid" marks it like any other payment.
+function MobilePayLine({ number, amount, currency, name }: { number: string; amount: number; currency: string; name: string }) {
+  const toast = useToast()
+  // As the MobilePay app takes it, with a decimal comma and without ",00": "120", "45,20"
+  const appAmount = amount.toFixed(decimals(currency)).replace('.', ',').replace(/,0+$/, '')
+  const copy = (value: string, done: string) =>
+    navigator.clipboard.writeText(value).then(() => toast(done), () => toast('Copying did not work — please type it in'))
+  return (
+    <div className="flex w-full flex-wrap items-center gap-x-3 gap-y-1.5 rounded-md bg-canvas px-3 py-2 text-sm">
+      <span className="w-full min-w-0 lg:w-auto lg:flex-1">
+        Send {formatMoney(amount, currency)} to {name} with MobilePay: <strong className="whitespace-nowrap">{formatPhone(number)}</strong>
+      </span>
+      <span className="flex gap-3">
+        <Button variant="link" size="sm" className="min-h-8 px-0 lg:min-h-8" onClick={() => copy(number, 'Number copied')}>Copy number</Button>
+        <Button variant="link" size="sm" className="min-h-8 px-0 lg:min-h-8" onClick={() => copy(appAmount, 'Amount copied')}>Copy amount</Button>
+      </span>
+    </div>
+  )
+}
+
+// A payment someone marked as paid: the person who got it confirms it or says it did not arrive; the payer can take it back
+function PaymentRow({ payment: p, me, members, name, busy, onConfirm, onRemove }: {
+  payment: Payment; me: string; members: Member[]; name: (id: string) => string; busy: boolean; onConfirm: () => void; onRemove: () => void
+}) {
+  const iPaid = p.fromUserId === me
+  const iGot = p.toUserId === me
+  const other = members.find(m => m.userId === (iPaid ? p.toUserId : p.fromUserId))
+  const text = iPaid ? <>You paid <strong>{name(p.toUserId)}</strong></>
+    : iGot ? <><strong>{name(p.fromUserId)}</strong> paid you</>
+    : <><strong>{name(p.fromUserId)}</strong> paid <strong>{name(p.toUserId)}</strong></>
+  const waiting = p.status === 'paid'
+  return (
+    <li className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-line px-3.5 py-3 last:border-b-0 lg:px-4">
+      <Avatar name={other?.username ?? '?'} color={other?.color ?? '#8a96a6'} photo={other?.photo} size="sm" />
+      <Who dim={!iPaid && !iGot} status={waiting
+        ? <Status kind="paid">{iGot ? 'Did you get it?' : `Waiting for ${name(p.toUserId)}`}</Status>
+        : <Status kind="confirmed">Confirmed ✓</Status>}>
+        {text}
+      </Who>
+      <span className="font-bold">{formatMoney(p.amount, p.currency)}</span>
+      {waiting && (iGot || iPaid) && (
+        <div className="flex w-full flex-wrap items-center justify-end gap-2 lg:w-auto">
+          {iGot && <Button variant="link" size="sm" disabled={busy} onClick={onRemove} className="text-muted">Not received</Button>}
+          {iGot && <Button size="sm" disabled={busy} onClick={onConfirm}>Confirm</Button>}
+          {iPaid && <Button variant="link" size="sm" disabled={busy} onClick={onRemove} className="text-muted">Undo</Button>}
+        </div>
       )}
     </li>
   )

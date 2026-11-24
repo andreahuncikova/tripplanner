@@ -14,6 +14,8 @@ export interface User {
   photo: string | null
   // The name in the user's PayPal.Me link (paypal.me/<name>), or null
   paypalMe: string | null
+  // The phone number the user gets MobilePay payments on, e.g. "+4512345678", or null
+  mobilePay: string | null
   // A new e-mail waiting for its owner to click the link sent to it
   pendingEmail: string | null
 }
@@ -31,6 +33,8 @@ export interface Member {
   photo?: string | null
   // Where the others can pay this member back (paypal.me/<name>)
   paypalMe?: string | null
+  // ... or their MobilePay number. MobilePay has no payment link for private people, so the Budget shows the number to copy.
+  mobilePay?: string | null
   joinedAt: string
 }
 
@@ -105,6 +109,22 @@ export interface Expense {
   createdAt: string
 }
 
+// A payment that settles the trip, e.g. Leo paid Mia €182 through PayPal. There is no record while it is not paid.
+// 'paid': the payer said they paid; 'confirmed': the person who got the money said it arrived.
+// Both count in Settle up; the one who got the money can say it never arrived, which takes the payment away again.
+export type PaymentStatus = 'paid' | 'confirmed'
+export interface Payment {
+  _id: string
+  fromUserId: string
+  toUserId: string
+  amount: number
+  // The group's currency when it was paid
+  currency: string
+  status: PaymentStatus
+  createdAt: string
+  confirmedAt?: string | null
+}
+
 export interface ExpenseShare {
   userId: string
   amount: number
@@ -141,6 +161,7 @@ export interface TripState {
   finalDateLabel: string | null
   activities: Activity[]
   expenses: Expense[]
+  payments: Payment[]
   online: OnlineUser[]
 }
 
@@ -172,6 +193,8 @@ export interface ExpenseInput {
 
 // The answer to adding or changing an expense
 export type ExpenseResult = { ok: true } | { error: string }
+// The answer to marking a payment as paid, confirming it or taking it back
+export type PaymentResult = { ok: true } | { error: string }
 
 // What the client sends.
 export interface ClientToServerEvents {
@@ -209,6 +232,12 @@ export interface ClientToServerEvents {
   'expense:add': (data: ExpenseInput, ack: (result: ExpenseResult) => void) => void
   'expense:edit': (data: ExpenseInput & { id: string }, ack: (result: ExpenseResult) => void) => void
   'expense:remove': (expenseId: string, ack: (result: ExpenseResult) => void) => void
+
+  // Settle up: the payer marks what they paid, the person who got it confirms it or says it did not arrive.
+  // The payer can take back a payment that is not confirmed yet.
+  'payment:add': (data: { toUserId: string; amount: number }, ack: (result: PaymentResult) => void) => void
+  'payment:confirm': (paymentId: string, ack: (result: PaymentResult) => void) => void
+  'payment:remove': (paymentId: string, ack: (result: PaymentResult) => void) => void
 
   // Stays tab. The server answers stay:add when the stay is saved, or with the reason it was not.
   'stay:add': (data: { url: string; areaId: string | null }, done: (result: { ok: true } | { error: string }) => void) => void

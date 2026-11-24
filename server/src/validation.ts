@@ -61,9 +61,23 @@ export function paypalMeName(v: unknown): string | null {
   return /^[A-Za-z0-9]{1,20}$/.test(name) ? name : null;
 }
 
-export function checkProfile(body: unknown): Result<{ username?: string; photoId?: string | null; paypalMe?: string | null }> {
+// A MobilePay number from what people type. MobilePay is used in Denmark (+45 and 8 digits) and Finland (+358).
+// A Danish number may be written without +45, a Finnish one with its leading 0 (040 123 4567).
+// Kept as "+4512345678"; null when it is not one.
+export function mobilePayNumber(v: unknown): string | null {
+  const n = text(v).replace(/[\s().-]/g, '').replace(/^00/, '+');
+  if (/^[1-9]\d{7}$/.test(n)) return `+45${n}`;   // a leading 0 means a Finnish number
+  if (/^\+45\d{8}$/.test(n)) return n;
+  if (/^0\d{5,10}$/.test(n)) return `+358${n.slice(1)}`;
+  if (/^\+358\d{5,10}$/.test(n)) return n;
+  return null;
+}
+
+type ProfileChanges = { username?: string; photoId?: string | null; paypalMe?: string | null; mobilePay?: string | null };
+
+export function checkProfile(body: unknown): Result<ProfileChanges> {
   const b = (body ?? {}) as Record<string, unknown>;
-  const value: { username?: string; photoId?: string | null; paypalMe?: string | null } = {};
+  const value: ProfileChanges = {};
   if ('username' in b) {
     const username = text(b.username).trim();
     if (!username) return { ok: false, error: 'Please enter your name' };
@@ -86,7 +100,15 @@ export function checkProfile(body: unknown): Result<{ username?: string; photoId
       value.paypalMe = name;
     }
   }
-  if (!('username' in value) && !('photoId' in value) && !('paypalMe' in value)) return { ok: false, error: 'Nothing to change' };
+  if ('mobilePay' in b) {
+    if (b.mobilePay === null || b.mobilePay === '') value.mobilePay = null;
+    else {
+      const number = mobilePayNumber(b.mobilePay);
+      if (!number) return { ok: false, error: 'Please enter the phone number you use for MobilePay, for example 12 34 56 78' };
+      value.mobilePay = number;
+    }
+  }
+  if (!Object.keys(value).length) return { ok: false, error: 'Nothing to change' };
   return { ok: true, value };
 }
 
@@ -394,4 +416,17 @@ export function checkExpense(body: unknown, members: string[], groupCurrency: st
   if (chosen.some(id => !members.includes(id))) return { ok: false, error: 'Everyone in the split must be in the trip, once' };
   // Nobody chosen: the cost is shared by the whole group
   return { ok: true, value: { ...value, splitAmongUserIds: chosen.length ? chosen : members } };
+}
+
+// ── Payments ──────────────────────────────────────────
+// "I have paid" in Settle up: who got the money and how much, in the group's currency. The payer is the user.
+// Whether the user really owes that person this much is checked against Settle up in socket/payments.ts.
+export function checkPayment(body: unknown, members: string[], me: string, currency: string): Result<{ toUserId: string; amount: number }> {
+  const b = (body ?? {}) as Record<string, unknown>;
+  const toUserId = text(b.toUserId);
+  if (!members.includes(toUserId) || toUserId === me) return { ok: false, error: 'You can only pay someone else in the trip' };
+  const factor = 10 ** decimals(currency);
+  const units = Math.round(Number(b.amount) * factor);
+  if (!Number.isFinite(units) || units <= 0 || units / factor > EXPENSE_MAX) return { ok: false, error: 'Please enter an amount above zero' };
+  return { ok: true, value: { toUserId, amount: units / factor } };
 }

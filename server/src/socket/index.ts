@@ -5,6 +5,7 @@ import registerAvailability from './availability';
 import registerDatevote from './datevote';
 import registerActivities from './activities';
 import registerExpenses from './expenses';
+import registerPayments from './payments';
 import registerGroup from './group';
 import registerStays from './stays';
 import type { Ctx, IO, Sessions } from '../types';
@@ -30,6 +31,7 @@ export default function registerAllHandlers(io: IO, sessions: Sessions) {
     registerDatevote(socket, ctx);       // vote on date windows, confirm trip date
     registerActivities(socket, ctx);     // add/edit/remove itinerary activities
     registerExpenses(socket, ctx);       // add/edit/remove shared expenses
+    registerPayments(socket, ctx);       // settle up: mark paid, confirm, undo
     registerGroup(socket, ctx);          // leave/delete group
     registerStays(socket, ctx);          // stays tab: save links, like, areas
   });

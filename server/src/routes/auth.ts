@@ -97,7 +97,8 @@ router.post('/password', authLimiter, authMiddleware, async (req: Request, res) 
 });
 
 // PATCH /api/auth/profile — a new name, photo and/or PayPal.Me link ({ username }, { photo: "/api/files/<id>" | null },
-// { paypalMe: "paypal.me/name" | null }). The PayPal.Me name is what the Pay button opens when friends settle up.
+// { paypalMe: "paypal.me/name" | null }, { mobilePay: "12 34 56 78" | null }). The PayPal.Me name is what the Pay button
+// opens when friends settle up; the MobilePay number is shown there to copy.
 // The trips keep a copy of each member's name and photo, so those copies change too. The name is also in the log-in
 // token, which the chat uses for new messages, so the answer has a new token with the new name.
 router.patch('/profile', authMiddleware, async (req: Request, res) => {
@@ -108,7 +109,7 @@ router.patch('/profile', authMiddleware, async (req: Request, res) => {
     if (!user) return res.status(404).json({ error: 'not found' });
     const oldPhoto = user.photo;
 
-    const { username, photoId, paypalMe } = input.value;
+    const { username, photoId, paypalMe, mobilePay } = input.value;
     if (photoId) {
       // Only a profile photo this user uploaded themselves (POST /api/files?kind=avatar)
       const file = await findFile(photoId);
@@ -118,11 +119,12 @@ router.patch('/profile', authMiddleware, async (req: Request, res) => {
     } else if (photoId === null) user.photo = null;
     if (username) user.username = username;
     if (paypalMe !== undefined) user.paypalMe = paypalMe;
+    if (mobilePay !== undefined) user.mobilePay = mobilePay;
     await user.save();
 
     await Group.updateMany(
       { 'members.userId': user._id },
-      { $set: { 'members.$[m].username': user.username, 'members.$[m].photo': user.photo, 'members.$[m].paypalMe': user.paypalMe } },
+      { $set: { 'members.$[m].username': user.username, 'members.$[m].photo': user.photo, 'members.$[m].paypalMe': user.paypalMe, 'members.$[m].mobilePay': user.mobilePay } },
       { arrayFilters: [{ 'm.userId': user._id }] },
     );
     await Group.updateMany({ adminUserId: user._id }, { adminUsername: user.username });

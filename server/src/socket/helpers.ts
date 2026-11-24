@@ -35,7 +35,7 @@ function memberIds(g: Pick<IGroup, 'members'>, ids: unknown): string[] {
 }
 
 // When someone leaves a trip, their votes and "I'm done" no longer count.
-// Expenses stay, because money they paid or owe is still part of the trip.
+// Expenses and payments stay, because money they paid or owe is still part of the trip.
 function removeMemberTraces(g: IGroup, userId: Id) {
   const without = (list: Id[]) => list.filter(x => !sameId(x, userId));
   g.destinations.forEach(d => { d.voterIds = without(d.voterIds) as typeof d.voterIds; });
@@ -125,6 +125,8 @@ function serialize(g: IGroup, onlineList?: Session[]): TripState {
     finalDateLabel:    g.finalDateLabel,
     activities:        g.activities,
     expenses:          g.expenses,
+    // Trips from before payments existed have none
+    payments:          g.payments ?? [],
     // Only send username and color for online users, not their full session data
     online:            toOnline(onlineList || []),
   });

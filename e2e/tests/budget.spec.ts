@@ -160,10 +160,10 @@ test('settle up says who pays whom, and Pay opens the PayPal.Me link with the am
 
   await addExpense(mia, 'Apartment', '90')
   const settle = (page: Page) => page.getByRole('region', { name: 'Settle up' })
-  await expect(settle(mia)).toContainText('Theo owes you€45')
-  // Mia has no PayPal.Me link yet, so Theo cannot pay with one tap
-  await expect(settle(theo)).toContainText('You owe Mia€45')
-  await expect(settle(theo)).toContainText('Mia has not added a PayPal.Me link yet')
+  await expect(settle(mia)).toContainText('Theo owes youNot paid€45')
+  // Mia has no PayPal.Me link or MobilePay number yet, so Theo cannot pay with one tap
+  await expect(settle(theo)).toContainText('You owe MiaNot paid€45')
+  await expect(settle(theo)).toContainText('Mia has not added a way to pay yet')
 
   // Mia adds her link in the profile; Theo's Pay button opens it with the amount
   const token = await mia.evaluate(() => localStorage.getItem('tp_token'))
@@ -171,7 +171,56 @@ test('settle up says who pays whom, and Pay opens the PayPal.Me link with the am
   await theo.reload()
   await expect(settle(theo).getByRole('link', { name: 'Pay Mia €45 with PayPal' })).toHaveAttribute('href', 'https://paypal.me/MiaTravels/45.00EUR')
 
+  // With a MobilePay number too, Theo sees it next to the Pay button and can copy it
+  expect((await mia.request.fetch('/api/auth/profile', { method: 'PATCH', data: { mobilePay: '12 34 56 78' }, headers: { Authorization: `Bearer ${token}` } })).ok()).toBe(true)
+  await theo.reload()
+  await expect(settle(theo)).toContainText('Send €45 to Mia with MobilePay: +45 12 34 56 78')
+  await theo.context().grantPermissions(['clipboard-read', 'clipboard-write'])
+  await settle(theo).getByRole('button', { name: 'Copy number' }).click()
+  expect(await theo.evaluate(() => navigator.clipboard.readText())).toBe('+4512345678')
+  await settle(theo).getByRole('button', { name: 'Copy amount' }).click()
+  expect(await theo.evaluate(() => navigator.clipboard.readText())).toBe('45')
+
   // Theo pays for the dinner: now they are even
   await addExpense(theo, 'Dinner', '90')
   await expect(settle(mia)).toContainText('Everyone is even')
+})
+
+test('a payment is marked as paid by the payer and confirmed by the one who got it', async ({ browser }) => {
+  const { mia, theo } = await budgetWithTwo(browser)
+  await mia.getByRole('button', { name: '+ Add expense' }).click()
+  const form = mia.getByRole('dialog', { name: 'Add expense' })
+  await form.getByLabel('What was it?').fill('Apartment')
+  await form.getByLabel('Amount', { exact: true }).fill('90')
+  await form.getByRole('button', { name: 'Add expense' }).click()
+  await expect(form).toBeHidden()
+
+  const settle = (page: Page) => page.getByRole('region', { name: 'Settle up' })
+  const payments = (page: Page) => settle(page).getByRole('list', { name: 'Payments' })
+  // Not paid: Theo marks it, also without a PayPal.Me link (e.g. paid in cash)
+  await settle(theo).getByRole('button', { name: 'I have paid' }).click()
+  await expect(settle(theo)).toContainText('Everyone has paid their part.')
+  await expect(payments(theo)).toContainText('You paid MiaWaiting for Mia€45')
+
+  // Mia sees it at once and says it did not arrive: Theo owes it again
+  await expect(payments(mia)).toContainText('Theo paid youDid you get it?€45')
+  await payments(mia).getByRole('button', { name: 'Not received' }).click()
+  await expect(settle(theo)).toContainText('You owe MiaNot paid€45')
+  await expect(payments(theo)).toBeHidden()
+
+  // Theo marks it again and takes it back, then marks it once more and Mia confirms it
+  await settle(theo).getByRole('button', { name: 'I have paid' }).click()
+  await payments(theo).getByRole('button', { name: 'Undo' }).click()
+  await expect(settle(theo)).toContainText('You owe MiaNot paid€45')
+  await settle(theo).getByRole('button', { name: 'I have paid' }).click()
+  await payments(mia).getByRole('button', { name: 'Confirm' }).click()
+  await expect(payments(theo)).toContainText('You paid MiaConfirmed ✓€45')
+  await expect(payments(mia).getByRole('button')).toHaveCount(0)
+
+  // A new expense makes a new debt; what was paid still counts
+  await mia.getByRole('button', { name: '+ Add expense' }).click()
+  await form.getByLabel('What was it?').fill('Taxi')
+  await form.getByLabel('Amount', { exact: true }).fill('20')
+  await form.getByRole('button', { name: 'Add expense' }).click()
+  await expect(settle(theo)).toContainText('You owe MiaNot paid€10')
 })

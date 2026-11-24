@@ -11,6 +11,8 @@ export interface IUser {
   photo: string | null;
   // The name in the user's PayPal.Me link (paypal.me/<name>), so friends can pay them back (Settle up)
   paypalMe: string | null;
+  // The phone number they get MobilePay payments on, "+4512345678" (Settle up shows it to copy)
+  mobilePay: string | null;
   // A new e-mail waits here until its owner clicks the link sent to it (routes/auth.ts).
   // Only a hash of the link's token is kept, so a copy of the database cannot be used to confirm it.
   pendingEmail: string | null;
@@ -26,6 +28,7 @@ export interface SafeUser {
   color: string;
   photo: string | null;
   paypalMe: string | null;
+  mobilePay: string | null;
   pendingEmail: string | null;
 }
 
@@ -48,6 +51,7 @@ const UserSchema = new Schema<IUser, UserModel, IUserMethods>({
   // The profile photo: "/api/files/<id>" in the file storage (files.ts), or null for the coloured letter
   photo: { type: String, default: null },
   paypalMe: { type: String, default: null },
+  mobilePay: { type: String, default: null },
   pendingEmail:      { type: String, default: null, lowercase: true, trim: true },
   emailTokenHash:    { type: String, default: null, select: false },
   emailTokenExpires: { type: Date,   default: null, select: false },
@@ -66,7 +70,7 @@ UserSchema.methods.comparePassword = function(candidate: string) {
 
 // Return safe user data
 UserSchema.methods.toSafe = function() {
-  return { _id: this._id, email: this.email, username: this.username, color: this.color, photo: this.photo ?? null, paypalMe: this.paypalMe ?? null, pendingEmail: this.pendingEmail ?? null };
+  return { _id: this._id, email: this.email, username: this.username, color: this.color, photo: this.photo ?? null, paypalMe: this.paypalMe ?? null, mobilePay: this.mobilePay ?? null, pendingEmail: this.pendingEmail ?? null };
 };
 
 export default model<IUser, UserModel>('User', UserSchema);

@@ -6,6 +6,13 @@ export function formatMoney(amount: number, currency: string): string {
   return new Intl.NumberFormat('en-GB', { style: 'currency', currency, trailingZeroDisplay: 'stripIfInteger' } as Intl.NumberFormatOptions).format(amount)
 }
 
+// A MobilePay number as people read it: "+45 12 34 56 78", "+358 40 123 4567"
+export function formatPhone(n: string): string {
+  if (n.startsWith('+45')) return `+45 ${n.slice(3).replace(/(\d{2})(?=\d)/g, '$1 ')}`
+  if (n.startsWith('+358')) return `+358 ${n.slice(4, 6)} ${n.slice(6, 9)} ${n.slice(9)}`.trim()
+  return n
+}
+
 // What people type: "60", "12,50", "1,050,000" or "1.050.000,50". A single comma or dot with one or two digits
 // after it is the decimal point; otherwise commas, dots and spaces only group the thousands. NaN when it is no number.
 export function parseAmount(text: string): number {

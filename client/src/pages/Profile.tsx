@@ -7,8 +7,9 @@ import { shrinkPhoto, uploadFile } from '../lib/files'
 import { Avatar, Button, Input, Modal, useToast } from '../components/ui'
 import { BackIcon } from '../components/layout/icons'
 import { EditForm, Row, Section } from './settingsParts'
+import { formatPhone } from '../lib/budget'
 
-type Dialog = 'name' | 'email' | 'password' | 'paypal'
+type Dialog = 'name' | 'email' | 'password' | 'paypal' | 'mobilepay'
 // Profile photos are shown small, so a side of 512 px is plenty and keeps the file storage small
 const PHOTO_SIDE = 512
 
@@ -26,7 +27,7 @@ export default function Profile() {
   if (!user) return null
 
   // Name and photo: the answer has a new log-in token, because the token carries the name
-  async function saveProfile(changes: { username?: string; photo?: string | null; paypalMe?: string | null }) {
+  async function saveProfile(changes: { username?: string; photo?: string | null; paypalMe?: string | null; mobilePay?: string | null }) {
     updateSession(await api<{ token: string; user: User }>('/api/auth/profile', { method: 'PATCH', body: JSON.stringify(changes) }))
   }
 
@@ -110,11 +111,17 @@ export default function Profile() {
         {/* How the others pay you back when the trip is settled (the Pay button in the Budget) */}
         <Section title="Payment methods" className="lg:col-start-2 lg:row-start-2">
           <Row label="PayPal.Me" value={user.paypalMe ? `paypal.me/${user.paypalMe}` : 'Not added'} onEdit={() => setDialog('paypal')} />
+          <Row label="MobilePay" value={user.mobilePay ? formatPhone(user.mobilePay) : 'Not added'} onEdit={() => setDialog('mobilepay')} />
           <p className="px-4 py-3.5 text-sm text-muted lg:px-5">
             {user.paypalMe
-              ? <>Your friends in a trip see this link and can pay you back with one tap. <a href={`https://paypal.me/${user.paypalMe}`} target="_blank" rel="noopener noreferrer" className="font-semibold">Check that it works</a></>
+              ? <>Your friends in a trip can pay you back with one tap through PayPal. <a href={`https://paypal.me/${user.paypalMe}`} target="_blank" rel="noopener noreferrer" className="font-semibold">Check that it works</a></>
               : 'Add your PayPal.Me link, so friends can pay you back with one tap when the trip is settled.'}
           </p>
+          {user.mobilePay && (
+            <p className="px-4 pb-3.5 text-sm text-muted lg:px-5">
+              The people in your trips see your MobilePay number, so they can send you money in the MobilePay app.
+            </p>
+          )}
         </Section>
 
         <div className="mt-6 flex flex-col gap-2.5 lg:col-start-1 lg:row-start-3 lg:mt-0 lg:flex-row lg:self-start">
@@ -140,6 +147,21 @@ export default function Profile() {
             {user.paypalMe && (
               <Button variant="link" onClick={async () => { await saveProfile({ paypalMe: null }); toast('PayPal.Me link removed'); close() }} className="self-center text-muted">
                 Remove the link
+              </Button>
+            )}
+          </div>
+        )}
+      </Modal>
+
+      <Modal open={dialog === 'mobilepay'} onClose={close} title="MobilePay" description="The phone number you get MobilePay payments on. The people in your trips see it.">
+        {dialog === 'mobilepay' && (
+          <div className="flex flex-col gap-3">
+            <EditForm onSave={async form => { await saveProfile({ mobilePay: String(form.get('mobilePay')) }); toast('Saved'); close() }}>
+              <Input label="Your MobilePay number" name="mobilePay" type="tel" defaultValue={user.mobilePay ? formatPhone(user.mobilePay) : ''} required placeholder="12 34 56 78" autoComplete="tel" hint="A Danish or Finnish number." />
+            </EditForm>
+            {user.mobilePay && (
+              <Button variant="link" onClick={async () => { await saveProfile({ mobilePay: null }); toast('MobilePay number removed'); close() }} className="self-center text-muted">
+                Remove the number
               </Button>
             )}
           </div>

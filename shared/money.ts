@@ -19,6 +19,9 @@ export function convert(amount: number, from: string, to: string, rates: Record<
   return round((amount / fromRate) * toRate, to);
 }
 
+// An amount in the currency's smallest unit (cents), so amounts can be compared without rounding errors
+export const toUnits = (amount: number, currency: string) => Math.round(amount * 10 ** decimals(currency));
+
 export function round(amount: number, currency: string): number {
   const factor = 10 ** decimals(currency);
   return Math.round(amount * factor) / factor;
@@ -54,17 +57,22 @@ export function expenseShares(e: ExpenseLike): ShareLike[] {
 export interface PaidExpenseLike extends ExpenseLike { paidByUserId: string }
 // One payment that settles the trip: `from` pays `to` this amount in the group's currency
 export interface Transfer { from: string; to: string; amount: number }
+// A payment someone made to settle the trip (Payment in shared/types.ts)
+export interface PaymentLike { fromUserId: string; toUserId: string; amount: number; currency: string }
 
 // Who owes whom at the end, in the group's currency, with as few payments as the simple method below gives.
 // Each person's balance is what they paid minus their part of each expense, counted in whole cents so nothing is lost
 // to rounding. Then the person who owes the most pays the person who is owed the most, until everyone is even.
 // Expenses whose exchange rate is missing are left out, as in the totals (client/src/lib/budget.ts).
-export function settleUp(expenses: PaidExpenseLike[], currency: string, rates: Record<string, number>): Transfer[] {
+// Payments the group already made count too, marked as paid or confirmed: a payment from Leo to Mia is like an
+// expense Leo paid only for Mia, so what is left to pay gets smaller.
+export function settleUp(expenses: PaidExpenseLike[], currency: string, rates: Record<string, number>, payments: PaymentLike[] = []): Transfer[] {
   const factor = 10 ** decimals(currency);
   const balance = new Map<string, number>();
   const add = (id: string, units: number) => balance.set(id, (balance.get(id) ?? 0) + units);
+  const paid = payments.map(p => ({ amount: p.amount, currency: p.currency, paidByUserId: p.fromUserId, splitAmongUserIds: [p.toUserId] }));
 
-  for (const e of expenses) {
+  for (const e of [...expenses, ...paid]) {
     const total = convert(e.amount, e.currency, currency, rates);
     if (total === null) continue;
     const totalUnits = Math.round(total * factor);

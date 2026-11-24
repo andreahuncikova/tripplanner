@@ -64,8 +64,8 @@ router.post('/', authMiddleware, async (req, res) => {
     const { name, destination, knownDates, window, currency } = input.value;
     if (!(await isKnownCurrency(currency))) return res.status(400).json({ error: 'There is no exchange rate for this currency' });
     const { _id: userId, username, color } = userOf(req);
-    const me = await User.findById(userId).select('photo paypalMe').lean();
-    const photo = me?.photo ?? null, paypalMe = me?.paypalMe ?? null;
+    const me = await User.findById(userId).select('photo paypalMe mobilePay').lean();
+    const photo = me?.photo ?? null, paypalMe = me?.paypalMe ?? null, mobilePay = me?.mobilePay ?? null;
     // Generate a short random invite code, e.g. "A3BF92C1"
     const inviteCode = uuidv4().slice(0,8).toUpperCase();
     const dateFields = knownDates ? knownDateFields(knownDates) : null;
@@ -73,7 +73,7 @@ router.post('/', authMiddleware, async (req, res) => {
     const group = await Group.create({
       inviteCode, name,
       adminUserId: userId, adminUsername: username,
-      members:  [{ userId, username, color, photo, paypalMe }],
+      members:  [{ userId, username, color, photo, paypalMe, mobilePay }],
       currency,
       destinationKnown: !!destination,
       approvedDest:     destination,
@@ -198,9 +198,9 @@ router.post('/:code/join', codeLimiter, authMiddleware, async (req, res) => {
     if (g.members.some(m => String(m.userId) === String(userId)))
       return res.json({ inviteCode: g.inviteCode, alreadyMember: true });
 
-    const me = await User.findById(userId).select('photo paypalMe').lean();
-    const photo = me?.photo ?? null, paypalMe = me?.paypalMe ?? null;
-    g.members.push({ userId, username, color, photo, paypalMe });
+    const me = await User.findById(userId).select('photo paypalMe mobilePay').lean();
+    const photo = me?.photo ?? null, paypalMe = me?.paypalMe ?? null, mobilePay = me?.mobilePay ?? null;
+    g.members.push({ userId, username, color, photo, paypalMe, mobilePay });
     await g.save();
     await addSystemMessage(g._id, `${username} joined the trip.`);
     res.json({ inviteCode: g.inviteCode, alreadyMember: false });

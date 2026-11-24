@@ -5,6 +5,25 @@ const rates = { EUR: 1, DKK: 7.46, IDR: 17000 };
 const e = (paidByUserId: string, amount: number, splitAmongUserIds: string[], currency = 'EUR', shares?: { userId: string; amount: number }[]) =>
   ({ paidByUserId, amount, currency, splitAmongUserIds, shares });
 
+const pay = (fromUserId: string, toUserId: string, amount: number, currency = 'EUR') => ({ fromUserId, toUserId, amount, currency });
+
+describe('settleUp with payments', () => {
+  it('leaves nothing to pay after the whole debt is paid', () => {
+    expect(settleUp([e('mia', 90, ['mia', 'theo'])], 'EUR', rates, [pay('theo', 'mia', 45)])).toEqual([]);
+  });
+
+  it('leaves the rest after a part is paid', () => {
+    expect(settleUp([e('mia', 90, ['mia', 'theo'])], 'EUR', rates, [pay('theo', 'mia', 20)]))
+      .toEqual([{ from: 'theo', to: 'mia', amount: 25 }]);
+  });
+
+  it('counts a payment made in the old currency of the group in the new one', () => {
+    // 74.60 DKK is 10 EUR
+    expect(settleUp([e('mia', 90, ['mia', 'theo'])], 'EUR', rates, [pay('theo', 'mia', 74.6, 'DKK')]))
+      .toEqual([{ from: 'theo', to: 'mia', amount: 35 }]);
+  });
+});
+
 describe('settleUp', () => {
   it('pays back the one who paid', () => {
     expect(settleUp([e('mia', 90, ['mia', 'theo'])], 'EUR', rates)).toEqual([{ from: 'theo', to: 'mia', amount: 45 }]);

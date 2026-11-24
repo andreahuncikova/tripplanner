@@ -45,6 +45,18 @@ const ExpenseSchema = new Schema({
   createdAt: { type: Date, default: Date.now },
 });
 
+// A payment that settles the trip (Settle up in the Budget tab). It is saved when the payer marks it as paid;
+// the person who got the money confirms it. Amounts are in the group's currency at that time.
+const PaymentSchema = new Schema({
+  fromUserId: Schema.Types.ObjectId,
+  toUserId:   Schema.Types.ObjectId,
+  amount:     Number,
+  currency:   String,
+  status:     { type: String, enum: ['paid', 'confirmed'] as const, default: 'paid' },
+  createdAt:  { type: Date, default: Date.now },
+  confirmedAt: { type: Date, default: null },
+});
+
 // The photo of the destination on the trip card (covers.ts). `query` is the destination it was searched for, so a new
 // destination gets a new photo; a search that found nothing is kept too (no url), so it is not repeated every time.
 const CoverSchema = new Schema({ query: String, url: String, author: String, authorUrl: String }, { _id: false });
@@ -56,10 +68,10 @@ const AreaSchema = new Schema({
   name: { type: String, required: true },
 });
 
-// username, photo and paypalMe are copies from the user, updated when they change their profile (routes/auth.ts)
+// username, photo, paypalMe and mobilePay are copies from the user, updated when they change their profile (routes/auth.ts)
 const MemberSchema = new Schema({
   userId: Schema.Types.ObjectId, username: String, color: String, photo: { type: String, default: null },
-  paypalMe: { type: String, default: null },
+  paypalMe: { type: String, default: null }, mobilePay: { type: String, default: null },
   joinedAt: { type: Date, default: Date.now },
 }, { _id: false });
 
@@ -92,6 +104,7 @@ const GroupSchema = new Schema({
   finalDateLabel:    { type: String,           default: null },
   activities:        { type: [ActivitySchema], default: [] },
   expenses:          { type: [ExpenseSchema],  default: [] },
+  payments:          { type: [PaymentSchema],  default: [] },
   // Parts of the destination for the Stays tab, e.g. Ubud and Uluwatu. The stays themselves are in models/Stay.ts.
   areas:             { type: [AreaSchema],     default: [] },
   cover:             { type: CoverSchema,      default: null },

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { ActivityInput, ActivityResult, ExpenseInput, ExpenseResult, TripState } from '@shared/types'
+import type { ActivityInput, ActivityResult, ExpenseInput, ExpenseResult, PaymentResult, TripState } from '@shared/types'
 import { useAuth } from '../auth/useAuth'
 import { useSocket } from './useSocket'
 
@@ -28,6 +28,10 @@ export interface TripPlan {
   addActivity: (activity: ActivityInput) => Promise<string | null>
   editActivity: (id: string, activity: ActivityInput) => Promise<string | null>
   removeActivity: (id: string) => Promise<string | null>
+  // Settle up: "I have paid" for the user's own debt, Confirm and "Not received" for money they got, Undo for their own
+  markPaid: (toUserId: string, amount: number) => Promise<string | null>
+  confirmPayment: (id: string) => Promise<string | null>
+  removePayment: (id: string) => Promise<string | null>
 }
 
 // How long we wait for the server to save an expense
@@ -148,5 +152,26 @@ export function useTripPlan(code: string): TripPlan {
     }
   }, [socket])
 
-  return { state, setUnavailable, ...expenses, ...activities, ...actions }
+  // Payments in Settle up, answered the same way
+  const payments = useMemo(() => {
+    const done = (resolve: (r: string | null) => void) => (err: Error | null, result: PaymentResult) =>
+      resolve(err ? 'The server did not answer — please try again' : 'error' in result ? result.error : null)
+    const offline = 'You are offline — please try again'
+    return {
+      markPaid: (toUserId: string, amount: number) => new Promise<string | null>(resolve => {
+        if (!socket?.connected) return resolve(offline)
+        socket.timeout(SAVE_TIMEOUT_MS).emit('payment:add', { toUserId, amount }, done(resolve))
+      }),
+      confirmPayment: (id: string) => new Promise<string | null>(resolve => {
+        if (!socket?.connected) return resolve(offline)
+        socket.timeout(SAVE_TIMEOUT_MS).emit('payment:confirm', id, done(resolve))
+      }),
+      removePayment: (id: string) => new Promise<string | null>(resolve => {
+        if (!socket?.connected) return resolve(offline)
+        socket.timeout(SAVE_TIMEOUT_MS).emit('payment:remove', id, done(resolve))
+      }),
+    }
+  }, [socket])
+
+  return { state, setUnavailable, ...expenses, ...activities, ...payments, ...actions }
 }

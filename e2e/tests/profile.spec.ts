@@ -133,3 +133,27 @@ test('a PayPal.Me link is saved in the profile and the trips know it', async ({ 
   await page.getByRole('dialog', { name: 'PayPal.Me' }).getByRole('button', { name: 'Remove the link' }).click()
   await expect(payments).toContainText('Not added')
 })
+
+test('a MobilePay number is saved in the profile and the trips know it', async ({ page }) => {
+  await signUp(page, 'Ida')
+  const { inviteCode } = await (await call(page, 'POST', '/api/groups', { name: 'Aarhus' })).json()
+  await page.goto('/profile')
+  const payments = page.getByRole('region', { name: 'Payment methods' })
+
+  await payments.getByRole('button', { name: /^Change the mobilepay/ }).click()
+  const dialog = page.getByRole('dialog', { name: 'MobilePay' })
+  await dialog.getByLabel('Your MobilePay number').fill('123')
+  await dialog.getByRole('button', { name: 'Save' }).click()
+  await expect(dialog.getByRole('alert')).toContainText('Please enter the phone number you use for MobilePay')
+  await dialog.getByLabel('Your MobilePay number').fill('+45 2233-4455')
+  await dialog.getByRole('button', { name: 'Save' }).click()
+  await expect(dialog).toBeHidden()
+  await expect(payments).toContainText('+45 22 33 44 55')
+
+  const summary = await (await call(page, 'GET', `/api/groups/${inviteCode}/summary`)).json()
+  expect(summary.members[0].mobilePay).toBe('+4522334455')
+
+  await payments.getByRole('button', { name: /^Change the mobilepay/ }).click()
+  await page.getByRole('dialog', { name: 'MobilePay' }).getByRole('button', { name: 'Remove the number' }).click()
+  await expect(payments.getByRole('button', { name: /^Change the mobilepay/ })).toContainText('Not added')
+})
