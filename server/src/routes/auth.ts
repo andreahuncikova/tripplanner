@@ -161,12 +161,24 @@ router.post('/email', authLimiter, authMiddleware, async (req: Request, res) => 
     await user.save();
 
     const link = `${CLIENT_URLS[0]}/confirm-email?token=${token}`;
-    await sendMail({
-      to: input.value.email,
-      subject: 'Confirm your new e-mail for TripPlanner',
-      text: `Hi ${user.username},\n\nopen this link to use ${input.value.email} for TripPlanner from now on:\n${link}\n\n`
-        + `The link works for ${EMAIL_LINK_HOURS} hours. If you did not ask for this, you can ignore this e-mail.`,
-    });
+    try {
+      await sendMail({
+        to: input.value.email,
+        subject: 'Confirm your new e-mail for TripPlanner',
+        text: `Hi ${user.username},\n\nyou asked to use ${input.value.email} for TripPlanner from now on. `
+          + `Open the link below to confirm it. Until then you log in with your old e-mail.\n\n`
+          + `The link works for ${EMAIL_LINK_HOURS} hours. If you did not ask for this, you can ignore this e-mail.`,
+        button: { label: 'Confirm my new e-mail', url: link },
+      });
+    } catch (e) {
+      // Nothing was sent, so the change is taken back and the user can simply try again
+      console.error('[email:send]', (e as Error).message);
+      user.pendingEmail = null;
+      user.set('emailTokenHash', null);
+      user.set('emailTokenExpires', null);
+      await user.save();
+      return res.status(502).json({ error: 'We could not send the e-mail — please try again later' });
+    }
     // Only for the end-to-end tests, which cannot read e-mails (EMAIL_DEV_LINKS is never set on Render)
     const dev = process.env.EMAIL_DEV_LINKS === '1' ? { devLink: link } : {};
     res.json({ user: user.toSafe(), ...dev });

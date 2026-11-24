@@ -18,10 +18,11 @@ const server = spawn(process.execPath, ['--import', 'tsx', 'src/server.ts'], {
     PORT: '3100',
     JWT_SECRET: 'e2e-tests-only-secret-not-used-anywhere-else',
     CLIENT_URL: 'http://localhost:5180',
-    // Never ask Google or Unsplash from the tests, even when server/.env has a key
+    // Never ask Google or Unsplash and never send real e-mails from the tests, even when server/.env has keys
     // (Unsplash allows only 50 searches an hour, and the tests must not depend on the internet)
     GOOGLE_PLACES_KEY: '',
     UNSPLASH_ACCESS_KEY: '',
+    RESEND_API_KEY: '',
     // The answer to an e-mail change then also holds the confirmation link, since the tests cannot read e-mails
     EMAIL_DEV_LINKS: '1',
     // The tests try wrong passwords on purpose, all from one address; on Render the limit stays 10
