@@ -12,6 +12,8 @@ export interface User {
   color: string
   // The profile photo ("/api/files/<id>"), or null: then the coloured letter is shown
   photo: string | null
+  // The name in the user's PayPal.Me link (paypal.me/<name>), or null
+  paypalMe: string | null
   // A new e-mail waiting for its owner to click the link sent to it
   pendingEmail: string | null
 }
@@ -27,6 +29,8 @@ export interface Member {
   username: string
   color: string
   photo?: string | null
+  // Where the others can pay this member back (paypal.me/<name>)
+  paypalMe?: string | null
   joinedAt: string
 }
 

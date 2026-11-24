@@ -105,3 +105,31 @@ test('the password can be changed in the profile', async ({ page }) => {
   await logIn(page, email, 'password2')
   await expect(page).toHaveURL(/\/dashboard$/)
 })
+
+test('a PayPal.Me link is saved in the profile and the trips know it', async ({ page }) => {
+  await signUp(page, 'Leo')
+  const { inviteCode } = await (await call(page, 'POST', '/api/groups', { name: 'Porto' })).json()
+  await page.goto('/profile')
+  const payments = page.getByRole('region', { name: 'Payment methods' })
+  await expect(payments).toContainText('Not added')
+
+  await payments.getByRole('button', { name: /^Change the paypal\.me/ }).click()
+  const dialog = page.getByRole('dialog', { name: 'PayPal.Me' })
+  await dialog.getByLabel('Your PayPal.Me link').fill('not a link')
+  await dialog.getByRole('button', { name: 'Save' }).click()
+  await expect(dialog.getByRole('alert')).toContainText('Please paste your PayPal.Me link')
+  // A whole link from the PayPal app works, also with an amount at the end
+  await dialog.getByLabel('Your PayPal.Me link').fill('https://www.paypal.me/LeoTravels/25')
+  await dialog.getByRole('button', { name: 'Save' }).click()
+  await expect(dialog).toBeHidden()
+  await expect(payments).toContainText('paypal.me/LeoTravels')
+  await expect(payments.getByRole('link', { name: 'Check that it works' })).toHaveAttribute('href', 'https://paypal.me/LeoTravels')
+
+  // The trip's copy of the member has it too, for the Pay button
+  const summary = await (await call(page, 'GET', `/api/groups/${inviteCode}/summary`)).json()
+  expect(summary.members[0].paypalMe).toBe('LeoTravels')
+
+  await payments.getByRole('button', { name: /^Change the paypal\.me/ }).click()
+  await page.getByRole('dialog', { name: 'PayPal.Me' }).getByRole('button', { name: 'Remove the link' }).click()
+  await expect(payments).toContainText('Not added')
+})

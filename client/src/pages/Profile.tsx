@@ -8,7 +8,7 @@ import { Avatar, Button, Input, Modal, useToast } from '../components/ui'
 import { BackIcon } from '../components/layout/icons'
 import { EditForm, Row, Section } from './settingsParts'
 
-type Dialog = 'name' | 'email' | 'password'
+type Dialog = 'name' | 'email' | 'password' | 'paypal'
 // Profile photos are shown small, so a side of 512 px is plenty and keeps the file storage small
 const PHOTO_SIDE = 512
 
@@ -26,7 +26,7 @@ export default function Profile() {
   if (!user) return null
 
   // Name and photo: the answer has a new log-in token, because the token carries the name
-  async function saveProfile(changes: { username?: string; photo?: string | null }) {
+  async function saveProfile(changes: { username?: string; photo?: string | null; paypalMe?: string | null }) {
     updateSession(await api<{ token: string; user: User }>('/api/auth/profile', { method: 'PATCH', body: JSON.stringify(changes) }))
   }
 
@@ -76,7 +76,8 @@ export default function Profile() {
       </header>
 
       <div className="flex flex-1 flex-col gap-5 px-6 py-5 lg:grid lg:flex-none lg:grid-cols-2 lg:items-start lg:gap-6 lg:p-0">
-        <Section title="You">
+        {/* Desktop: You on the left; Account and Payment methods under each other on the right */}
+        <Section title="You" className="lg:row-span-2">
           {/* The photo the others see next to your messages, votes and expenses */}
           <div className="flex items-center gap-4 border-b border-line px-4 py-4 lg:px-5">
             <Avatar name={user.username} color={user.color} photo={user.photo} size="xl" />
@@ -92,7 +93,7 @@ export default function Profile() {
           <Row label="Name" value={user.username} onEdit={() => setDialog('name')} />
         </Section>
 
-        <Section title="Account">
+        <Section title="Account" className="lg:col-start-2 lg:row-start-1">
           <Row label="E-mail" value={user.email} onEdit={() => setDialog('email')} />
           {user.pendingEmail && (
             <div role="status" className="flex flex-col gap-2.5 border-b border-line bg-chemin-light px-4 py-3.5 text-sm text-chemin-dark lg:px-5">
@@ -106,7 +107,17 @@ export default function Profile() {
           <Row label="Password" value="••••••••" onEdit={() => setDialog('password')} />
         </Section>
 
-        <div className="mt-6 flex flex-col gap-2.5 lg:col-start-1 lg:mt-0 lg:flex-row">
+        {/* How the others pay you back when the trip is settled (the Pay button in the Budget) */}
+        <Section title="Payment methods" className="lg:col-start-2 lg:row-start-2">
+          <Row label="PayPal.Me" value={user.paypalMe ? `paypal.me/${user.paypalMe}` : 'Not added'} onEdit={() => setDialog('paypal')} />
+          <p className="px-4 py-3.5 text-sm text-muted lg:px-5">
+            {user.paypalMe
+              ? <>Your friends in a trip see this link and can pay you back with one tap. <a href={`https://paypal.me/${user.paypalMe}`} target="_blank" rel="noopener noreferrer" className="font-semibold">Check that it works</a></>
+              : 'Add your PayPal.Me link, so friends can pay you back with one tap when the trip is settled.'}
+          </p>
+        </Section>
+
+        <div className="mt-6 flex flex-col gap-2.5 lg:col-start-1 lg:row-start-3 lg:mt-0 lg:flex-row lg:self-start">
           <Button variant="secondary" fullWidth onClick={logout} className="lg:w-auto">Log out</Button>
         </div>
       </div>
@@ -117,6 +128,21 @@ export default function Profile() {
           <EditForm onSave={async form => { await saveProfile({ username: String(form.get('username')) }); toast('Saved'); close() }}>
             <Input label="Your name" name="username" defaultValue={user.username} required maxLength={30} autoComplete="name" />
           </EditForm>
+        )}
+      </Modal>
+
+      <Modal open={dialog === 'paypal'} onClose={close} title="PayPal.Me" description="Paste your PayPal.Me link. You find it in the PayPal app under your profile.">
+        {dialog === 'paypal' && (
+          <div className="flex flex-col gap-3">
+            <EditForm onSave={async form => { await saveProfile({ paypalMe: String(form.get('paypalMe')) }); toast('Saved'); close() }}>
+              <Input label="Your PayPal.Me link" name="paypalMe" defaultValue={user.paypalMe ? `paypal.me/${user.paypalMe}` : ''} required placeholder="paypal.me/yourname" autoComplete="off" />
+            </EditForm>
+            {user.paypalMe && (
+              <Button variant="link" onClick={async () => { await saveProfile({ paypalMe: null }); toast('PayPal.Me link removed'); close() }} className="self-center text-muted">
+                Remove the link
+              </Button>
+            )}
+          </div>
         )}
       </Modal>
 

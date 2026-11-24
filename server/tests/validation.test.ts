@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { checkActivity, checkAreaName, checkEmailChange, checkProfile, checkStayDetails, checkStayNights } from '../src/validation';
+import { checkActivity, checkAreaName, checkEmailChange, checkProfile, checkStayDetails, checkStayNights, paypalMeName } from '../src/validation';
 import { MESSAGE_MAX, checkLogin, checkMessage, checkConfirmDates, checkDestinationName, checkNewTrip, checkPasswordChange, checkTripChanges, checkTripLength, cleanUnavailableDays, checkRegister, normalizeInviteCode } from '../src/validation';
 
 const valid = { email: 'mia@example.com', password: 'password1', username: 'Mia Novak' };
@@ -364,5 +364,22 @@ describe('checkEmailChange', () => {
     expect(checkEmailChange({ email: 'not-an-email', password: 'x' }, 'mia@example.com').ok).toBe(false);
     expect(checkEmailChange({ email: 'new@example.com' }, 'mia@example.com').ok).toBe(false);
     expect(checkEmailChange({ email: { $gt: '' }, password: 'x' }, 'mia@example.com').ok).toBe(false);
+  });
+});
+
+describe('paypalMeName', () => {
+  it('finds the name in what people paste', () => {
+    for (const v of ['paypal.me/miakarlsen', 'https://www.paypal.me/miakarlsen', 'https://paypal.me/miakarlsen/20EUR',
+      'https://www.paypal.com/paypalme/miakarlsen', '@miakarlsen', ' miakarlsen ']) expect(paypalMeName(v)).toBe('miakarlsen');
+  });
+
+  it('refuses other links, signs and too long names', () => {
+    for (const v of ['https://evil.example/miakarlsen', 'mia karlsen', 'mia.karlsen', 'x'.repeat(21), '', { $ne: null }]) expect(paypalMeName(v)).toBeNull();
+  });
+
+  it('is saved, or removed with null, through the profile', () => {
+    expect(checkProfile({ paypalMe: 'paypal.me/MiaK' })).toEqual({ ok: true, value: { paypalMe: 'MiaK' } });
+    expect(checkProfile({ paypalMe: null })).toEqual({ ok: true, value: { paypalMe: null } });
+    expect(checkProfile({ paypalMe: 'https://evil.example' }).ok).toBe(false);
   });
 });

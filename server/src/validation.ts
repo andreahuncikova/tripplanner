@@ -50,9 +50,20 @@ export function checkPasswordChange(body: unknown): Result<{ currentPassword: st
 
 // The profile: a new name and/or photo. The photo is the address of an avatar the user uploaded
 // ("/api/files/<id>", checked against the file storage in routes/auth.ts), or null to remove it.
-export function checkProfile(body: unknown): Result<{ username?: string; photoId?: string | null }> {
+// A PayPal.Me name from what people paste: "paypal.me/miakarlsen", "https://www.paypal.com/paypalme/miakarlsen/20",
+// "@miakarlsen" or just "miakarlsen". PayPal.Me names have 1–20 letters and numbers. null when it is not one.
+export function paypalMeName(v: unknown): string | null {
+  const name = text(v).trim()
+    .replace(/^https?:\/\//i, '').replace(/^www\./i, '')
+    .replace(/^paypal\.me\//i, '').replace(/^paypal\.com\/paypalme\//i, '')
+    .replace(/^@/, '')
+    .split(/[/?#]/)[0];
+  return /^[A-Za-z0-9]{1,20}$/.test(name) ? name : null;
+}
+
+export function checkProfile(body: unknown): Result<{ username?: string; photoId?: string | null; paypalMe?: string | null }> {
   const b = (body ?? {}) as Record<string, unknown>;
-  const value: { username?: string; photoId?: string | null } = {};
+  const value: { username?: string; photoId?: string | null; paypalMe?: string | null } = {};
   if ('username' in b) {
     const username = text(b.username).trim();
     if (!username) return { ok: false, error: 'Please enter your name' };
@@ -67,7 +78,15 @@ export function checkProfile(body: unknown): Result<{ username?: string; photoId
       value.photoId = id;
     }
   }
-  if (!('username' in value) && !('photoId' in value)) return { ok: false, error: 'Nothing to change' };
+  if ('paypalMe' in b) {
+    if (b.paypalMe === null || b.paypalMe === '') value.paypalMe = null;
+    else {
+      const name = paypalMeName(b.paypalMe);
+      if (!name) return { ok: false, error: 'Please paste your PayPal.Me link, for example paypal.me/yourname' };
+      value.paypalMe = name;
+    }
+  }
+  if (!('username' in value) && !('photoId' in value) && !('paypalMe' in value)) return { ok: false, error: 'Nothing to change' };
   return { ok: true, value };
 }
 
