@@ -7,10 +7,12 @@ const MessageSchema = new Schema({
   groupId:  { type: Schema.Types.ObjectId, required: true },  // the trip (Group) it belongs to
   userId:   Schema.Types.ObjectId,                            // who wrote it; empty for system messages
   username: String, color: String,                            // for display, as they were when it was sent
-  text:     { type: String, required: true },
+  text:     { type: String, default: '' },                    // empty when only a file was sent
   time:     String,                                           // "HH:MM" shown next to the message
   system:   { type: Boolean, default: false },                // from the server, e.g. "Bali was chosen"
   preview:  { type: Schema.Types.Mixed, default: undefined },   // LinkPreview of the first link, added after sending
+  // ChatFile: a photo or PDF sent with the message, saved in file storage (files.ts) with kind 'chat'
+  file:     { type: new Schema({ url: String, type: { type: String }, name: String, size: Number }, { _id: false }), default: undefined },
   createdAt: { type: Date, default: Date.now },               // for sorting
 });
 

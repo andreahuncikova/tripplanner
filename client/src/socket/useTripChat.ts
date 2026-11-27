@@ -17,8 +17,11 @@ export interface TripChat {
   // True once the server has opened this trip on our socket. Before that (and after a lost connection,
   // until the trip is joined again) the server would drop a message, so the chat does not send yet.
   ready: boolean
-  // Returns false when nothing was sent, so the text can stay in the field
-  send: (text: string) => boolean
+  // The invite code of the trip, for uploading chat files (lib/files.ts uploadFile)
+  code: string
+  // Returns false when nothing was sent, so the text can stay in the field.
+  // fileId: a file uploaded with kind 'chat'; the text may then be empty.
+  send: (text: string, fileId?: string) => boolean
   // Call on every change in the message field; it only sends now and then.
   notifyTyping: () => void
 }
@@ -94,10 +97,10 @@ export function useTripChat(code: string): TripChat {
     }
   }, [socket, code, myName])
 
-  const send = useCallback((text: string) => {
+  const send = useCallback((text: string, fileId?: string) => {
     const message = text.trim()
-    if (!socket || !message || !ready) return false
-    socket.emit('msg', message)
+    if (!socket || (!message && !fileId) || !ready) return false
+    socket.emit('msg', fileId ? { text: message, file: fileId } : message)
     // The next keystroke starts a new message, so it may tell the others straight away.
     lastTypingSent.current = 0
     return true
@@ -110,5 +113,5 @@ export function useTripChat(code: string): TripChat {
     socket.emit('typing')
   }, [socket])
 
-  return { messages, online, typing, ready, send, notifyTyping }
+  return { messages, online, typing, ready, code, send, notifyTyping }
 }

@@ -1,7 +1,7 @@
 import type { Types } from 'mongoose';
 import Message from './models/Message';
 import { ts } from './utils';
-import type { ChatMessage, LinkPreview } from '../../shared/types';
+import type { ChatFile, ChatMessage, LinkPreview } from '../../shared/types';
 
 type GroupId = Types.ObjectId | string;
 
@@ -10,18 +10,20 @@ const HISTORY = 60;
 
 // What the client sees of a message: its id (to add the link preview later), no groupId or createdAt
 function toChat(m: {
-  _id?: unknown; userId?: unknown; username?: string | null; color?: string | null; text: string; time?: string | null;
-  system?: boolean | null; preview?: unknown;
+  _id?: unknown; userId?: unknown; username?: string | null; color?: string | null; text?: string | null; time?: string | null;
+  system?: boolean | null; preview?: unknown; file?: { url?: string | null; type?: string | null; name?: string | null; size?: number | null } | null;
 }): ChatMessage {
+  const f = m.file;
   return {
     ...(m._id != null && { _id: String(m._id) }),
     ...(m.userId != null && { userId: String(m.userId) }),
     ...(m.username != null && { username: m.username }),
     ...(m.color != null && { color: m.color }),
-    text: m.text,
+    text: m.text ?? '',
     time: m.time ?? '',
     ...(m.system && { system: true }),
     ...(m.preview != null && { preview: m.preview as LinkPreview }),
+    ...(f?.url && { file: { url: f.url, type: f.type as ChatFile['type'], name: f.name ?? 'file', size: f.size ?? 0 } }),
   };
 }
 
@@ -30,9 +32,9 @@ async function setPreview(messageId: string, preview: LinkPreview) {
   await Message.updateOne({ _id: messageId }, { preview });
 }
 
-// Saves a message someone wrote and returns it as the client sees it
-async function addMessage(groupId: GroupId, from: { userId: string; username: string; color: string }, text: string) {
-  const m = await Message.create({ groupId, ...from, text, time: ts() });
+// Saves a message someone wrote (with a file they uploaded, or none) and returns it as the client sees it
+async function addMessage(groupId: GroupId, from: { userId: string; username: string; color: string }, text: string, file?: ChatFile) {
+  const m = await Message.create({ groupId, ...from, text, time: ts(), ...(file && { file }) });
   return toChat(m);
 }
 

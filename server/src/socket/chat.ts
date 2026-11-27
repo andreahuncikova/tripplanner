@@ -1,6 +1,8 @@
 import { checkMessage } from '../validation';
 import { addMessage, setPreview } from '../messages';
 import { allowPreview, checkLink, firstLink, getPreview } from '../preview';
+import { fileUrl, findFile, isFileId } from '../files';
+import type { ChatFile } from '../../../shared/types';
 import type { AppSocket, Ctx, IO } from '../types';
 
 // A message with a link gets a preview card in the chat, like in WhatsApp. The server reads the page once,
@@ -19,18 +21,43 @@ async function addLinkPreview(io: IO, code: string, userId: string, messageId: s
   io.to(code).emit('msg:preview', { id: messageId, preview });
 }
 
+// The file of a message: a chat file this person uploaded to this trip (POST /api/files?kind=chat),
+// so nobody can show another trip's file, or a profile photo, in the chat. Null when it is not one.
+async function chatFile(id: unknown, userId: string, groupId: string): Promise<ChatFile | null> {
+  if (!isFileId(id)) return null;
+  const f = await findFile(id);
+  if (!f || f.meta.kind !== 'chat' || String(f.meta.groupId) !== groupId || String(f.meta.uploadedByUserId) !== userId) return null;
+  return { url: fileUrl(id), type: f.meta.type, name: f.meta.name, size: f.length };
+}
+
 export default function register(socket: AppSocket, { io, sessions, userId, username, color }: Ctx) {
-  // User sends a chat message — save it to the DB and broadcast to the whole room, the sender included
-  socket.on('msg', async text => {
+  // User sends a chat message — save it to the DB and broadcast to the whole room, the sender included.
+  // A plain string is text only; { text, file } also carries a photo or PDF, and the text may then be empty.
+  socket.on('msg', async data => {
     try {
       const s = sessions[socket.id];
       if (!s) return;
-      const check = checkMessage(text);
-      if (!check.ok) { socket.emit('err', check.error); return; }
+      const input = typeof data === 'object' && data !== null ? data : { text: data };
+      const fileId = input.file;
+
+      let file: ChatFile | undefined;
+      if (fileId != null) {
+        const found = await chatFile(fileId, userId, String(s.groupId));
+        if (!found) { socket.emit('err', 'The file could not be sent — please choose it again'); return; }
+        file = found;
+      }
+
+      let text = '';
+      if (!file || String(input.text ?? '').trim()) {
+        const check = checkMessage(input.text);
+        if (!check.ok) { socket.emit('err', check.error); return; }
+        text = check.value;
+      }
+
       // Saved in the messages collection; the trip document itself does not change
-      const msg = await addMessage(s.groupId, { userId, username, color }, check.value);
+      const msg = await addMessage(s.groupId, { userId, username, color }, text, file);
       io.to(s.code).emit('msg', msg);
-      if (msg._id) await addLinkPreview(io, s.code, userId, msg._id, check.value);
+      if (msg._id && text) await addLinkPreview(io, s.code, userId, msg._id, text);
     } catch (e) { console.error('[msg]', (e as Error).message); }
   });
 

@@ -1,5 +1,17 @@
 import type { UploadedFile } from '@shared/types'
-import { API_URL, ApiError, getToken } from './api'
+import { API_URL, ApiError, api, getToken } from './api'
+
+// What the chat accepts, the same as UPLOAD_RULES.chat on the server, so a wrong file is refused before it uploads
+export const CHAT_FILE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf']
+export const CHAT_FILE_MAX = 10 * 1024 * 1024
+
+// Deletes a file you uploaded and did not use after all, e.g. a chat photo removed before sending.
+// It only saves space, so a failure is ignored.
+export const deleteUpload = (id: string) => api(`/api/files/${id}`, { method: 'DELETE' }).catch(() => {})
+
+// "2.4 MB", "380 KB"
+export const formatSize = (bytes: number) =>
+  bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`
 
 // Uploading files to our own storage (server/src/files.ts): profile photos and, later, chat photos and PDFs.
 //

@@ -49,6 +49,22 @@ export interface ChatMessage {
   system?: boolean
   // Filled in by the server a moment after a message with a link was sent ('msg:preview')
   preview?: LinkPreview
+  // A photo or a PDF sent with the message; the text may then be empty
+  file?: ChatFile
+}
+
+// A file in the chat: UploadedFile without its id. url is our own /api/files/<id> (lib/files.ts fileSrc).
+export interface ChatFile {
+  url: string
+  type: UploadedFile['type']
+  name: string
+  size: number                // bytes
+}
+
+// What the client sends with 'msg': the text, and the id of a file uploaded with kind 'chat' (UploadedFile.id)
+export interface ChatMessageInput {
+  text: string
+  file?: string
 }
 
 // People are identified by user id, because two members can have the same name.
@@ -203,7 +219,8 @@ export interface ClientToServerEvents {
   // Leaving the trip screen: stops its messages and takes the user off its online list.
   'trip:close': () => void
 
-  msg: (text: string) => void
+  // A plain string is a message without a file
+  msg: (data: string | ChatMessageInput) => void
   // Sent while the user types; the client sends it at most every few seconds.
   typing: () => void
 
