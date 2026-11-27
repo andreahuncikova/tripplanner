@@ -29,7 +29,7 @@ async function tripWithDates(browser: Browser) {
 }
 
 async function addActivity(page: Page, what: string, day: string, time = '', place = '') {
-  await page.getByRole('button', { name: 'Add activity', exact: true }).click()
+  await page.getByRole('button', { name: 'Add to this day' }).click()
   const dialog = page.getByRole('dialog', { name: 'Add activity' })
   await dialog.getByLabel('What').fill(what)
   await dialog.getByLabel('Day').selectOption({ label: day })
@@ -54,7 +54,7 @@ test('a trip with dates opens on the itinerary, and activities appear for everyo
   const strip = mia.getByRole('group', { name: 'Days of the trip' })
   await expect(strip.getByRole('button')).toHaveCount(4)
   await expect(strip.getByRole('button', { name: 'Friday 12 March, no stay booked for the night' })).toHaveAttribute('aria-pressed', 'true')
-  await expect(mia.getByText('No stay booked for 12 – 15 Mar (3 nights).')).toBeVisible()
+  await expect(mia.getByRole('link', { name: 'No stay booked for 12 – 15 Mar (3 nights) Choose' })).toBeVisible()
 
   await addActivity(mia, 'Dinner in Ubud', 'Day 1 · 12 Mar', '19:30', 'Locavore, Ubud')
   await addActivity(mia, 'Land in Denpasar', 'Day 1 · 12 Mar', '10:40')
@@ -95,5 +95,5 @@ test('the stay for each night shows on its day', async ({ browser }) => {
   // The third night still has no stay
   await mia.getByRole('group', { name: 'Days of the trip' }).getByRole('button', { name: 'Sunday 14 March, no stay booked for the night' }).click()
   await expect(mia.getByRole('link', { name: /No stay for this night yet/ })).toBeVisible()
-  await expect(mia.getByText('No stay booked for 14 – 15 Mar (1 night).')).toBeVisible()
+  await expect(mia.getByRole('link', { name: 'No stay booked for 14 – 15 Mar (1 night) Choose' })).toBeVisible()
 })
