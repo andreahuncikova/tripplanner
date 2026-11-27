@@ -60,7 +60,8 @@ function StepsRing({ done }: { done: number }) {
   )
 }
 
-// A tile for each planning step, like the nights in Stays: the line on top is blue when the step is done,
+// A tile for each planning step, like the nights in Stays: the step and what was agreed in one row ("Destination ✓ Bali").
+// The line on top is blue when the step is done,
 // amber for the step the group is in, faint for the next one. A done step shows what the group agreed on.
 // `step` is the index of the current step, or PLAN_STEPS.length when every step is done.
 function PlanProgress({ step, agreed }: { step: number; agreed?: (string | null)[] }) {
@@ -75,14 +76,23 @@ function PlanProgress({ step, agreed }: { step: number; agreed?: (string | null)
             <li
               key={name}
               aria-current={now ? 'step' : undefined}
-              className={cn('flex min-w-0 flex-1 flex-col gap-0.5 border-t-2 pt-2', done ? 'border-ciel' : now ? 'border-chemin' : 'border-white/20')}
+              className={cn('flex min-w-0 flex-1 items-start gap-2 border-t-2 pt-2.5', done ? 'border-ciel' : now ? 'border-chemin' : 'border-white/20')}
             >
-              <span className="text-2xs font-bold tracking-wider text-white/70 uppercase">
-                {name}
-                {done && <><span aria-hidden="true"> ✓</span><span className="sr-only">, done</span></>}
+              {/* A small round mark: a blue tick when done, an amber dot for now, an empty ring for next */}
+              <span aria-hidden="true" className={cn(
+                'flex size-4.5 shrink-0 translate-y-0.5 items-center justify-center rounded-full',
+                done ? 'bg-ciel text-sommet' : now ? 'ring-2 ring-chemin ring-inset' : 'ring-2 ring-white/25 ring-inset',
+              )}>
+                {done && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.6" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>}
+                {now && <span className="size-1.5 rounded-full bg-chemin" />}
               </span>
-              <span className={cn('text-base leading-5 font-semibold md:truncate', !done && !now && 'text-white/40')}>
-                {done ? agreed?.[i] ?? 'Agreed' : now ? 'Now' : 'Next'}
+              <span className={cn('min-w-0 truncate text-sm', !done && !now ? 'text-white/45' : 'text-white/70')}>
+                {name}
+                {done && <span className="sr-only">, done</span>}
+                {/* What the step decided, in plain words after a colon: "Destination: Bali", "Availability: Now" */}
+                {(done || now) && <span aria-hidden="true">:</span>}
+                {done && <strong className="ml-1.5 font-semibold text-white">{capital(agreed?.[i] ?? 'Agreed')}</strong>}
+                {now && <span className="ml-1.5 font-semibold text-chemin">Now</span>}
               </span>
             </li>
           )
@@ -92,3 +102,6 @@ function PlanProgress({ step, agreed }: { step: number; agreed?: (string | null)
     </div>
   )
 }
+
+// "bali" → "Bali", whatever was typed
+const capital = (text: string) => text.charAt(0).toUpperCase() + text.slice(1)

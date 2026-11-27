@@ -74,7 +74,7 @@ test('the group suggests places and votes, and the organiser confirms the winner
   await expect(datesHeading(mia)).toBeVisible()
   await expect(datesHeading(theo)).toBeVisible()
   await expect(currentStep(theo)).toHaveText(/Dates/)
-  await expect(theo.getByRole('list', { name: 'Planning steps' })).toContainText('Destination ✓')
+  await expect(theo.getByRole('list', { name: 'Planning steps' })).toContainText('Destination, done')
   expect(await summary(mia, code)).toMatchObject({ phase: 'calendar', approvedDest: 'Bali' })
 })
 
@@ -95,8 +95,9 @@ test('everyone marks busy days, the organiser finds free windows and confirms th
   // Only the organiser chooses the length and looks for the free windows
   await expect(theo.getByLabel('Trip length')).toHaveCount(0)
   await expect(theo.getByRole('button', { name: 'Find free dates' })).toHaveCount(0)
-  await mia.getByLabel('Trip length').selectOption('5')
-  await expect(theo.getByText('Trip length: 5 days')).toBeVisible()
+  for (let i = 0; i < 5; i++) await mia.getByRole('button', { name: 'Longer trip' }).click()
+  await expect(mia.getByRole('group', { name: 'Trip length' })).toContainText('5 days')
+  await expect(theo.getByText('5 days', { exact: true })).toBeVisible()
   // Mia has not pressed "I'm done", so she is asked first: until she marks her days, she counts as free
   await mia.getByRole('button', { name: 'Find free dates' }).click()
   const ask = mia.getByRole('dialog', { name: 'Find free dates now?' })
@@ -122,7 +123,7 @@ test('everyone marks busy days, the organiser finds free windows and confirms th
   expect(await summary(mia, code)).toMatchObject({ phase: 'done', finalDate: `${month}-12`, tripDuration: 5 })
 
   // With the dates confirmed both planning steps are done, and the other sections open
-  await expect(theo.getByRole('list', { name: 'Planning steps' })).toContainText('Dates ✓')
+  await expect(theo.getByRole('list', { name: 'Planning steps' })).toContainText('Dates, done')
   await expect(currentStep(theo)).toHaveCount(0)
   for (const name of ['Stays', 'Itinerary', 'Budget']) await expect(sectionLink(theo, name)).not.toHaveAttribute('aria-disabled')
 

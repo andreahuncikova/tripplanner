@@ -114,7 +114,7 @@ export default function TripLayout() {
         </div>
       </header>
 
-      <main className={cn('flex-1 lg:px-12 lg:pt-10 lg:pb-7 xl:px-16', onChatTab ? 'flex min-h-0 flex-col lg:block' : 'px-6 py-4 lg:pb-10', onPlanTab && 'flex flex-col lg:min-h-0 lg:overflow-y-auto')}>
+      <main className={cn('flex-1 lg:px-12 lg:pt-5 lg:pb-7 xl:px-16', onChatTab ? 'flex min-h-0 flex-col lg:block' : 'px-6 py-4 lg:pb-10', onPlanTab && 'flex flex-col lg:min-h-0 lg:overflow-y-auto')}>
         <Outlet context={{ chat, plan, stays, trip } satisfies TripOutlet} />
       </main>
 

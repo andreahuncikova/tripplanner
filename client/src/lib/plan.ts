@@ -85,12 +85,13 @@ export function backStep(t: Pick<TripState, 'phase' | 'datesKnown' | 'destinatio
   return null
 }
 
-// The planning steps the group decides together. Dates covers two phases on the server (marking days and the date vote).
+// The planning steps the group decides together: the destination, everyone's free days, and the date vote.
 // Stays, the itinerary and the budget come after them and have their own tabs.
-export const PLAN_STEPS = ['Destination', 'Dates'] as const
+export const PLAN_STEPS = ['Destination', 'Availability', 'Dates'] as const
 
-// Which step the group is in: 0–1, or 2 when both are done. Steps skipped when the trip was created count as done.
+// Which step the group is in: 0–2, or 3 when all are done. Steps skipped when the trip was created count as done.
 export function currentStep(phase: Phase): number {
   if (phase === 'destinations') return 0
-  return phase === 'done' ? 2 : 1
+  if (phase === 'calendar') return 1
+  return phase === 'date_vote' ? 2 : 3
 }

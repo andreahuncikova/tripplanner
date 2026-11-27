@@ -9,8 +9,8 @@ import { StepCard } from './StepGuide'
 import type { StepProps } from './step'
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-// Trip lengths the organiser can choose (the server allows up to 90 days)
-const LENGTHS = Array.from({ length: 30 }, (_, i) => i + 1)
+// The longest trip the organiser can set with + (the server allows up to 90 days)
+const MAX_DAYS = 30
 
 // Step 2 from the mockups. In the old app these were two phases on separate screens: first everyone marked days,
 // then the organiser computed the free windows and the group voted. Now the calendar and the windows are side by side,
@@ -18,7 +18,10 @@ const LENGTHS = Array.from({ length: 30 }, (_, i) => i + 1)
 export default function DatesStep(props: StepProps) {
   const { plan, state, me, isOrganiser, organiser } = props
   const done = state.members.filter(m => state.readyUserIds.includes(m.userId))
-  const waiting = state.members.filter(m => !done.includes(m))
+  // While voting, the avatars show who has voted for a window instead of who is done marking days
+  const voting = state.phase === 'date_vote'
+  const counted = voting ? state.members.filter(m => state.dateRanges.some(r => r.voterIds.includes(m.userId))) : done
+  const notYet = state.members.filter(m => !counted.includes(m))
   const imDone = state.readyUserIds.includes(me)
 
   // Old trips may have no months yet; the organiser chooses them first
@@ -26,17 +29,31 @@ export default function DatesStep(props: StepProps) {
 
   return (
     <section aria-label="Dates" className="flex flex-1 flex-col gap-4 lg:min-h-0">
-      {/* Marking days and voting are two phases on the server, but one step for the group, so the card says what to do in each */}
+      {/* Two steps in one view: Availability (everyone marks the days they can't travel) and Dates (the vote) */}
       <StepCard
-        step={2}
+        step={state.phase === 'date_vote' ? 3 : 2}
         back={props.back}
-        agreed={[state.approvedDest]}
+        agreed={[state.approvedDest, 'Everyone is done']}
         title={state.phase === 'date_vote' ? 'Vote for your dates' : "Mark the days you can't travel"}
-        aside={
-          <Button variant={imDone ? 'soft' : 'secondary'} aria-pressed={imDone} onClick={() => plan.setDone(!imDone)} className="shrink-0 border-0">
-            {imDone && <span aria-hidden="true">✓</span>}I'm done
-          </Button>
-        }
+        // "I'm done" belongs to marking the days (step 2); while voting (step 3) it is gone
+        aside={voting ? undefined : (
+          // A pill: plain glass with an empty circle while you are marking, filled green with a tick once you are done,
+          // which a tap takes back
+          <button
+            type="button"
+            aria-pressed={imDone}
+            onClick={() => plan.setDone(!imDone)}
+            className={cn(
+              'flex shrink-0 items-center gap-2 rounded-full py-2 pr-4.5 pl-3.5 text-sm font-bold transition-colors',
+              imDone ? 'bg-success text-white hover:bg-success/90' : 'bg-white/10 text-white ring-1 ring-white/30 ring-inset hover:bg-white/20',
+            )}
+          >
+            <span aria-hidden="true" className={cn('flex size-5 items-center justify-center rounded-full', imDone ? 'bg-white text-success' : 'ring-2 ring-white/50 ring-inset [&>svg]:hidden')}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
+            </span>
+            I'm done
+          </button>
+        )}
       >
         {state.phase === 'date_vote'
           ? `Vote for one window. ${isOrganiser ? 'You confirm' : `${organiser} confirms`} the dates.`
@@ -48,20 +65,16 @@ export default function DatesStep(props: StepProps) {
           scroll when there are more than fit: the right column takes no height of its own (h-0) and fills the row. */}
       <div className="flex flex-col gap-8 lg:grid lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_22rem] lg:grid-rows-[minmax(0,1fr)] lg:gap-6 xl:grid-cols-[minmax(0,1fr)_26rem]">
         <Calendar {...props} />
-        {/* One white card, as high as the calendar: the free windows, and under a line who is done */}
+        {/* One white card, as high as the calendar: the free windows, and under a line who is done and the buttons */}
         <div className="flex flex-col gap-4 rounded-xl bg-white p-4 shadow-card lg:h-0 lg:min-h-full lg:p-5">
-          <FreeWindows {...props} />
-          <section aria-label="Who is done" className="mt-auto flex flex-col gap-2.5 border-t border-line pt-4">
-            <div className="flex items-baseline justify-between gap-2 text-sm">
-              <h3 className="font-extrabold">{done.length} of {state.members.length} done</h3>
-              {waiting.length > 0 && <span className="truncate text-muted">Waiting for: {names(waiting)}</span>}
-            </div>
-            {/* Everyone's avatar: a green tick on those who are done, faded for those who are not yet */}
-            <ul className="flex flex-wrap gap-2">
+          <FreeWindows {...props} whoDone={
+          // One row: everyone's avatar (a green tick on those who are done, faded for the others), then the count
+          <section aria-label="Who is done" className="flex min-w-0 items-center gap-2.5">
+            <ul className="flex shrink-0 -space-x-1.5">
               {state.members.map(m => {
-                const ready = done.includes(m)
+                const ready = counted.includes(m)
                 return (
-                  <li key={m.userId} title={`${m.username}${ready ? ', done' : ', not done yet'}`} className={cn('relative', !ready && 'opacity-40')}>
+                  <li key={m.userId} title={`${m.username}${ready ? ', done' : ', not done yet'}`} className={cn('relative rounded-full ring-2 ring-white', !ready && 'opacity-40')}>
                     <Avatar name={m.username} color={m.color} photo={m.photo} size="sm" />
                     {ready && (
                       <span aria-hidden="true" className="absolute -right-1 -bottom-1 flex size-4 items-center justify-center rounded-full bg-success text-[9px] font-extrabold text-white ring-2 ring-white">✓</span>
@@ -70,7 +83,12 @@ export default function DatesStep(props: StepProps) {
                 )
               })}
             </ul>
+            <div className="flex min-w-0 flex-col text-sm leading-tight">
+              <h3 className="font-extrabold">{counted.length} of {state.members.length} {voting ? 'voted' : 'done'}</h3>
+              {notYet.length > 0 && <span className="truncate text-xs text-muted">Waiting for: {names(notYet)}</span>}
+            </div>
           </section>
+          } />
         </div>
       </div>
     </section>
@@ -168,6 +186,15 @@ function Calendar({ plan, state, me }: StepProps) {
   )
 }
 
+// A round − or + next to the trip length
+function StepButton({ label, disabled, onClick, path }: { label: string; disabled: boolean; onClick: () => void; path: string }) {
+  return (
+    <button type="button" aria-label={label} disabled={disabled} onClick={onClick} className="flex size-7 items-center justify-center rounded-full bg-white text-roche shadow-card hover:bg-ciel-light disabled:opacity-40">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" aria-hidden="true"><path d={path} /></svg>
+    </button>
+  )
+}
+
 function MonthButton({ label, disabled, onClick, path }: { label: string; disabled: boolean; onClick: () => void; path: string }) {
   return (
     <button type="button" aria-label={label} disabled={disabled} onClick={onClick} className="flex size-9 items-center justify-center rounded-md text-subtle hover:bg-canvas disabled:opacity-35">
@@ -182,7 +209,8 @@ function Legend({ sample, children }: { sample: ReactNode; children: string }) {
 }
 
 // "Free for everyone": the windows the organiser found, the trip length and the votes
-function FreeWindows({ plan, state, me, isOrganiser, organiser }: StepProps) {
+// `whoDone` (the avatars) and the organiser's buttons sit at the bottom of the card, under a line.
+function FreeWindows({ plan, state, me, isOrganiser, organiser, whoDone }: StepProps & { whoDone: ReactNode }) {
   const [confirming, setConfirming] = useState<number | null>(null)
   const [asking, setAsking] = useState(false)
   const tripDays = state.tripDuration
@@ -193,32 +221,26 @@ function FreeWindows({ plan, state, me, isOrganiser, organiser }: StepProps) {
   const findFreeDates = () => (waiting.length ? setAsking(true) : plan.findFreeDates())
 
   return (
-    <section aria-labelledby="free-title" className="flex flex-col gap-2 lg:min-h-0 lg:flex-1">
+    <section aria-labelledby="free-title" className="flex flex-col gap-3 lg:min-h-0 lg:flex-1">
+      {/* The title, and on the right of it the trip length: − and + for the organiser, the number for the others */}
       <div className="flex items-center justify-between gap-2">
         <h3 id="free-title" className="font-extrabold">Free for everyone</h3>
         {isOrganiser ? (
-          <label className="flex items-center gap-1.5 text-sm text-subtle">
-            Trip length
-            <select
-              value={tripDays ?? ''}
-              onChange={e => plan.setLength(Number(e.target.value))}
-              className="rounded-sm border border-line-strong bg-white px-2 py-1 font-bold text-roche"
-            >
-              {!tripDays && <option value="" disabled>Choose</option>}
-              {LENGTHS.map(n => <option key={n} value={n}>{n} {n === 1 ? 'day' : 'days'}</option>)}
-            </select>
-          </label>
-        ) : tripDays && <span className="text-sm text-subtle">Trip length: <strong>{tripDays} days</strong></span>}
+          <div role="group" aria-label="Trip length" title="Trip length" className="flex items-center gap-1 rounded-full bg-canvas p-1 text-sm">
+            <StepButton label="Shorter trip" disabled={!tripDays || tripDays <= 1} onClick={() => plan.setLength((tripDays ?? 2) - 1)} path="M5 12h14" />
+            <span aria-live="polite" className="min-w-14 text-center font-bold">{tripDays ? `${tripDays} ${tripDays === 1 ? 'day' : 'days'}` : 'Length'}</span>
+            <StepButton label="Longer trip" disabled={!!tripDays && tripDays >= MAX_DAYS} onClick={() => plan.setLength((tripDays ?? 0) + 1)} path="M12 5v14M5 12h14" />
+          </div>
+        ) : <span className="text-sm text-muted"><span className="sr-only">Trip length: </span><strong className="text-roche">{tripDays ? `${tripDays} ${tripDays === 1 ? 'day' : 'days'}` : 'Length not chosen'}</strong></span>}
       </div>
 
       {state.phase === 'calendar' ? (
-        <div className="flex flex-col gap-3 text-sm text-subtle">
-          {isOrganiser ? (
-            <>
-              <p>When everyone is done, look for the days when all of you are free.</p>
-              <Button onClick={findFreeDates}>Find free dates</Button>
-            </>
-          ) : <p>{organiser} looks for the days when all of you are free, once everyone is done.</p>}
+        // Until the windows are found: a picture of what comes here
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 py-4 text-center">
+          <span aria-hidden="true" className="flex size-12 items-center justify-center rounded-full bg-ciel-light text-sommet">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M3 10h18M8 3v4M16 3v4M9 15l2 2 4-4" /></svg>
+          </span>
+          <p className="text-sm text-muted">{isOrganiser ? 'Free windows show up here.' : `Free windows show up here when ${organiser} looks for them.`}</p>
         </div>
       ) : (
         <>
@@ -232,13 +254,29 @@ function FreeWindows({ plan, state, me, isOrganiser, organiser }: StepProps) {
               </p>
             )}
           </div>
+        </>
+      )}
+
+      {/* Under the line. Marking days: who is done on the left, Find free dates on the right.
+          Voting: who has voted, and under it the organiser's two buttons, always both, so nothing moves when the
+          first vote comes in (Confirm waits, greyed out, until a window has a vote). */}
+      {state.phase === 'calendar' ? (
+        <div className="mt-auto flex items-center justify-between gap-3 border-t border-line pt-4">
+          <div className="min-w-0 flex-1">{whoDone}</div>
+          {isOrganiser && <Button size="sm" onClick={findFreeDates} className="shrink-0">Find free dates</Button>}
+        </div>
+      ) : (
+        <div className="mt-auto flex flex-col gap-3 border-t border-line pt-4">
+          {whoDone}
           {isOrganiser && (
-            <div className="flex flex-col gap-2">
-              {top >= 0 && <Button onClick={() => setConfirming(top)}>Confirm {rangeText(state.dateRanges[top].start, state.dateRanges[top].end)}</Button>}
-              <Button variant="link" onClick={findFreeDates}>Find free dates again</Button>
+            <div className="grid grid-cols-[auto_1fr] gap-2">
+              <Button variant="secondary" size="sm" onClick={findFreeDates}>Find again</Button>
+              <Button size="sm" disabled={top < 0} onClick={() => setConfirming(top)} className="min-w-0">
+                <span className="truncate">{top >= 0 ? `Confirm ${rangeText(state.dateRanges[top].start, state.dateRanges[top].end)}` : 'Confirm dates'}</span>
+              </Button>
             </div>
           )}
-        </>
+        </div>
       )}
 
       <ConfirmModal
@@ -267,13 +305,13 @@ function WindowRow({ range: r, mine, tripDays, onVote }: { range: DateRange; min
   const ok = fits(r, tripDays)
   const length = daysIn(r.start, r.end)
   return (
-    <div className={cn('flex items-center gap-2.5 rounded-md px-3.5 py-2.5', mine ? 'bg-ciel-light' : 'bg-canvas', !ok && 'opacity-60')}>
+    <div className={cn('flex items-center gap-2.5 rounded-md py-2 pr-2 pl-3', mine ? 'bg-ciel-light' : 'bg-canvas', !ok && 'opacity-60')}>
       <div className="flex min-w-0 flex-1 flex-col">
-        <strong>{rangeText(r.start, r.end)}</strong>
-        <span className="text-sm text-muted">{ok ? `${length} ${length === 1 ? 'day' : 'days'} · ${votesText(r.voterIds.length)}` : `Too short for ${tripDays} days`}</span>
+        <strong className="truncate text-sm">{rangeText(r.start, r.end)}</strong>
+        <span className="text-xs text-muted">{ok ? `${length} ${length === 1 ? 'day' : 'days'} · ${votesText(r.voterIds.length)}` : `Too short for ${tripDays} days`}</span>
       </div>
       {ok && (
-        <Button size="sm" variant={mine ? 'primary' : 'secondary'} aria-pressed={mine} onClick={onVote} aria-label={`${mine ? 'Your vote' : 'Vote for'} ${rangeText(r.start, r.end)}`}>
+        <Button size="sm" variant={mine ? 'primary' : 'secondary'} aria-pressed={mine} onClick={onVote} aria-label={`${mine ? 'Your vote' : 'Vote for'} ${rangeText(r.start, r.end)}`} className="min-h-8 shrink-0 px-3 text-xs lg:min-h-8 lg:px-3">
           {mine ? 'Your vote' : 'Vote'}
         </Button>
       )}
@@ -303,7 +341,7 @@ function ConfirmDates({ range, tripDays, onClose, onConfirm }: {
       {starts.length > 1 && (
         <div className="flex flex-col gap-2">
           <label htmlFor="trip-start" className="text-sm font-bold">Trip dates</label>
-          <select id="trip-start" value={start} onChange={e => setStart(e.target.value)} className="rounded-md border border-line-strong bg-white px-4 py-3.5 text-base text-roche">
+          <select id="trip-start" value={start} onChange={e => setStart(e.target.value)} className="select rounded-md border border-line-strong bg-white py-3 pl-3.5 text-base text-roche">
             {starts.map(s => <option key={s} value={s}>{rangeText(s, addDays(s, days - 1))}</option>)}
           </select>
         </div>
@@ -329,7 +367,7 @@ function ChooseMonths({ plan, isOrganiser, organiser }: StepProps) {
         {[{ label: 'From', value: from, set: setFrom, list: options }, { label: 'To', value: to, set: setTo, list: options.filter(o => o.value >= from) }].map(f => (
           <label key={f.label} className="flex min-w-0 flex-1 flex-col gap-1 text-xs font-bold text-subtle">
             {f.label}
-            <select value={f.value} onChange={e => f.set(e.target.value)} className="rounded-[10px] border border-line-strong bg-white p-3 text-base font-normal text-roche">
+            <select value={f.value} onChange={e => f.set(e.target.value)} className="select rounded-md border border-line-strong bg-white py-2.5 pl-3 text-sm font-normal text-roche">
               {f.list.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </label>

@@ -55,7 +55,7 @@ function ReadyStep({ state, back }: StepProps) {
   return (
     <section aria-label="Plan" className="flex flex-1 flex-col gap-4">
       {/* What the group agreed on is written next to the ticked steps in the dark card */}
-      <StepCard step="done" title="You're ready to go" agreed={[state.approvedDest, state.finalDateLabel]} back={back}>
+      <StepCard step="done" title="You're ready to go" agreed={[state.approvedDest, 'Done', state.finalDateLabel]} back={back}>
         The group agreed on where and when. Now plan the rest.
       </StepCard>
       {/* About half a screen high, so the whole tab fits without scrolling */}

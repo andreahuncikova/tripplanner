@@ -103,7 +103,7 @@ export default function DestinationStep({ plan, state, me, isOrganiser, organise
 const placeName = (name: string) => name.charAt(0).toUpperCase() + name.slice(1)
 
 // A white card without a shadow: the list scrolls on a computer and would cut a shadow off. Your vote is the blue tick.
-// Under the name: who suggested it, as their avatar and first name.
+// One line: the name, who suggested it (their avatar and first name), and the votes on the right.
 function DestinationRow({ destination: d, by, mine, canRemove, onVote, onRemove }: {
   destination: Destination; by?: Member; mine: boolean; canRemove: boolean; onVote: () => void; onRemove: () => void
 }) {
@@ -114,20 +114,20 @@ function DestinationRow({ destination: d, by, mine, canRemove, onVote, onRemove 
         type="button"
         aria-pressed={mine}
         onClick={onVote}
-        className={cn('relative flex min-h-14 min-w-0 flex-1 items-center gap-3 py-2 pl-4 text-left lg:gap-4 lg:pl-5.5', canRemove ? 'pr-2' : 'pr-4 lg:pr-5.5')}
+        className={cn('relative flex min-h-12 min-w-0 flex-1 items-center gap-3 py-2 pl-4 text-left', canRemove ? 'pr-2' : 'pr-4')}
       >
         <span aria-hidden="true" className={cn('flex size-5.5 shrink-0 items-center justify-center rounded-full text-xs font-extrabold', mine ? 'bg-sommet text-white' : 'border-2 border-faint')}>
           {mine && '✓'}
         </span>
-        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="flex min-w-0 flex-1 items-center gap-3">
           <strong className="truncate">{placeName(d.name)}</strong>
-          <span className="flex items-center gap-1.5 text-sm text-muted">
+          <span className="flex shrink-0 items-center gap-1.5 text-xs text-muted">
             <span aria-hidden="true" className="flex"><Avatar name={d.by} color={by?.color ?? '#8a96a6'} photo={by?.photo} size="xs" /></span>
             <span className="sr-only">Suggested by </span>{d.by.split(' ')[0]}
           </span>
         </span>
         {/* Phones show only the number, as in the mockups; screen readers always hear "3 votes" */}
-        <span className="text-sm font-extrabold lg:text-base">
+        <span className="text-sm font-bold">
           <span className="lg:hidden" aria-hidden="true">{votes}</span>
           <span className="sr-only lg:not-sr-only">{votesText(votes)}</span>
         </span>
