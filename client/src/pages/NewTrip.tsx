@@ -74,7 +74,7 @@ export default function NewTrip() {
 
   return (
     <div className="flex min-h-dvh flex-col bg-white lg:min-h-0 lg:flex-1 lg:bg-canvas lg:px-12 lg:py-9 xl:px-16">
-      <form onSubmit={onSubmit} className="flex flex-1 flex-col lg:w-full lg:max-w-[720px] lg:flex-none lg:gap-6">
+      <form onSubmit={onSubmit} className="flex flex-1 flex-col lg:w-full lg:flex-none lg:gap-6">
         <header className="flex items-center gap-1 px-3 pt-3 pb-2 lg:flex-col lg:items-start lg:gap-1.5 lg:p-0">
           <Link to="/dashboard" aria-label="Back to your trips" className="flex size-11 items-center justify-center text-roche hover:text-roche lg:hidden">
             <BackIcon />
@@ -83,10 +83,11 @@ export default function NewTrip() {
           <p className="hidden text-muted lg:block">You can change everything later in Trip settings.</p>
         </header>
 
-        {/* Desktop: the title above on the page, like Profile and Trip settings; the fields in one white card */}
-        <div className="flex flex-1 flex-col lg:flex-none lg:gap-6.5 lg:rounded-xl lg:bg-white lg:px-10 lg:py-9 lg:shadow-card">
-        <div className="flex flex-1 flex-col gap-5.5 px-5 pt-2 pb-5 lg:gap-6.5 lg:p-0">
-          <div className="flex flex-col gap-5.5 lg:flex-row lg:gap-5">
+        {/* Desktop: the title above on the page, like Profile and Trip settings; the fields in one white card across the
+            page, in two columns: name, destination and currency on the left, the dates on the right */}
+        <div className="flex flex-1 flex-col lg:flex-none lg:gap-5 lg:rounded-xl lg:bg-white lg:p-6 lg:shadow-card">
+        <div className="flex flex-1 flex-col gap-5 px-5 pt-2 pb-5 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] lg:grid-rows-[auto_1fr] lg:items-start lg:gap-x-8 lg:gap-y-5 lg:p-0">
+          <div className="flex flex-col gap-5 lg:col-start-1">
             <div className="lg:flex-1"><Input label="Trip name" name="name" required maxLength={60} autoComplete="off" /></div>
             <div className="lg:flex-1">
               <Input
@@ -100,15 +101,14 @@ export default function NewTrip() {
             </div>
           </div>
 
-          <fieldset className="flex min-w-0 flex-col gap-2.5">
-            <legend className="pb-2.5 text-base font-bold">When are you going?</legend>
-            <div className="flex flex-col gap-2.5 lg:flex-row lg:flex-wrap lg:items-start lg:gap-3">
+          <fieldset className="flex min-w-0 flex-col gap-2.5 lg:col-start-2 lg:row-span-2 lg:row-start-1">
+            <legend className="pb-2 text-sm font-bold">When are you going?</legend>
+            <div className="flex flex-col gap-2.5">
               <DateOption
                 checked={mode === 'known'}
                 onSelect={() => setMode('known')}
                 title="We know our dates"
                 text="Skip availability and date voting."
-                wide={false}
               >
                 <div className="flex gap-2.5">
                   <SmallField label="From" id={`${fieldId}-start`}>
@@ -124,52 +124,35 @@ export default function NewTrip() {
                 checked={mode === 'find'}
                 onSelect={() => setMode('find')}
                 title="Help us find dates"
-                text={mode === 'find' ? 'Which months could work for the trip?' : "Pick a range of months; everyone marks the days they can't go."}
-                wide
+                text="Everyone marks the days they can't travel, then you vote."
               >
                 <div className="flex flex-col gap-3.5">
                   <div className="flex gap-2.5">
                     <SmallField label="From" id={`${fieldId}-from`}>
-                      <select id={`${fieldId}-from`} value={fromMonth} onChange={e => changeFrom(e.target.value)} className={fieldClass}>
+                      <select id={`${fieldId}-from`} value={fromMonth} onChange={e => changeFrom(e.target.value)} className={selectClass}>
                         {months.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
                       </select>
                     </SmallField>
                     <SmallField label="To" id={`${fieldId}-to`}>
-                      <select id={`${fieldId}-to`} value={toMonth} onChange={e => setToMonth(e.target.value)} className={fieldClass}>
+                      <select id={`${fieldId}-to`} value={toMonth} onChange={e => setToMonth(e.target.value)} className={selectClass}>
                         {toOptions.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
                       </select>
                     </SmallField>
-                  </div>
-                  {/* Phones: one sentence. Desktop: the three steps, as in the mockups */}
-                  <p className="flex items-start gap-2.5 text-sm/[1.45] text-subtle lg:hidden">
-                    <InfoIcon />
-                    Next, everyone taps the days they can't travel. We show the windows when all of you are free, and you vote on one.
-                  </p>
-                  <div className="hidden flex-col gap-2 border-t border-[#c3e3ea] pt-3 lg:flex">
-                    <span className="text-xs font-bold tracking-[0.06em] text-subtle uppercase">What happens next</span>
-                    <ol className="flex flex-col gap-2 text-sm">
-                      {["Everyone clicks the days they can't travel.", 'We show the windows when all of you are free.', 'You vote on one, and the trip has its dates.'].map((step, i) => (
-                        <li key={step} className="flex items-center gap-2.5">
-                          <span aria-hidden="true" className="flex size-5.5 shrink-0 items-center justify-center rounded-full bg-white text-xs font-extrabold text-sommet">{i + 1}</span>
-                          {step}
-                        </li>
-                      ))}
-                    </ol>
                   </div>
                 </div>
               </DateOption>
             </div>
           </fieldset>
 
-          <div className="lg:max-w-80">
+          <div className="lg:col-start-1">
             <CurrencySelect label="Group currency" value={currency} onChange={setCurrency} />
           </div>
 
-          {error && <p role="alert" className="rounded-md bg-danger-light px-4 py-3 text-sm font-semibold text-danger">{error}</p>}
+          {error && <p role="alert" className="rounded-md bg-danger-light px-4 py-3 text-sm font-semibold text-danger lg:col-span-2">{error}</p>}
         </div>
 
         {/* Phones: the button stays at the bottom of the screen. Desktop: Cancel and the button under the form */}
-        <div className="sticky bottom-0 border-t border-line bg-white px-5 pt-4 pb-[max(2rem,env(safe-area-inset-bottom))] lg:static lg:flex lg:items-center lg:justify-end lg:gap-3 lg:px-0 lg:pt-5.5 lg:pb-0">
+        <div className="sticky bottom-0 border-t border-line bg-white px-5 pt-4 pb-[max(2rem,env(safe-area-inset-bottom))] lg:static lg:flex lg:items-center lg:justify-end lg:gap-3 lg:px-0 lg:pt-4 lg:pb-0">
           <Link to="/dashboard" className="hidden px-4.5 py-3.5 font-semibold text-roche hover:text-roche lg:inline">Cancel</Link>
           <Button type="submit" size="lg" fullWidth disabled={busy} className="rounded-[14px] lg:w-auto lg:rounded-md">
             {busy ? 'Creating trip…' : 'Create trip and invite friends'}
@@ -181,24 +164,27 @@ export default function NewTrip() {
   )
 }
 
-const fieldClass = 'w-full min-w-0 rounded-[10px] border border-line-strong bg-white p-3 text-base text-roche focus:border-sommet focus:ring-1 focus:ring-sommet focus:outline-none'
+const fieldClass = 'w-full min-w-0 rounded-md border border-line-strong bg-white px-3 py-2.5 text-sm text-roche focus:border-sommet focus:ring-1 focus:ring-sommet focus:outline-none'
+// A dropdown: the same field, with the chevron of .select in index.css (pl-, not px-, so .select keeps its right padding)
+const selectClass = 'select w-full min-w-0 rounded-md border border-line-strong bg-white py-2.5 pl-3 text-sm text-roche focus:border-sommet focus:ring-1 focus:ring-sommet focus:outline-none'
 
 // One of the two choices under "When are you going?". The chosen one is highlighted and shows its fields.
-function DateOption({ checked, onSelect, title, text, wide, children }: {
-  checked: boolean; onSelect: () => void; title: string; text: string; wide: boolean; children: ReactNode
+function DateOption({ checked, onSelect, title, text, children }: {
+  checked: boolean; onSelect: () => void; title: string; text: string; children: ReactNode
 }) {
   return (
     <div className={cn(
-      'flex flex-col gap-3.5 rounded-lg',
+      'flex flex-col gap-3 rounded-lg',
       // 2 px border when chosen, 1 px otherwise; the padding makes up the difference, so the card does not jump
-      checked ? 'border-2 border-sommet bg-ciel-light p-[15px] lg:p-[17px]' : 'border border-line-strong p-4 lg:p-4.5',
-      checked && wide ? 'lg:flex-[2_1_340px]' : 'lg:flex-[1_1_240px]',
+      checked ? 'border-2 border-sommet bg-ciel-light p-[13px]' : 'border border-line-strong p-3.5',
+
     )}>
       <label className="flex cursor-pointer items-start gap-3">
-        <input type="radio" name="dates-mode" checked={checked} onChange={onSelect} className="mt-0.5 size-5 shrink-0 accent-sommet" />
-        <span className="flex flex-col gap-0.5">
-          <strong>{title}</strong>
-          <span className="text-sm text-subtle">{text}</span>
+        <input type="radio" name="dates-mode" checked={checked} onChange={onSelect} className="mt-0.5 size-4.5 shrink-0 accent-sommet" />
+        {/* The title as big as the field labels (Trip name, Destination), the explanation smaller */}
+        <span className="flex flex-col">
+          <strong className="text-sm">{title}</strong>
+          <span className="text-xs text-muted">{text}</span>
         </span>
       </label>
       {checked && children}
@@ -214,13 +200,5 @@ function SmallField({ label, id, children }: { label: string; id: string; childr
       <label htmlFor={id} className="text-xs font-bold text-subtle">{label}</label>
       {children}
     </div>
-  )
-}
-
-function InfoIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true" className="mt-px shrink-0 text-sommet">
-      <circle cx="12" cy="12" r="9" /><path d="M12 11v6M12 7.5v.5" />
-    </svg>
   )
 }

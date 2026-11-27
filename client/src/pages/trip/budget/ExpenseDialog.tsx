@@ -101,7 +101,7 @@ function ExpenseForm({ plan, state, me, rates, expense, onDone }: {
           </div>
           <div className="flex min-w-0 flex-[1_1_0] flex-col gap-2">
             <label htmlFor={currencyId} className="text-sm font-bold">Currency</label>
-            <select id={currencyId} value={currency} onChange={e => setCurrency(e.target.value)} className="rounded-md border border-line-strong bg-white px-2.5 py-3.5 text-base text-roche focus:border-sommet focus:ring-1 focus:ring-sommet focus:outline-none">
+            <select id={currencyId} value={currency} onChange={e => setCurrency(e.target.value)} className="select rounded-md border border-line-strong bg-white py-3.5 pl-2.5 text-base text-roche focus:border-sommet focus:ring-1 focus:ring-sommet focus:outline-none">
               {options.map(c => <option key={c.code} value={c.code} title={c.label}>{c.code}</option>)}
             </select>
           </div>

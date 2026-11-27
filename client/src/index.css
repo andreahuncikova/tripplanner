@@ -70,3 +70,16 @@
     @apply text-sommet hover:text-sommet-dark;
   }
 }
+
+/* Every dropdown (month, currency, trip length): the browser's own look replaced by the same field as an Input,
+   with a small chevron on the right. The chevron is a data: image, which the Content-Security-Policy allows. */
+@layer components {
+  .select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%233d4a5c' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 16px;
+    padding-right: 2.25rem;
+  }
+}

@@ -32,8 +32,9 @@ export function Input({ label, hideLabel, error, hint, hintTone = 'muted', id, c
         )}
         {...props}
       />
+      {/* An error in normal size; an explanation smaller, so it does not compete with the field */}
       {(error || hint) && (
-        <p id={noteId} className={cn('text-sm', error ? 'text-danger' : hintTone === 'success' ? 'font-semibold text-success' : 'text-muted')}>{error ?? hint}</p>
+        <p id={noteId} className={cn(error ? 'text-sm text-danger' : hintTone === 'success' ? 'text-xs font-semibold text-success' : 'text-xs text-muted')}>{error ?? hint}</p>
       )}
     </div>
   )
