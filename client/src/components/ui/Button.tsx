@@ -2,22 +2,24 @@ import type { ButtonHTMLAttributes } from 'react'
 import { cn } from '../../lib/cn'
 
 // Button styles from the mockups. Sizes are a little smaller on a computer, where a mouse needs less room than a finger.
-// primary: main action (Log in, Confirm), secondary: outlined (Join with code),
+// primary: main action (Log in, Confirm), black like every main button in the app; secondary: outlined (Join with code),
 // soft: light accent (Invite, Copy), dark: next to inputs (Add), danger: delete, dangerOutline: Delete trip in Trip settings,
 // link: text only (+ Add expense).
 const variants = {
-  primary: 'bg-sommet text-white hover:bg-sommet-dark',
+  primary: 'bg-roche text-white hover:bg-roche-light',
   secondary: 'border border-line-strong bg-white text-roche hover:bg-canvas',
   soft: 'bg-ciel-light text-sommet hover:bg-ciel/40',
   dark: 'bg-roche text-white hover:bg-roche-light',
   danger: 'bg-danger-light text-danger hover:bg-danger-light/70',
+  // the button that does it in an "Are you sure?" popup (ConfirmModal)
+  dangerSolid: 'bg-danger text-white hover:bg-danger/90',
   dangerOutline: 'border border-[#f1c4bf] bg-white text-danger hover:bg-danger-light',
   link: 'bg-transparent text-sommet hover:text-sommet-dark',
 }
 
 const sizes = {
   sm: 'min-h-10 px-4 text-sm lg:min-h-9 lg:px-3.5',
-  md: 'min-h-12 px-5 text-base lg:min-h-10 lg:px-4 lg:text-md',
+  md: 'min-h-12 px-5 text-base lg:min-h-10 lg:px-4 lg:text-base',
   lg: 'min-h-13 px-6 text-base lg:min-h-11 lg:px-5',
 }
 

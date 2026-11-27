@@ -25,7 +25,7 @@ export function Input({ label, hideLabel, error, hint, hintTone = 'muted', id, c
         aria-invalid={error ? true : undefined}
         aria-describedby={error || hint ? noteId : undefined}
         className={cn(
-          'w-full min-w-0 rounded-md border bg-white px-4 py-3 text-base text-roche placeholder:text-faint lg:py-2.5 lg:text-md',
+          'w-full min-w-0 rounded-md border bg-white px-4 py-3 text-base text-roche placeholder:text-faint lg:py-2.5 lg:text-base',
           'focus:border-sommet focus:outline-none focus:ring-1 focus:ring-sommet',
           error ? 'border-danger' : 'border-line-strong',
           className,
@@ -33,7 +33,7 @@ export function Input({ label, hideLabel, error, hint, hintTone = 'muted', id, c
         {...props}
       />
       {(error || hint) && (
-        <p id={noteId} className={cn('text-caption', error ? 'text-danger' : hintTone === 'success' ? 'font-semibold text-success' : 'text-muted')}>{error ?? hint}</p>
+        <p id={noteId} className={cn('text-sm', error ? 'text-danger' : hintTone === 'success' ? 'font-semibold text-success' : 'text-muted')}>{error ?? hint}</p>
       )}
     </div>
   )

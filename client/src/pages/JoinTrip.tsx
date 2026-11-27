@@ -67,7 +67,7 @@ export function JoinTripForm({ initialCode = '' }: { initialCode?: string }) {
   return (
     <form onSubmit={onSubmit} className="flex flex-1 flex-col gap-5.5">
       <div className="flex flex-col gap-2.5">
-        <label htmlFor={inputId} className="text-md font-bold">Trip code</label>
+        <label htmlFor={inputId} className="text-base font-bold">Trip code</label>
         <input
           id={inputId}
           value={code}
@@ -99,13 +99,13 @@ export function JoinTripForm({ initialCode = '' }: { initialCode?: string }) {
           <div className="flex flex-col gap-2.5 p-4 lg:gap-1 lg:p-0">
             <span className="hidden text-xs font-bold text-success lg:block">Trip found</span>
             <div className="flex flex-col gap-0.5">
-              <strong className="text-[19px] lg:text-lg">{preview.name}</strong>
+              <strong className="text-lg">{preview.name}</strong>
               <span className="text-sm text-muted">
                 Organised by {preview.adminUsername} · {people(preview.memberCount)}
                 {preview.finalDateLabel && ` · ${preview.finalDateLabel}`}
               </span>
             </div>
-            <span className="text-caption text-subtle">
+            <span className="text-sm text-subtle">
               {alreadyIn ? 'You are already in this trip.' : phases[preview.phase].now}
             </span>
           </div>
@@ -130,12 +130,12 @@ export default function JoinTrip() {
 
   return (
     <div className="flex min-h-dvh flex-col bg-white lg:items-center lg:justify-center lg:bg-canvas lg:p-6">
-      <div className="flex flex-1 flex-col lg:w-full lg:max-w-[560px] lg:flex-none lg:rounded-[24px] lg:bg-white lg:p-8 lg:shadow-float">
+      <div className="flex flex-1 flex-col lg:w-full lg:max-w-[560px] lg:flex-none lg:rounded-xl lg:bg-white lg:p-8 lg:shadow-float">
         <header className="flex items-center gap-1 px-3 pt-3 pb-2 lg:flex-col lg:items-start lg:gap-1.5 lg:p-0 lg:pb-5">
           <Link to="/dashboard" aria-label="Back to your trips" className="flex size-11 items-center justify-center text-roche hover:text-roche lg:hidden">
             <BackIcon />
           </Link>
-          <h1 className="text-xl font-extrabold lg:text-[26px]">Join a trip</h1>
+          <h1 className="text-title font-extrabold lg:text-heading">Join a trip</h1>
           <p className="hidden text-muted lg:block">Enter the code from the invite your friend sent.</p>
         </header>
         <div className="flex flex-1 flex-col px-5 pt-3 pb-5 lg:p-0">

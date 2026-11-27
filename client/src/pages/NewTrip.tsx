@@ -73,16 +73,18 @@ export default function NewTrip() {
   }
 
   return (
-    <div className="flex min-h-dvh flex-col bg-white lg:min-h-0 lg:flex-1 lg:items-center lg:bg-canvas lg:px-6 lg:py-12">
-      <form onSubmit={onSubmit} className="flex flex-1 flex-col lg:w-full lg:max-w-[720px] lg:flex-none lg:gap-6.5 lg:rounded-[24px] lg:bg-white lg:px-10 lg:py-9 lg:shadow-card">
+    <div className="flex min-h-dvh flex-col bg-white lg:min-h-0 lg:flex-1 lg:bg-canvas lg:px-12 lg:py-9 xl:px-16">
+      <form onSubmit={onSubmit} className="flex flex-1 flex-col lg:w-full lg:max-w-[720px] lg:flex-none lg:gap-6">
         <header className="flex items-center gap-1 px-3 pt-3 pb-2 lg:flex-col lg:items-start lg:gap-1.5 lg:p-0">
           <Link to="/dashboard" aria-label="Back to your trips" className="flex size-11 items-center justify-center text-roche hover:text-roche lg:hidden">
             <BackIcon />
           </Link>
-          <h1 className="text-xl font-extrabold lg:text-heading">New trip</h1>
+          <h1 className="text-title font-extrabold lg:text-heading">New trip</h1>
           <p className="hidden text-muted lg:block">You can change everything later in Trip settings.</p>
         </header>
 
+        {/* Desktop: the title above on the page, like Profile and Trip settings; the fields in one white card */}
+        <div className="flex flex-1 flex-col lg:flex-none lg:gap-6.5 lg:rounded-xl lg:bg-white lg:px-10 lg:py-9 lg:shadow-card">
         <div className="flex flex-1 flex-col gap-5.5 px-5 pt-2 pb-5 lg:gap-6.5 lg:p-0">
           <div className="flex flex-col gap-5.5 lg:flex-row lg:gap-5">
             <div className="lg:flex-1"><Input label="Trip name" name="name" required maxLength={60} autoComplete="off" /></div>
@@ -99,7 +101,7 @@ export default function NewTrip() {
           </div>
 
           <fieldset className="flex min-w-0 flex-col gap-2.5">
-            <legend className="pb-2.5 text-md font-bold">When are you going?</legend>
+            <legend className="pb-2.5 text-base font-bold">When are you going?</legend>
             <div className="flex flex-col gap-2.5 lg:flex-row lg:flex-wrap lg:items-start lg:gap-3">
               <DateOption
                 checked={mode === 'known'}
@@ -139,7 +141,7 @@ export default function NewTrip() {
                     </SmallField>
                   </div>
                   {/* Phones: one sentence. Desktop: the three steps, as in the mockups */}
-                  <p className="flex items-start gap-2.5 text-caption/[1.45] text-subtle lg:hidden">
+                  <p className="flex items-start gap-2.5 text-sm/[1.45] text-subtle lg:hidden">
                     <InfoIcon />
                     Next, everyone taps the days they can't travel. We show the windows when all of you are free, and you vote on one.
                   </p>
@@ -173,12 +175,13 @@ export default function NewTrip() {
             {busy ? 'Creating trip…' : 'Create trip and invite friends'}
           </Button>
         </div>
+        </div>
       </form>
     </div>
   )
 }
 
-const fieldClass = 'w-full min-w-0 rounded-[10px] border border-line-strong bg-white p-3 text-md text-roche focus:border-sommet focus:ring-1 focus:ring-sommet focus:outline-none'
+const fieldClass = 'w-full min-w-0 rounded-[10px] border border-line-strong bg-white p-3 text-base text-roche focus:border-sommet focus:ring-1 focus:ring-sommet focus:outline-none'
 
 // One of the two choices under "When are you going?". The chosen one is highlighted and shows its fields.
 function DateOption({ checked, onSelect, title, text, wide, children }: {

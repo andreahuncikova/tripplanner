@@ -39,7 +39,7 @@ export default function InviteModal({ open, onClose, trip, settingsLink = true }
   return (
     <Modal open={open} onClose={onClose} title="Invite friends" description={`Anyone with the link can join ${trip.name}.`}>
       <div className="flex flex-col items-center gap-1.5 rounded-lg bg-canvas p-5">
-        <span className="text-caption font-bold tracking-widest text-muted uppercase">Trip code</span>
+        <span className="text-2xs font-bold tracking-widest text-muted uppercase">Trip code</span>
         <span className="font-mono text-[30px] font-extrabold tracking-[0.16em] md:text-[34px]">{trip.inviteCode}</span>
       </div>
 
@@ -51,7 +51,7 @@ export default function InviteModal({ open, onClose, trip, settingsLink = true }
           readOnly
           value={link}
           onFocus={e => e.currentTarget.select()}
-          className="min-w-0 flex-1 rounded-md border border-line-strong bg-white p-3.5 text-md text-subtle focus:border-sommet focus:ring-1 focus:ring-sommet focus:outline-none"
+          className="min-w-0 flex-1 rounded-md border border-line-strong bg-white p-3.5 text-base text-subtle focus:border-sommet focus:ring-1 focus:ring-sommet focus:outline-none"
         />
         <Button variant="soft" onClick={copy}>Copy link</Button>
       </div>

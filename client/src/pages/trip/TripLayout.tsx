@@ -56,24 +56,24 @@ export default function TripLayout() {
           in the space between them, the people and actions on the right. The middle column takes only the space that is
           left, so the switch can never run under the people when a trip has many members. The trip's name, place and
           dates are in the sidebar there, so the name here is only for screen readers. */}
-      <header className="sticky top-0 z-20 flex items-center gap-1 border-b border-line bg-white px-4 pt-3 pb-2.5 lg:static lg:mx-12 lg:grid lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:gap-6 lg:border-0 lg:bg-transparent lg:px-0 lg:py-5 xl:mx-16">
+      <header className="sticky top-0 z-20 flex items-center gap-1 border-b border-line-strong bg-white px-4 pt-3 pb-2.5 lg:static lg:mx-12 lg:grid lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:gap-6 lg:border-0 lg:bg-transparent lg:px-0 lg:py-5 xl:mx-16">
         <Link to="/dashboard" aria-label="Back to trips" className="flex size-11 items-center justify-center text-roche hover:text-roche lg:hidden">
           <BackIcon />
         </Link>
         <div className="flex min-w-0 flex-1 flex-col lg:sr-only">
-          <h1 className="truncate text-lead font-bold lg:text-title lg:font-extrabold">{trip?.name ?? 'Trip'}</h1>
+          <h1 className="truncate text-lg font-bold lg:text-title lg:font-extrabold">{trip?.name ?? 'Trip'}</h1>
           {onChatTab && <span className="lg:hidden"><OnlineStatus online={chat.online} /></span>}
-          {trip && <span className={cn('text-caption text-muted lg:hidden', onChatTab && 'hidden')}>{people(trip.members.length)}</span>}
+          {trip && <span className={cn('text-sm text-muted lg:hidden', onChatTab && 'hidden')}>{people(trip.members.length)}</span>}
         </div>
         <div className="hidden lg:block">
           {trip && countdown(trip) && (
-            <span className="inline-flex h-10 items-center gap-2 rounded-md bg-white px-4 text-sm font-semibold text-roche [&_svg]:size-4.5 [&_svg]:text-sommet">
+            <span className="inline-flex h-10 items-center gap-2 rounded-md bg-white px-4 shadow-card text-sm font-semibold text-roche [&_svg]:size-4.5 [&_svg]:text-sommet">
               <ItineraryIcon />{countdown(trip)}
             </span>
           )}
         </div>
 
-        <nav aria-label="Trip sections" className="hidden h-10 gap-1 justify-self-center rounded-md bg-white p-1 lg:flex">
+        <nav aria-label="Trip sections" className="hidden h-10 gap-1 justify-self-center rounded-md bg-white p-1 shadow-card lg:flex">
           {sections.map(s => locked(s) ? (
             <span
               key={s.path}
@@ -99,7 +99,7 @@ export default function TripLayout() {
         </nav>
 
         {/* Desktop: one white box like the switch, with the members, Invite and the settings */}
-        <div className="flex items-center gap-1 lg:h-10 lg:justify-self-end lg:rounded-md lg:bg-white lg:p-1">
+        <div className="flex items-center gap-1 lg:h-10 lg:justify-self-end lg:rounded-md lg:bg-white lg:p-1 lg:shadow-card">
           {trip && (
             <span className="hidden px-2 xl:block" title={people(trip.members.length)}>
               <AvatarGroup people={trip.members.map(m => ({ name: m.username, color: m.color, photo: m.photo }))} max={4} />
@@ -114,12 +114,12 @@ export default function TripLayout() {
         </div>
       </header>
 
-      <main className={cn('flex-1 lg:px-12 lg:pt-10 lg:pb-7 xl:px-16', onChatTab ? 'flex min-h-0 flex-col lg:block' : 'px-6 py-4 lg:pb-24', onPlanTab && 'flex flex-col lg:min-h-0 lg:overflow-y-auto')}>
+      <main className={cn('flex-1 lg:px-12 lg:pt-10 lg:pb-7 xl:px-16', onChatTab ? 'flex min-h-0 flex-col lg:block' : 'px-6 py-4 lg:pb-10', onPlanTab && 'flex flex-col lg:min-h-0 lg:overflow-y-auto')}>
         <Outlet context={{ chat, plan, stays, trip } satisfies TripOutlet} />
       </main>
 
       {/* Phones: the sections and the chat as tabs at the bottom. */}
-      <nav aria-label="Trip" className="fixed inset-x-0 bottom-0 z-20 flex justify-around border-t border-line bg-white px-2 pt-2 pb-[max(1.5rem,env(safe-area-inset-bottom))] lg:hidden">
+      <nav aria-label="Trip" className="fixed inset-x-0 bottom-0 z-20 flex justify-around border-t border-line-strong bg-white px-2 pt-2 pb-[max(1.5rem,env(safe-area-inset-bottom))] lg:hidden">
         {[...sections, { path: 'chat', label: 'Chat', icon: ChatIcon, afterDates: false }].map(s => locked(s) ? (
           <span key={s.path} role="link" aria-disabled="true" title={LOCKED} className="relative flex min-w-16 flex-col items-center gap-0.75 p-1 text-2xs font-semibold text-faint">
             <s.icon />

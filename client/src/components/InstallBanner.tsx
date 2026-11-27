@@ -38,8 +38,8 @@ export function InstallBanner() {
     <section aria-label="Install the app" className="flex items-center gap-3.5 rounded-xl pointer-fine:hidden bg-white p-4 shadow-card">
       <img src="/icons/icon-192.png" alt="" className="size-11 shrink-0 rounded-[10px]" />
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <strong className="text-md">Install TripPlanner</strong>
-        <span className="text-caption text-muted">
+        <strong className="text-base">Install TripPlanner</strong>
+        <span className="text-sm text-muted">
           {canInstall
             ? 'Open it from your home screen like an app.'
             : <>Tap <ShareIcon /> Share, then <strong className="font-semibold text-roche">Add to Home Screen</strong>.</>}

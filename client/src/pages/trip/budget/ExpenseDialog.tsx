@@ -106,8 +106,8 @@ function ExpenseForm({ plan, state, me, rates, expense, onDone }: {
             </select>
           </div>
         </div>
-        {amountText && !hasAmount && <span className="text-caption text-danger">Please enter an amount above zero.</span>}
-        {converted !== null && <span className="text-caption text-muted">≈ {formatMoney(converted, state.currency)} at today's rate</span>}
+        {amountText && !hasAmount && <span className="text-sm text-danger">Please enter an amount above zero.</span>}
+        {converted !== null && <span className="text-sm text-muted">≈ {formatMoney(converted, state.currency)} at today's rate</span>}
       </div>
 
       <fieldset className="flex min-w-0 flex-col gap-2">
@@ -177,7 +177,7 @@ function ExpenseForm({ plan, state, me, rates, expense, onDone }: {
       <Button type="submit" size="lg" fullWidth pill disabled={!ready || busy}>
         {busy ? 'Saving…' : expense ? 'Save changes' : 'Add expense'}
       </Button>
-      {!expense && <p className="text-center text-caption text-muted">Only you can edit or delete this expense later.</p>}
+      {!expense && <p className="text-center text-sm text-muted">Only you can edit or delete this expense later.</p>}
 
       {/* Deleting asks once more inside the dialog; a second dialog on top of this one would be harder to follow */}
       {expense && (confirmDelete ? (

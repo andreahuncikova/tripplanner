@@ -73,7 +73,7 @@ export default function Profile() {
         <Link to="/dashboard" aria-label="Back to your trips" className="flex size-11 items-center justify-center text-roche hover:text-roche lg:hidden">
           <BackIcon />
         </Link>
-        <h1 className="text-xl font-extrabold lg:text-heading">Profile</h1>
+        <h1 className="text-title font-extrabold lg:text-heading">Profile</h1>
       </header>
 
       <div className="flex flex-1 flex-col gap-5 px-6 py-5 lg:grid lg:flex-none lg:grid-cols-2 lg:items-start lg:gap-6 lg:p-0">

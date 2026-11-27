@@ -7,12 +7,12 @@ import { Button } from '../components/ui'
 // A group of rows with a small heading. Phones: the heading above a white box. Desktop: one white card.
 export function Section({ title, action, className, children }: { title: string; action?: ReactNode; className?: string; children: ReactNode }) {
   return (
-    <section aria-label={title} className={cn('flex flex-col gap-2 lg:gap-0 lg:rounded-xl lg:bg-white lg:py-2', className)}>
+    <section aria-label={title} className={cn('flex flex-col gap-2 lg:gap-0 lg:rounded-xl lg:bg-white lg:py-2 lg:shadow-card', className)}>
       <div className="flex items-center justify-between px-1 lg:px-5 lg:pt-2.5 lg:pb-1.5">
-        <h2 className="text-caption font-bold tracking-widest text-muted uppercase">{title}</h2>
+        <h2 className="text-2xs font-bold tracking-widest text-muted uppercase">{title}</h2>
         {action}
       </div>
-      <div className="flex flex-col rounded-lg bg-white">{children}</div>
+      <div className="flex flex-col rounded-lg bg-white shadow-card lg:shadow-none">{children}</div>
     </section>
   )
 }

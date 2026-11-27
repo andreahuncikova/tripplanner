@@ -19,7 +19,7 @@
   --color-roche-light: #343b47;   /* boxes inside dark surfaces */
 
   /* Neutrals */
-  --color-canvas: #f3f6f8;        /* app background */
+  --color-canvas: #f1f4f6;        /* app background */
   --color-sky: #e6f1f5;           /* landing page background */
   --color-muted: #5b6676;         /* secondary text */
   --color-subtle: #3d4a5c;        /* icons, tertiary text */
@@ -38,7 +38,9 @@
   --font-display: "Plus Jakarta Sans", system-ui, sans-serif;
   --font-mono: ui-monospace, Menlo, monospace;
 
-  /* Text sizes the mockups use besides Tailwind's own (xs 12, sm 14, base 16, lg 18) */
+  /* The app's type scale: 2xs 11 (uppercase labels), xs 12 (small details), sm 14 (descriptions), base 16 (text),
+     lg 18 (card and section titles), title 22 (big numbers), heading 28 (every page title).
+     caption, md, lead and display are only for the landing page and the UI gallery. */
   --text-2xs: 11px;
   --text-caption: 13px;
   --text-md: 15px;
@@ -50,12 +52,12 @@
   /* Corner radii */
   --radius-sm: 8px;    /* small tags, bars */
   --radius-md: 12px;   /* buttons, inputs */
-  --radius-lg: 16px;   /* list cards, banners */
-  --radius-xl: 20px;   /* trip cards, dark summary boxes */
+  --radius-lg: 18px;   /* every card and box: one radius for the whole app (lg and xl are the same on purpose) */
+  --radius-xl: 18px;
   --radius-2xl: 28px;  /* bottom sheets */
 
   /* Shadows */
-  --shadow-card: 0 0 0 1px rgb(72 89 120 / 0.38), 0 1px 3px rgb(35 40 48 / 0.05);  /* a blue (Sommet) hairline edge, so white boxes stand apart from the page */
+  --shadow-card: 0 1px 2px rgb(35 40 48 / 0.04), 0 6px 20px rgb(35 40 48 / 0.07);  /* the one soft shadow every white box and bar has, so they stand apart from the page */
   --shadow-raised: 0 1px 3px rgb(35 40 48 / 0.12);
   --shadow-float: 0 10px 28px rgb(35 40 48 / 0.28);
 }

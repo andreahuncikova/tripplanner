@@ -27,7 +27,7 @@ export function InstallButton() {
         type="button"
         onClick={onClick}
         aria-expanded={ios ? showHelp : undefined}
-        className="group flex cursor-pointer items-center gap-1.5 px-3 py-1.5 text-sm font-semibold whitespace-nowrap text-white md:text-md"
+        className="group flex cursor-pointer items-center gap-1.5 px-3 py-1.5 text-sm font-semibold whitespace-nowrap text-white md:text-base"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M12 4v11M7 10l5 5 5-5" /><path d="M5 20h14" />
@@ -38,7 +38,7 @@ export function InstallButton() {
         </span>
       </button>
       {showHelp && (
-        <p role="status" className="absolute top-full right-0 z-10 mt-2 w-60 rounded-lg bg-roche p-3 text-caption text-white shadow-float">
+        <p role="status" className="absolute top-full right-0 z-10 mt-2 w-60 rounded-lg bg-roche p-3 text-sm text-white shadow-float">
           In Safari, tap <strong>Share</strong>, then <strong>Add to Home Screen</strong>.
         </p>
       )}

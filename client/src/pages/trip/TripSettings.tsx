@@ -69,7 +69,7 @@ export default function TripSettings() {
         </Link>
         <Link to={`/trips/${tripId}`} className="hidden max-w-80 truncate font-semibold text-subtle no-underline hover:text-roche lg:inline">{trip.name}</Link>
         <span aria-hidden="true" className="hidden text-faint lg:inline">/</span>
-        <h1 className="text-xl font-extrabold lg:text-heading">Trip settings</h1>
+        <h1 className="text-title font-extrabold lg:text-heading">Trip settings</h1>
       </header>
 
       {/* Phones: Trip, Members, then Leave and Delete at the bottom. Desktop: Trip and Leave/Delete on the left, Members on the right */}
@@ -90,7 +90,7 @@ export default function TripSettings() {
           ))}
         </Section>
 
-        <section aria-label="Leave or delete" className="mt-6 flex flex-col gap-2.5 lg:col-start-1 lg:row-start-2 lg:mt-0 lg:flex-row lg:flex-wrap lg:items-center lg:gap-3 lg:rounded-xl lg:bg-white lg:p-5">
+        <section aria-label="Leave or delete" className="mt-6 flex flex-col gap-2.5 lg:col-start-1 lg:row-start-2 lg:mt-0 lg:flex-row lg:flex-wrap lg:items-center lg:gap-3 lg:rounded-xl lg:bg-white lg:p-5 lg:shadow-card">
           <div className="hidden lg:flex lg:basis-full lg:flex-col lg:gap-0.5">
             <strong>Leave or delete</strong>
             <span className="text-sm text-muted">{deleteNote}</span>
@@ -101,7 +101,7 @@ export default function TripSettings() {
               <span className="lg:hidden">Delete trip for everyone</span><span className="hidden lg:inline">Delete trip</span>
             </Button>
           )}
-          <span className="text-center text-caption text-muted lg:hidden">{deleteNote}</span>
+          <span className="text-center text-sm text-muted lg:hidden">{deleteNote}</span>
         </section>
       </div>
 
@@ -153,7 +153,7 @@ function MemberRow({ member, you, organiser }: { member: Member; you: boolean; o
       <span className="min-w-0 flex-1 truncate">{member.username}{you && ' (you)'}</span>
       {organiser
         ? <span className="rounded-full bg-ciel-light px-2.25 py-1.25 text-xs font-bold text-sommet">Organiser</span>
-        : member.joinedAt && <span className="hidden text-caption text-muted lg:inline">Joined {joined.format(new Date(member.joinedAt))}</span>}
+        : member.joinedAt && <span className="hidden text-sm text-muted lg:inline">Joined {joined.format(new Date(member.joinedAt))}</span>}
     </div>
   )
 }

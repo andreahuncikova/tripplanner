@@ -16,7 +16,6 @@ test('a new user can sign up and lands on an empty dashboard', async ({ page }) 
 
   await expect(page).toHaveURL(/\/dashboard$/)
   await expect(page.getByRole('heading', { name: 'Your trips' })).toBeVisible()
-  await expect(page.getByText('Hi, Mia')).toBeVisible()
   await expect(page.getByRole('heading', { name: 'No trips yet' })).toBeVisible()
 })
 
@@ -35,7 +34,7 @@ test('a user can log out and log in again', async ({ page }) => {
   await page.getByRole('button', { name: 'Log in', exact: true }).click()
 
   await expect(page).toHaveURL(/\/dashboard$/)
-  await expect(page.getByText('Hi, Ben')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Your trips' })).toBeVisible()
 })
 
 test('a wrong password shows an error and keeps the user on the log-in page', async ({ page }) => {

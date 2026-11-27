@@ -12,12 +12,12 @@ import { InstallBanner } from '../components/InstallBanner'
 import { LogOutIcon, PlusIcon, TicketIcon } from '../components/layout/icons'
 
 // Link that looks like a button (Button itself is a <button>, these go to another page)
-const primaryLink = 'inline-flex min-h-12 items-center justify-center gap-2 rounded-[14px] bg-sommet px-5 font-bold lg:min-h-10 lg:rounded-md lg:px-4 lg:text-md text-white hover:bg-sommet-dark hover:text-white [&_svg]:size-4.5'
-const secondaryLink = 'inline-flex min-h-12 items-center justify-center gap-2 rounded-[14px] border border-line-strong bg-white px-5 font-semibold lg:min-h-10 lg:rounded-md lg:px-4 lg:text-md text-roche hover:bg-canvas hover:text-roche [&_svg]:size-4.5 [&_svg]:text-sommet'
+const primaryLink = 'inline-flex min-h-12 items-center justify-center gap-2 rounded-[14px] bg-roche px-5 font-bold lg:min-h-10 lg:rounded-md lg:px-4 lg:text-base text-white hover:bg-roche-light hover:text-white [&_svg]:size-4.5'
+const secondaryLink = 'inline-flex min-h-12 items-center justify-center gap-2 rounded-[14px] border border-line-strong bg-white px-5 font-semibold lg:min-h-10 lg:rounded-md lg:px-4 lg:text-base text-roche hover:bg-canvas hover:text-roche [&_svg]:size-4.5 [&_svg]:text-sommet'
 // The desktop actions sit in one white box, like the section switch in a trip
 const toolbarBase = 'inline-flex h-full items-center gap-2 rounded-sm px-3.5 text-sm whitespace-nowrap [&_svg]:size-4'
 const toolbarItem = `${toolbarBase} font-medium text-subtle hover:bg-canvas hover:text-roche [&_svg]:text-sommet`
-const toolbarPrimary = `${toolbarBase} bg-sommet font-semibold text-white hover:bg-sommet-dark hover:text-white`
+const toolbarPrimary = `${toolbarBase} bg-roche font-semibold text-white hover:bg-roche-light hover:text-white`
 
 // The background of a trip card without a photo (no destination yet, or no photo found); the same trip always gets the same one
 const backgrounds = ['from-sommet to-roche', 'from-[#3d6b7a] to-roche', 'from-chemin-dark to-roche']
@@ -39,7 +39,6 @@ export default function Dashboard() {
       .catch(err => setError((err as Error).message))
   }, [reload])
 
-  const firstName = user?.username.split(' ')[0] ?? ''
   const planning = trips?.filter(t => t.phase !== 'done') ?? []
   const ready = trips?.filter(t => t.phase === 'done') ?? []
   const empty = trips !== null && trips.length === 0
@@ -57,10 +56,7 @@ export default function Dashboard() {
   return (
     <div className="flex flex-1 flex-col">
       <header className="flex items-center justify-between gap-4 bg-white px-6 pt-6 pb-5 lg:items-end lg:bg-transparent lg:px-12 lg:pt-10 lg:pb-0 xl:px-16">
-        <div className="flex flex-col gap-1">
-          <span className="text-sm text-muted lg:text-base">Hi, {firstName}</span>
-          <h1 className="text-heading font-extrabold lg:text-display">Your trips</h1>
-        </div>
+        <h1 className="text-heading font-extrabold">Your trips</h1>
         {/* Desktop: Join, New trip and Log out in one white box. Phones: the avatar and Log out as an icon;
             Join and New trip are in their own row under the header. Until the profile page exists, log-out lives here. */}
         <div className="flex items-center gap-2">
@@ -109,7 +105,7 @@ export default function Dashboard() {
             <div aria-hidden="true" className="flex size-28 items-center justify-center rounded-[32px] bg-ciel-light lg:size-33 lg:rounded-[36px]">
               <svg width="56" height="56" viewBox="0 0 24 24" fill="none" className="stroke-sommet" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12h4l3-8 4 16 3-8h4" /></svg>
             </div>
-            <h2 className="font-display text-heading font-extrabold tracking-[-0.02em] lg:text-[40px] lg:tracking-[-0.03em]">No trips yet</h2>
+            <h2 className="font-display text-heading font-extrabold tracking-[-0.02em]">No trips yet</h2>
             <p className="max-w-[290px] text-base/normal text-subtle lg:max-w-none lg:text-lg/normal">
               Start a trip and invite your friends, or join one with the code a friend sent you.
             </p>
@@ -125,9 +121,9 @@ export default function Dashboard() {
           </div>
         )}
 
-        {planning.length > 0 && <TripSection title="Planning now" trips={planning} />}
-        {/* The dates are agreed; such a trip can still be choosing its stays, so it is not called "Ready to go" here */}
-        {ready.length > 0 && <TripSection title="Dates confirmed" trips={ready} />}
+        {/* All trips in one grid, the ones still planning first. Each card already says how far it is
+            ("Choosing destination", "Ready to go"), so no headings by state. */}
+        {trips !== null && trips.length > 0 && <TripGrid trips={[...planning, ...ready]} />}
       </main>
 
       <Modal open={joinOpen} onClose={() => setJoinOpen(false)} title="Join a trip" description="Enter the code from the invite your friend sent.">
@@ -138,10 +134,9 @@ export default function Dashboard() {
   )
 }
 
-function TripSection({ title, trips }: { title: string; trips: TripSummary[] }) {
+function TripGrid({ trips }: { trips: TripSummary[] }) {
   return (
-    <section className="flex flex-col gap-3.5 lg:gap-5">
-      <h2 className="text-caption font-bold tracking-[0.08em] text-muted uppercase">{title}</h2>
+    <section aria-label="Your trips" className="pt-1">
       {/* Portrait photos: two next to each other on phones, as many as fit on a computer */}
       <div className="grid grid-cols-2 gap-x-3 gap-y-4 sm:grid-cols-[repeat(auto-fill,minmax(200px,1fr))] lg:grid-cols-[repeat(auto-fill,minmax(220px,1fr))] lg:gap-x-5 lg:gap-y-6">
         {trips.map(t => <TripCard key={t.inviteCode} trip={t} />)}
@@ -188,13 +183,13 @@ function TripCard({ trip }: { trip: TripSummary }) {
 
         <div className={cn('flex flex-col gap-2 p-3 lg:gap-2.5 lg:p-4', trip.cover && 'pb-6 lg:pb-7')}>
           <div className="flex min-w-0 flex-col gap-0.5">
-            <strong className="line-clamp-2 text-[15px] leading-tight lg:text-lg">{trip.name}</strong>
+            <strong className="line-clamp-2 text-base leading-tight lg:text-lg">{trip.name}</strong>
             <span className="truncate text-xs text-white/80 lg:text-sm">{place} · {tripDates(trip)}</span>
           </div>
           <div className="flex items-center justify-between gap-2">
             {/* The countdown always fits; with many members the avatars give way */}
             <span className="min-w-0 overflow-hidden"><AvatarGroup people={trip.members.map(m => ({ name: m.username, color: m.color, photo: m.photo }))} max={3} /></span>
-            {soon && <span className="shrink-0 text-xs font-bold whitespace-nowrap text-chemin lg:text-caption">{soon}</span>}
+            {soon && <span className="shrink-0 text-xs font-bold whitespace-nowrap text-chemin lg:text-sm">{soon}</span>}
           </div>
           <div role="img" aria-label={ready ? 'All planning steps done' : `Step ${step + 1} of ${PLAN_STEPS.length}: ${PLAN_STEPS[step]}`} className="flex gap-1">
             {PLAN_STEPS.map((name, i) => (

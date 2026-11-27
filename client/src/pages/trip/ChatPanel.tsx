@@ -120,7 +120,7 @@ export default function ChatPanel({ chat, inWindow, stays, members }: { chat: Tr
           ))}
         </ol>
 
-        <p aria-live="polite" className="min-h-6 px-4 pb-2 pl-13 text-caption text-muted">
+        <p aria-live="polite" className="min-h-6 px-4 pb-2 pl-13 text-sm text-muted">
           {chat.typing.length > 0 && `${chat.typing.join(', ')} ${chat.typing.length === 1 ? 'is' : 'are'} typing…`}
         </p>
       </div>
@@ -189,7 +189,7 @@ export default function ChatPanel({ chat, inWindow, stays, members }: { chat: Tr
           aria-label="Send"
           disabled={!chat.ready || uploading || (!text.trim() && !attachment)}
           className={cn(
-            'flex shrink-0 items-center justify-center rounded-full bg-sommet text-white hover:bg-sommet-dark disabled:opacity-50',
+            'flex shrink-0 items-center justify-center rounded-full bg-roche text-white hover:bg-roche-light disabled:opacity-50',
             inWindow ? 'size-10' : 'size-11',
           )}
         >
@@ -318,7 +318,7 @@ function Message({ message: m, mine, inWindow, stays, photo, onPhotoLoad }: { me
   }
 
   // wrap-anywhere also breaks a long word or link without spaces, which break-words leaves sticking out of the bubble
-  const text = cn('max-w-full wrap-anywhere whitespace-pre-wrap px-3 py-2.5 leading-snug', inWindow ? 'text-sm' : 'text-md')
+  const text = cn('max-w-full wrap-anywhere whitespace-pre-wrap px-3 py-2.5 leading-snug', inWindow ? 'text-sm' : 'text-base')
   const meta = <span className="text-xs font-bold text-muted">{mine ? 'You' : m.username} · {m.time}</span>
   const card = m.preview && <LinkCard preview={m.preview} stays={stays} inWindow={inWindow} />
   const file = m.file && <Attached file={m.file} inWindow={inWindow} onPhotoLoad={onPhotoLoad} />

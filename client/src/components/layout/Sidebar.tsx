@@ -53,11 +53,11 @@ export function Sidebar() {
   return (
     <aside className={cn(
       // A white panel that floats on the grey page: away from the edges and with slightly round corners
-      'sticky top-3 m-3 mr-0 hidden h-[calc(100dvh-1.5rem)] shrink-0 flex-col gap-7 rounded-lg bg-white py-5 text-roche transition-[width] duration-200 lg:flex',
+      'sticky top-3 m-3 mr-0 hidden h-[calc(100dvh-1.5rem)] shrink-0 flex-col gap-7 rounded-lg bg-white py-5 shadow-card text-roche transition-[width] duration-200 lg:flex',
       collapsed ? 'w-17 px-2.5' : 'w-64 px-3',
     )}>
       <div className={cn('flex items-center gap-2', collapsed && 'flex-col gap-4')}>
-        <Link to="/dashboard" aria-label="TripPlanner, all trips" className="flex min-w-0 flex-1 items-center gap-2.5 px-1.5 text-lead font-extrabold text-roche hover:text-roche">
+        <Link to="/dashboard" aria-label="TripPlanner, all trips" className="flex min-w-0 flex-1 items-center gap-2.5 px-1.5 text-lg font-extrabold text-roche hover:text-roche">
           <Logo size={28} />{!collapsed && 'TripPlanner'}
         </Link>
         <button

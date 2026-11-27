@@ -29,7 +29,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           <p
             key={t.id}
             className={cn(
-              'rounded-md px-4.5 py-3 text-md font-semibold shadow-float',
+              'rounded-md px-4.5 py-3 text-base font-semibold shadow-float',
               t.tone === 'error' ? 'bg-danger text-white' : 'bg-roche text-white',
             )}
           >

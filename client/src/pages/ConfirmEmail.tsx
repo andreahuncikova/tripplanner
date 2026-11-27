@@ -21,7 +21,7 @@ export default function ConfirmEmail() {
       .catch(err => setState({ error: (err as Error).message }))
   }, [params, refresh])
 
-  const link = 'inline-flex min-h-12 items-center justify-center rounded-md bg-sommet px-5 font-bold text-white no-underline hover:bg-sommet-dark hover:text-white'
+  const link = 'inline-flex min-h-12 items-center justify-center rounded-md bg-roche px-5 font-bold text-white no-underline hover:bg-roche-light hover:text-white'
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center gap-5 bg-canvas p-6 text-center">
       <Logo size={40} />
