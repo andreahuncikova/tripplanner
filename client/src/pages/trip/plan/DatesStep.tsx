@@ -4,7 +4,7 @@ import { cn } from '../../../lib/cn'
 import {
   addDays, dayKey, dayLabel, daysIn, fits, leadingRange, monthGrid, monthName, names, rangeText, votesText, windowMonths,
 } from '../../../lib/plan'
-import { Button, ConfirmModal } from '../../../components/ui'
+import { Avatar, Button, ConfirmModal } from '../../../components/ui'
 import { StepCard } from './StepGuide'
 import type { StepProps } from './step'
 
@@ -25,10 +25,11 @@ export default function DatesStep(props: StepProps) {
   if (!state.tripWindowStart || !state.tripWindowEnd) return <ChooseMonths {...props} />
 
   return (
-    <section aria-label="Dates" className="flex flex-1 flex-col gap-4">
+    <section aria-label="Dates" className="flex flex-1 flex-col gap-4 lg:min-h-0">
       {/* Marking days and voting are two phases on the server, but one step for the group, so the card says what to do in each */}
       <StepCard
         step={2}
+        back={props.back}
         agreed={[state.approvedDest]}
         title={state.phase === 'date_vote' ? 'Vote for your dates' : "Mark the days you can't travel"}
         aside={
@@ -38,21 +39,37 @@ export default function DatesStep(props: StepProps) {
         }
       >
         {state.phase === 'date_vote'
-          ? `Everyone is free in the windows below. Vote for one, and ${isOrganiser ? 'you confirm' : `${organiser} confirms`} the dates. You can still change your days.`
-          : `Then press I'm done. ${isOrganiser ? 'You find' : `${organiser} finds`} the windows when everyone is free.`}
+          ? `Vote for one window. ${isOrganiser ? 'You confirm' : `${organiser} confirms`} the dates.`
+          : `Then press I'm done.`}
       </StepCard>
 
       {/* The same layout as the Itinerary: the calendar on the left, the free windows on the right (on phones below).
           On a computer both fill the rest of the window (at least the height of the calendar), and the free windows
           scroll when there are more than fit: the right column takes no height of its own (h-0) and fills the row. */}
-      <div className="flex flex-col gap-8 lg:grid lg:flex-1 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-10 xl:grid-cols-[minmax(0,1fr)_26rem]">
+      <div className="flex flex-col gap-8 lg:grid lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_22rem] lg:grid-rows-[minmax(0,1fr)] lg:gap-6 xl:grid-cols-[minmax(0,1fr)_26rem]">
         <Calendar {...props} />
-        <div className="flex flex-col gap-3 lg:h-0 lg:min-h-full">
+        {/* One white card, as high as the calendar: the free windows, and under a line who is done */}
+        <div className="flex flex-col gap-4 rounded-xl bg-white p-4 shadow-card lg:h-0 lg:min-h-full lg:p-5">
           <FreeWindows {...props} />
-          <section aria-label="Who is done" className="flex flex-col gap-1.5 rounded-[14px] bg-white p-3.5 text-sm">
-            <h3 className="font-extrabold">{done.length} of {state.members.length} done</h3>
-            {done.length > 0 && <p className="text-subtle">Done: {names(done)}</p>}
-            {waiting.length > 0 && <p className="text-chemin-dark">Waiting for: {names(waiting)}</p>}
+          <section aria-label="Who is done" className="mt-auto flex flex-col gap-2.5 border-t border-line pt-4">
+            <div className="flex items-baseline justify-between gap-2 text-sm">
+              <h3 className="font-extrabold">{done.length} of {state.members.length} done</h3>
+              {waiting.length > 0 && <span className="truncate text-muted">Waiting for: {names(waiting)}</span>}
+            </div>
+            {/* Everyone's avatar: a green tick on those who are done, faded for those who are not yet */}
+            <ul className="flex flex-wrap gap-2">
+              {state.members.map(m => {
+                const ready = done.includes(m)
+                return (
+                  <li key={m.userId} title={`${m.username}${ready ? ', done' : ', not done yet'}`} className={cn('relative', !ready && 'opacity-40')}>
+                    <Avatar name={m.username} color={m.color} photo={m.photo} size="sm" />
+                    {ready && (
+                      <span aria-hidden="true" className="absolute -right-1 -bottom-1 flex size-4 items-center justify-center rounded-full bg-success text-[9px] font-extrabold text-white ring-2 ring-white">✓</span>
+                    )}
+                  </li>
+                )
+              })}
+            </ul>
           </section>
         </div>
       </div>
@@ -89,9 +106,10 @@ function Calendar({ plan, state, me }: StepProps) {
   }
 
   return (
-    <div className="flex min-w-0 flex-col gap-3">
+    // A white card like a calendar in any app: a rounded tile for each day
+    <div className="flex min-w-0 flex-col gap-3 rounded-xl bg-white p-4 shadow-card lg:min-h-0 lg:p-5">
       <div className="flex items-center gap-1">
-        <p className="flex-1 text-title font-extrabold lg:text-2xl">{monthName.format(new Date(month + '-15T12:00:00'))}</p>
+        <p className="flex-1 text-lg font-extrabold">{monthName.format(new Date(month + '-15T12:00:00'))}</p>
         {months.length > 1 && (
           <>
             <MonthButton label="Previous month" disabled={index === 0} onClick={() => setIndex(i => i - 1)} path="M15 18l-6-6 6-6" />
@@ -99,10 +117,11 @@ function Calendar({ plan, state, me }: StepProps) {
           </>
         )}
       </div>
-      <div aria-hidden="true" className="grid grid-cols-7 gap-1.5 sm:gap-3">
-        {WEEKDAYS.map(d => <span key={d} className="text-2xs font-bold tracking-wider text-muted uppercase">{d}</span>)}
+      <div aria-hidden="true" className="grid grid-cols-7 gap-1.5">
+        {WEEKDAYS.map(d => <span key={d} className="text-center text-2xs font-bold tracking-wider text-muted uppercase">{d}</span>)}
       </div>
-      <div role="group" aria-label="Days of the month" className="grid grid-cols-7 gap-x-1.5 gap-y-3 sm:gap-x-3 sm:gap-y-4">
+      {/* On a computer the tiles share the height that is left, so the step always fits in the window without scrolling */}
+      <div role="group" aria-label="Days of the month" className="grid grid-cols-7 gap-1.5 lg:min-h-0 lg:flex-1 lg:auto-rows-[minmax(0,3.25rem)] lg:content-start">
         {monthGrid(month).map((day, i) => {
           if (!day) return <span key={`blank-${i}`} />
           const past = day < today
@@ -120,29 +139,30 @@ function Calendar({ plan, state, me }: StepProps) {
               disabled={past}
               onClick={() => toggle(day)}
               className={cn(
-                'flex min-h-13 min-w-0 flex-col items-start gap-1.5 border-t-2 px-1 pt-1.5 pb-1.5 text-left transition-colors sm:min-h-16 sm:px-2',
-                'focus-visible:outline-2 focus-visible:outline-sommet',
-                past ? 'border-line text-faint/60'
-                : mine.has(day) ? 'border-roche bg-roche text-white'
-                : busy ? 'border-line text-faint hover:bg-white/70'
-                : 'border-sommet text-roche hover:bg-white',
+                'relative flex h-11 min-w-0 flex-col items-center justify-center gap-0.5 rounded-md text-center transition-colors lg:h-auto',
+                'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-sommet',
+                past ? 'text-faint/60'
+                : mine.has(day) ? 'bg-roche text-white'
+                : busy ? 'bg-chemin-light text-chemin-dark hover:bg-chemin-line/60'
+                : 'bg-canvas text-roche hover:bg-ciel-light',
+                day === today && 'ring-2 ring-sommet ring-inset',
               )}
             >
-              <span className="text-base font-semibold sm:text-lg">{String(Number(day.slice(8))).padStart(2, '0')}</span>
+              <span className="text-sm font-bold">{Number(day.slice(8))}</span>
               {/* A dot in the colour of each other member who can't travel that day */}
               {busy && !past && (
-                <span aria-hidden="true" className="flex flex-wrap gap-1">
-                  {busy.slice(0, 4).map(b => <span key={b.username} className="size-1.5 rounded-full" style={{ backgroundColor: b.color }} />)}
+                <span aria-hidden="true" className="flex gap-0.5">
+                  {busy.slice(0, 4).map(b => <span key={b.username} className="size-1 rounded-full" style={{ backgroundColor: b.color }} />)}
                 </span>
               )}
             </button>
           )
         })}
       </div>
-      <div className="flex flex-wrap gap-3 pt-1 text-xs text-subtle lg:gap-4">
-        <Legend sample={<span className="h-3.5 w-4.5 bg-roche" />}>You can't</Legend>
-        <Legend sample={<span className="flex gap-1"><span className="size-1.5 rounded-full bg-chemin" /><span className="size-1.5 rounded-full bg-sommet" /></span>}>Someone can't</Legend>
-        <Legend sample={<span className="h-3.5 w-4.5 border-t-2 border-sommet" />}>Everyone free</Legend>
+      <div className="flex flex-wrap gap-3 border-t border-line pt-3 text-xs text-subtle lg:gap-4">
+        <Legend sample={<span className="size-3.5 rounded-[4px] bg-roche" />}>You can't</Legend>
+        <Legend sample={<span className="size-3.5 rounded-[4px] bg-chemin-light ring-1 ring-chemin-line ring-inset" />}>Someone can't</Legend>
+        <Legend sample={<span className="size-3.5 rounded-[4px] bg-canvas ring-1 ring-line-strong ring-inset" />}>Everyone free</Legend>
       </div>
     </div>
   )
@@ -177,22 +197,22 @@ function FreeWindows({ plan, state, me, isOrganiser, organiser }: StepProps) {
       <div className="flex items-center justify-between gap-2">
         <h3 id="free-title" className="font-extrabold">Free for everyone</h3>
         {isOrganiser ? (
-          <label className="flex items-center gap-1.5 text-caption text-subtle">
+          <label className="flex items-center gap-1.5 text-sm text-subtle">
             Trip length
             <select
               value={tripDays ?? ''}
               onChange={e => plan.setLength(Number(e.target.value))}
-              className="rounded-sm border border-line-strong bg-white px-2 py-1.25 font-bold text-roche"
+              className="rounded-sm border border-line-strong bg-white px-2 py-1 font-bold text-roche"
             >
               {!tripDays && <option value="" disabled>Choose</option>}
               {LENGTHS.map(n => <option key={n} value={n}>{n} {n === 1 ? 'day' : 'days'}</option>)}
             </select>
           </label>
-        ) : tripDays && <span className="text-caption text-subtle">Trip length: <strong>{tripDays} days</strong></span>}
+        ) : tripDays && <span className="text-sm text-subtle">Trip length: <strong>{tripDays} days</strong></span>}
       </div>
 
       {state.phase === 'calendar' ? (
-        <div className="flex flex-col gap-3 rounded-[14px] bg-white p-3.5 text-sm text-subtle">
+        <div className="flex flex-col gap-3 text-sm text-subtle">
           {isOrganiser ? (
             <>
               <p>When everyone is done, look for the days when all of you are free.</p>
@@ -202,12 +222,12 @@ function FreeWindows({ plan, state, me, isOrganiser, organiser }: StepProps) {
         </div>
       ) : (
         <>
-          <div aria-label="Free windows" role="group" className="flex flex-col gap-2 lg:-m-1 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:p-1 lg:[&>*]:shrink-0">
+          <div aria-label="Free windows" role="group" className="flex flex-col gap-2 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:[&>*]:shrink-0">
             {state.dateRanges.map((r, i) => (
               <WindowRow key={`${r.start}-${r.end}`} range={r} mine={r.voterIds.includes(me)} tripDays={tripDays} onVote={() => plan.voteRange(i)} />
             ))}
             {!state.dateRanges.length && (
-              <p className="rounded-[14px] bg-white p-3.5 text-sm text-subtle">
+              <p className="rounded-md bg-canvas p-3.5 text-sm text-subtle">
                 There is no window when everyone is free{tripDays ? ` for ${tripDays} days` : ''}. Change your days{isOrganiser ? ', or choose a shorter trip and look again' : ''}.
               </p>
             )}
@@ -247,10 +267,10 @@ function WindowRow({ range: r, mine, tripDays, onVote }: { range: DateRange; min
   const ok = fits(r, tripDays)
   const length = daysIn(r.start, r.end)
   return (
-    <div className={cn('flex items-center gap-2.5 rounded-[14px] bg-white', mine ? 'border-2 border-sommet px-[12px] py-[10px]' : 'px-3.5 py-3', !ok && 'opacity-60')}>
+    <div className={cn('flex items-center gap-2.5 rounded-md px-3.5 py-2.5', mine ? 'bg-ciel-light' : 'bg-canvas', !ok && 'opacity-60')}>
       <div className="flex min-w-0 flex-1 flex-col">
         <strong>{rangeText(r.start, r.end)}</strong>
-        <span className="text-caption text-muted">{ok ? `${length} ${length === 1 ? 'day' : 'days'} · ${votesText(r.voterIds.length)}` : `Too short for ${tripDays} days`}</span>
+        <span className="text-sm text-muted">{ok ? `${length} ${length === 1 ? 'day' : 'days'} · ${votesText(r.voterIds.length)}` : `Too short for ${tripDays} days`}</span>
       </div>
       {ok && (
         <Button size="sm" variant={mine ? 'primary' : 'secondary'} aria-pressed={mine} onClick={onVote} aria-label={`${mine ? 'Your vote' : 'Vote for'} ${rangeText(r.start, r.end)}`}>
@@ -301,15 +321,15 @@ function ChooseMonths({ plan, isOrganiser, organiser }: StepProps) {
   const [from, setFrom] = useState(options[1].value)
   const [to, setTo] = useState(options[2].value)
 
-  if (!isOrganiser) return <p className="rounded-lg bg-white p-4 text-sm text-subtle">{organiser} chooses the months the trip could happen in first.</p>
+  if (!isOrganiser) return <p className="rounded-lg bg-white p-4 shadow-card text-sm text-subtle">{organiser} chooses the months the trip could happen in first.</p>
   return (
-    <section aria-labelledby="months-title" className="flex flex-col gap-3 rounded-lg bg-white p-4">
+    <section aria-labelledby="months-title" className="flex flex-col gap-3 rounded-lg bg-white p-4 shadow-card">
       <h2 id="months-title" className="text-lg font-extrabold">Which months could work?</h2>
       <div className="flex gap-2.5">
         {[{ label: 'From', value: from, set: setFrom, list: options }, { label: 'To', value: to, set: setTo, list: options.filter(o => o.value >= from) }].map(f => (
           <label key={f.label} className="flex min-w-0 flex-1 flex-col gap-1 text-xs font-bold text-subtle">
             {f.label}
-            <select value={f.value} onChange={e => f.set(e.target.value)} className="rounded-[10px] border border-line-strong bg-white p-3 text-md font-normal text-roche">
+            <select value={f.value} onChange={e => f.set(e.target.value)} className="rounded-[10px] border border-line-strong bg-white p-3 text-base font-normal text-roche">
               {f.list.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </label>

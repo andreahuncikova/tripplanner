@@ -2,14 +2,14 @@ import { useState, type FormEvent } from 'react'
 import type { Destination, Member } from '@shared/types'
 import { cn } from '../../../lib/cn'
 import { leadingDestination, names, votesText } from '../../../lib/plan'
-import { Button } from '../../../components/ui'
-import { CloseIcon } from '../../../components/layout/icons'
+import { Avatar, Button } from '../../../components/ui'
+import { CloseIcon, PlusIcon } from '../../../components/layout/icons'
 import { StepCard } from './StepGuide'
 import type { StepProps } from './step'
 
 // Step 1 from the mockups: members suggest places and each has one vote, which they can move or take back.
-// The organiser confirms the place with the most votes. The bar behind each place shows its share of the group.
-export default function DestinationStep({ plan, state, me, isOrganiser, organiser }: StepProps) {
+// The organiser confirms the place with the most votes.
+export default function DestinationStep({ plan, state, me, isOrganiser, organiser, back }: StepProps) {
   const [name, setName] = useState('')
   const [error, setError] = useState('')
   const voted = state.members.filter(m => state.destinations.some(d => d.voterIds.includes(m.userId)))
@@ -34,29 +34,32 @@ export default function DestinationStep({ plan, state, me, isOrganiser, organise
     <section aria-label="Destination" className="flex flex-1 flex-col gap-4 lg:min-h-0 lg:gap-5.5">
       <StepCard
         step={1}
+        back={back}
         title="Where should we go?"
         aside={<span className="hidden shrink-0 text-sm text-white/85 lg:inline">{voted.length} of {state.members.length} voted</span>}
       >
-        Suggest places and pick one favourite. {isOrganiser ? 'As organiser, you confirm' : `${organiser} confirms`} the winner once everyone has voted.
+        Suggest places and vote. {isOrganiser ? 'You confirm' : `${organiser} confirms`} the winner.
       </StepCard>
 
       {/* On a computer the list takes the free height and scrolls when there are many places; the vote count stays at the bottom */}
       <div role="group" aria-label="Destinations" className="flex flex-1 flex-col gap-2.5 lg:min-h-0">
-        <div className="flex flex-col gap-2.5 lg:-m-1 lg:min-h-0 lg:overflow-y-auto lg:p-1 lg:[&>*]:shrink-0">
+        <div className="flex flex-col gap-2 lg:min-h-0 lg:overflow-y-auto lg:[&>*]:shrink-0">
         {state.destinations.map(d => (
           <DestinationRow
             key={d._id}
             destination={d}
+            by={state.members.find(m => m.userId === d.byUserId)}
             mine={d.voterIds.includes(me)}
             canRemove={d.byUserId === me || isOrganiser}
-            groupSize={state.members.length}
             onVote={() => plan.vote(d._id)}
             onRemove={() => plan.removeDestination(d._id)}
           />
         ))}
         </div>
 
-        <form onSubmit={suggest} className="flex gap-2 rounded-lg border border-dashed border-line-strong bg-white p-1.5 lg:gap-2.5 lg:p-2.5">
+        {/* The same field as "Paste a stay link" on the Stays tab */}
+        <form onSubmit={suggest} className="flex items-center gap-2 rounded-md bg-white py-1 pr-1 pl-3.5 shadow-card focus-within:ring-1 focus-within:ring-sommet">
+          <span aria-hidden="true" className="flex text-faint"><PlusIcon /></span>
           <label htmlFor="suggest-place" className="sr-only">Suggest a place</label>
           <input
             id="suggest-place"
@@ -64,15 +67,22 @@ export default function DestinationStep({ plan, state, me, isOrganiser, organise
             onChange={e => { setName(e.target.value); setError('') }}
             maxLength={60}
             autoComplete="off"
-            placeholder="+ Suggest another place"
-            className="min-w-0 flex-1 rounded-md px-3 py-3 text-md placeholder:text-muted focus:outline-none"
+            placeholder="Suggest another place"
+            className="min-w-0 flex-1 bg-transparent py-1.5 text-base text-roche placeholder:text-faint focus:outline-none"
           />
-          <Button type="submit" variant="dark" disabled={!name.trim()}>Add</Button>
+          <button
+            type="submit"
+            disabled={!name.trim()}
+            className="min-h-8 shrink-0 rounded-sm bg-roche px-4 text-sm font-bold text-white hover:bg-roche-light disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Add
+          </button>
         </form>
         {error && <p role="alert" className="text-sm font-semibold text-danger">{error}</p>}
       </div>
 
-      <div className="flex flex-col gap-3.5 border-t border-line pt-4 lg:flex-row lg:flex-wrap lg:items-center lg:justify-between">
+      {/* At the very bottom of the window; lg:pr-20 leaves room for the round chat button in the bottom right corner */}
+      <div className="flex flex-col gap-3.5 border-t border-line pt-4 lg:flex-row lg:flex-wrap lg:items-center lg:justify-between lg:pr-20">
         <div className="flex items-center gap-2.5">
           <VoterDots members={state.members} voted={voted} />
           <span className="text-sm text-subtle">
@@ -81,7 +91,7 @@ export default function DestinationStep({ plan, state, me, isOrganiser, organise
         </div>
         {isOrganiser && top && (
           <Button size="lg" onClick={() => plan.approve(top._id)} className="rounded-[14px] lg:rounded-md">
-            Confirm {top.name} as destination
+            Confirm {placeName(top.name)} as destination
           </Button>
         )}
       </div>
@@ -89,32 +99,35 @@ export default function DestinationStep({ plan, state, me, isOrganiser, organise
   )
 }
 
-function DestinationRow({ destination: d, mine, canRemove, groupSize, onVote, onRemove }: {
-  destination: Destination; mine: boolean; canRemove: boolean; groupSize: number; onVote: () => void; onRemove: () => void
+// "bali" → "Bali": shown with a capital letter, whatever was typed (the saved name stays as it is)
+const placeName = (name: string) => name.charAt(0).toUpperCase() + name.slice(1)
+
+// A white card without a shadow: the list scrolls on a computer and would cut a shadow off. Your vote is the blue tick.
+// Under the name: who suggested it, as their avatar and first name.
+function DestinationRow({ destination: d, by, mine, canRemove, onVote, onRemove }: {
+  destination: Destination; by?: Member; mine: boolean; canRemove: boolean; onVote: () => void; onRemove: () => void
 }) {
   const votes = d.voterIds.length
   return (
-    <div className={cn(
-      'relative flex items-center overflow-hidden rounded-[14px] bg-white lg:rounded-lg',
-      // 2 px border on your vote; the padding below makes up the difference, so the row does not jump
-      mine ? 'border-2 border-sommet' : 'border border-[#e3e8ee]',
-    )}>
-      <span aria-hidden="true" style={{ width: `${groupSize ? (votes / groupSize) * 100 : 0}%` }} className={cn('absolute inset-y-0 left-0 transition-[width] duration-300', mine ? 'bg-ciel-light' : 'bg-canvas')} />
+    <div className="relative flex items-center overflow-hidden rounded-lg bg-white">
       <button
         type="button"
         aria-pressed={mine}
         onClick={onVote}
-        className={cn('relative flex min-h-16 min-w-0 flex-1 items-center gap-3 py-2 text-left lg:min-h-18 lg:gap-4', mine ? 'pl-[15px] lg:pl-[21px]' : 'pl-4 lg:pl-5.5', canRemove ? 'pr-2' : mine ? 'pr-[15px] lg:pr-[21px]' : 'pr-4 lg:pr-5.5')}
+        className={cn('relative flex min-h-14 min-w-0 flex-1 items-center gap-3 py-2 pl-4 text-left lg:gap-4 lg:pl-5.5', canRemove ? 'pr-2' : 'pr-4 lg:pr-5.5')}
       >
-        <span aria-hidden="true" className={cn('flex size-5.5 shrink-0 items-center justify-center rounded-full text-[13px] font-extrabold', mine ? 'bg-sommet text-white' : 'border-2 border-faint')}>
+        <span aria-hidden="true" className={cn('flex size-5.5 shrink-0 items-center justify-center rounded-full text-xs font-extrabold', mine ? 'bg-sommet text-white' : 'border-2 border-faint')}>
           {mine && '✓'}
         </span>
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <strong className="truncate lg:text-[17px]">{d.name}</strong>
-          <span className="text-caption text-muted">Suggested by {d.by}</span>
+          <strong className="truncate">{placeName(d.name)}</strong>
+          <span className="flex items-center gap-1.5 text-sm text-muted">
+            <span aria-hidden="true" className="flex"><Avatar name={d.by} color={by?.color ?? '#8a96a6'} photo={by?.photo} size="xs" /></span>
+            <span className="sr-only">Suggested by </span>{d.by.split(' ')[0]}
+          </span>
         </span>
         {/* Phones show only the number, as in the mockups; screen readers always hear "3 votes" */}
-        <span className="text-sm font-extrabold lg:text-[15px]">
+        <span className="text-sm font-extrabold lg:text-base">
           <span className="lg:hidden" aria-hidden="true">{votes}</span>
           <span className="sr-only lg:not-sr-only">{votesText(votes)}</span>
         </span>

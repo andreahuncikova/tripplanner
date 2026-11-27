@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import type { TripState } from '@shared/types'
 import type { TripPlan } from '../../../socket/useTripPlan'
 
@@ -10,4 +11,6 @@ export interface StepProps {
   isOrganiser: boolean
   // The organiser's name, e.g. for "Mia confirms the winner"
   organiser: string
+  // "Go back a step" for the organiser, shown in the dark step card (StepCard)
+  back?: ReactNode
 }

@@ -5,7 +5,7 @@ import { useAuth } from '../../../auth/useAuth'
 import { api } from '../../../lib/api'
 import { backStep } from '../../../lib/plan'
 import type { TripPlan } from '../../../socket/useTripPlan'
-import { Button, ConfirmModal } from '../../../components/ui'
+import { ConfirmModal } from '../../../components/ui'
 import { BackIcon, BudgetIcon, ItineraryIcon, StaysIcon } from '../../../components/layout/icons'
 import DatesStep from './DatesStep'
 import DestinationStep from './DestinationStep'
@@ -25,6 +25,8 @@ export default function PlanSection({ plan }: { plan: TripPlan }) {
     me: user._id,
     isOrganiser: state.adminUserId === user._id,
     organiser: state.members.find(m => m.userId === state.adminUserId)?.username ?? state.adminUsername,
+    // The organiser can undo a step; the link sits in the dark step card
+    back: state.adminUserId === user._id && backStep(state) ? <BackStep plan={plan} state={state} /> : undefined,
   }
   const datesStep = state.phase === 'calendar' || state.phase === 'date_vote'
 
@@ -33,7 +35,6 @@ export default function PlanSection({ plan }: { plan: TripPlan }) {
       {state.phase === 'destinations' && <DestinationStep {...props} />}
       {datesStep && <DatesStep {...props} />}
       {state.phase === 'done' && <ReadyStep {...props} />}
-      {props.isOrganiser && <BackStep {...props} />}
     </div>
   )
 }
@@ -41,7 +42,7 @@ export default function PlanSection({ plan }: { plan: TripPlan }) {
 // The destination and the dates are agreed, so the planning steps are done; the rest of the trip is planned in the other tabs.
 // Each of the three tiles is a photo of the destination from Unsplash (a stay, something to see, food), searched once
 // by the server; without one it has a dark background with the tab's icon.
-function ReadyStep({ state }: StepProps) {
+function ReadyStep({ state, back }: StepProps) {
   const [photos, setPhotos] = useState<TripPhotos | null>(null)
   useEffect(() => {
     let current = true
@@ -54,10 +55,11 @@ function ReadyStep({ state }: StepProps) {
   return (
     <section aria-label="Plan" className="flex flex-1 flex-col gap-4">
       {/* What the group agreed on is written next to the ticked steps in the dark card */}
-      <StepCard step="done" title="You're ready to go" agreed={[state.approvedDest, state.finalDateLabel]}>
-        The group agreed on where and when. Save places to stay in the Stays tab, plan the days in the Itinerary and add shared costs in the Budget.
+      <StepCard step="done" title="You're ready to go" agreed={[state.approvedDest, state.finalDateLabel]} back={back}>
+        The group agreed on where and when. Now plan the rest.
       </StepCard>
-      <div className="grid gap-3 sm:grid-cols-3 lg:min-h-64 lg:flex-1 lg:gap-4">
+      {/* About half a screen high, so the whole tab fits without scrolling */}
+      <div className="grid gap-3 sm:grid-cols-3 lg:gap-4">
         <Tile to={`/trips/${state.inviteCode}/stays`} icon={StaysIcon} photo={photos?.stays} title="Save stays" text="Paste links from Booking or Airbnb, like the ones you want and mark the one you book." />
         <Tile to={`/trips/${state.inviteCode}/itinerary`} icon={ItineraryIcon} photo={photos?.days} title="Plan the days" text="Add what you want to do, day by day, and ideas for later." />
         <Tile to={`/trips/${state.inviteCode}/budget`} icon={BudgetIcon} photo={photos?.costs} title="Add shared costs" text="Note who paid for what, in any currency, and see your share." />
@@ -70,10 +72,10 @@ function ReadyStep({ state }: StepProps) {
 // to be named with a link, so a small credit sits at the top, on the tile but outside its link.
 function Tile({ to, icon: Icon, photo, title, text }: { to: string; icon: () => ReactNode; photo?: TripCover | null; title: string; text: string }) {
   return (
-    <div className="relative flex min-h-56 sm:min-h-72 lg:min-h-0">
+    <div className="relative flex h-52 sm:h-64">
       <Link
         to={to}
-        className="group relative isolate flex flex-1 flex-col justify-end gap-1.5 overflow-hidden rounded-[18px] bg-linear-to-br from-sommet to-roche p-5 text-white no-underline shadow-card transition-shadow hover:text-white hover:shadow-raised lg:gap-2 lg:p-6"
+        className="group relative isolate flex flex-1 flex-col justify-end gap-1.5 overflow-hidden rounded-xl bg-linear-to-br from-sommet to-roche p-5 text-white no-underline shadow-card transition-shadow hover:text-white hover:shadow-raised lg:gap-2 lg:p-6"
       >
         {photo ? (
           <img src={photo.url} alt="" loading="lazy" className="absolute inset-0 -z-10 size-full object-cover transition-transform duration-500 group-hover:scale-[1.04]" />
@@ -82,7 +84,7 @@ function Tile({ to, icon: Icon, photo, title, text }: { to: string; icon: () => 
         )}
         <span aria-hidden="true" className="absolute inset-x-0 bottom-0 -z-10 h-2/3 bg-linear-to-t from-black/85 via-black/45 to-transparent" />
         {photo && <span aria-hidden="true" className="absolute inset-x-0 top-0 -z-10 h-14 bg-linear-to-b from-black/45 to-transparent" />}
-        <strong className="flex items-center justify-between gap-2 text-lg lg:text-xl">
+        <strong className="flex items-center justify-between gap-2 text-lg lg:text-title">
           {title}<span aria-hidden="true" className="transition-transform group-hover:translate-x-1">→</span>
         </strong>
         <span className="text-sm text-white/85">{text}</span>
@@ -98,16 +100,20 @@ function Tile({ to, icon: Icon, photo, title, text }: { to: string; icon: () => 
 }
 
 // Only the organiser can move the whole group back one step. It deletes the data of the step, so it asks first.
-function BackStep({ plan, state }: StepProps) {
+function BackStep({ plan, state }: Pick<StepProps, 'plan' | 'state'>) {
   const [open, setOpen] = useState(false)
   const step = backStep(state)
   if (!step) return null
   return (
-    // Always the last row of the Plan tab, at the bottom of the window (the step above takes the free height)
-    <div className="mt-auto flex border-t border-line pt-4">
-      <Button variant="secondary" size="sm" onClick={() => setOpen(true)} className="gap-1.5 pl-2.5 [&_svg]:size-4.5">
+    // A small glass pill under the ring in the dark step card
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="flex items-center gap-1 rounded-full bg-white/10 py-1.5 pr-3.5 pl-2 text-xs font-semibold text-white/85 ring-1 ring-white/15 transition-colors ring-inset hover:bg-white/20 hover:text-white [&_svg]:size-3.5"
+      >
         <BackIcon />Go back a step
-      </Button>
+      </button>
       <ConfirmModal
         open={open}
         onClose={() => setOpen(false)}
@@ -116,6 +122,6 @@ function BackStep({ plan, state }: StepProps) {
         confirm="Go back"
         onConfirm={() => { plan.back(); setOpen(false) }}
       />
-    </div>
+    </>
   )
 }

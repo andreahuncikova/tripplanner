@@ -6,26 +6,30 @@ import { PLAN_STEPS } from '../../../lib/plan'
 // done and a tile for each step with its line on top, then what to do now in a box under them.
 // `step` is the step's number, or 'done' when the group is ready to go. `aside` sits on the right of the box on a
 // computer, e.g. "3 of 4 voted" or the I'm done button. `agreed` is what the finished steps decided ("Bali").
-export function StepCard({ step, title, children, aside, agreed }: {
-  step: number | 'done'; title: string; children: ReactNode; aside?: ReactNode; agreed?: (string | null)[]
+// `back` is the organiser's "Go back a step" pill, on its own row at the top left of the card.
+export function StepCard({ step, title, children, aside, agreed, back }: {
+  step: number | 'done'; title: string; children: ReactNode; aside?: ReactNode; agreed?: (string | null)[]; back?: ReactNode
 }) {
   const index = step === 'done' ? PLAN_STEPS.length : step - 1
   return (
-    <div className="flex flex-col gap-4 rounded-[18px] bg-sommet p-4.5 text-white lg:p-5.5">
-      <div className="flex flex-col gap-4 md:flex-row md:items-start md:gap-8">
+    <div className="flex flex-col gap-3 rounded-xl bg-sommet p-4 text-white">
+      {/* The organiser's "Go back a step" pill, on its own row at the top left */}
+      {back && <div className="-mb-1 flex">{back}</div>}
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-6">
         <StepsRing done={index} />
         <PlanProgress step={index} agreed={agreed} />
       </div>
-      <div className="flex flex-col gap-3.5 rounded-xl bg-white/6 p-3.5 ring-1 ring-white/10 ring-inset lg:flex-row lg:items-center lg:gap-4 lg:p-4">
-        <div className="flex flex-1 items-start gap-3 lg:items-center">
-          <span aria-hidden="true" className="flex size-8 shrink-0 items-center justify-center rounded-full bg-chemin/15 text-sm font-extrabold text-chemin">
+      {/* What to do now: a slim box, the title and one short line */}
+      <div className="flex flex-col gap-2.5 rounded-lg bg-white/6 px-3.5 py-2.5 ring-1 ring-white/10 ring-inset lg:flex-row lg:items-center lg:gap-4 lg:px-4 lg:py-3">
+        <div className="flex flex-1 items-center gap-3">
+          <span aria-hidden="true" className="flex size-6.5 shrink-0 items-center justify-center rounded-full bg-chemin/15 text-xs font-extrabold text-chemin">
             {step === 'done' ? '✓' : step}
           </span>
-          <div className="flex flex-col gap-1">
-            <h2 className="text-base font-bold lg:text-[17px]">
+          <div className="flex flex-col">
+            <h2 className="text-sm font-bold">
               {step !== 'done' && <span className="sr-only">Step {step}: </span>}{title}
             </h2>
-            <p className="text-sm/[1.45] text-white/85">{children}</p>
+            <p className="text-sm text-white/70">{children}</p>
           </div>
         </div>
         {aside}
@@ -41,16 +45,16 @@ function StepsRing({ done }: { done: number }) {
   const all = count === total
   const ring = 2 * Math.PI * 18
   return (
-    <div className="flex shrink-0 items-center gap-3.5 md:pt-1">
-      <svg width="52" height="52" viewBox="0 0 44 44" aria-hidden="true" className="-rotate-90">
+    <div className="flex shrink-0 items-center gap-2.5">
+      <svg width="38" height="38" viewBox="0 0 44 44" aria-hidden="true" className="-rotate-90">
         <circle cx="22" cy="22" r="18" fill="none" strokeWidth="4.5" className="stroke-white/15" />
         <circle cx="22" cy="22" r="18" fill="none" strokeWidth="4.5" strokeLinecap="round"
           strokeDasharray={ring} strokeDashoffset={ring * (1 - count / total)}
           className="stroke-ciel transition-[stroke-dashoffset] duration-700" />
       </svg>
       <div className="flex flex-col leading-tight">
-        <span className={cn('text-title font-extrabold', all && 'text-ciel')}>{count} of {total}</span>
-        <span className={cn('text-sm', all ? 'font-semibold text-ciel' : 'text-white/70')}>{all ? 'All steps done' : 'steps done'}</span>
+        <span className="text-lg font-extrabold">{count} of {total}</span>
+        <span className={cn('text-xs', all ? 'font-semibold text-white' : 'text-white/70')}>{all ? 'All steps done' : 'steps done'}</span>
       </div>
     </div>
   )
@@ -77,7 +81,7 @@ function PlanProgress({ step, agreed }: { step: number; agreed?: (string | null)
                 {name}
                 {done && <><span aria-hidden="true"> ✓</span><span className="sr-only">, done</span></>}
               </span>
-              <span className={cn('text-lg leading-6 font-semibold md:truncate', !done && !now && 'text-white/40')}>
+              <span className={cn('text-base leading-5 font-semibold md:truncate', !done && !now && 'text-white/40')}>
                 {done ? agreed?.[i] ?? 'Agreed' : now ? 'Now' : 'Next'}
               </span>
             </li>
