@@ -22,9 +22,12 @@ export function areaForCity<A extends { _id: unknown; name: string }>(areas: A[]
   return areas.find(a => sameName(a.name, city)) ?? (areas.length < MAX_AREAS ? 'new' : null);
 }
 
-// All stays and areas of a trip, as the client sees them (ids and dates as text)
+// All stays and areas of a trip, as the client sees them (ids and dates as text).
+// Order: booked stays first, then the most liked, then the newest. The sort is stable, so stays with as many likes
+// keep the newest-first order from the database. Every like sends the list again, so the cards move for everyone.
 export async function staysState(g: Pick<IGroup, 'areas'> & { _id: GroupId }): Promise<StaysState> {
-  const stays = await Stay.find({ groupId: g._id }).sort({ createdAt: -1, _id: -1 }).lean();
+  const stays = (await Stay.find({ groupId: g._id }).sort({ createdAt: -1, _id: -1 }).lean())
+    .sort((a, b) => Number(!!b.booked) - Number(!!a.booked) || (b.likeUserIds?.length ?? 0) - (a.likeUserIds?.length ?? 0));
   return {
     areas: g.areas.map(a => ({ _id: String((a as { _id: unknown })._id), name: a.name })),
     stays: stays.map(s => ({
