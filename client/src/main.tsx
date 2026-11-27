@@ -20,3 +20,5 @@ createRoot(document.getElementById('root')!).render(
     </AuthProvider>
   </StrictMode>,
 )
+// Tells the start-up animation (public/splash.js) that the app is on screen, once the first frame is drawn
+requestAnimationFrame(() => window.dispatchEvent(new Event('app-ready')))

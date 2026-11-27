@@ -1,0 +1,54 @@
+/* The start-up animation of the installed app (PWA), see splash.js. In its own file, because the
+   Content-Security-Policy in vercel.json allows no inline styles. Hidden unless splash.js shows it. */
+#splash {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  background: #485978; /* Sommet, the same as background_color in the manifest, so the phone's own splash blends in */
+  transition: opacity 0.35s ease;
+}
+.splash-on #splash { display: flex; }
+#splash.splash-out { opacity: 0; pointer-events: none; }
+
+/* The logo: the bubble pops in with a little bounce, then the map pin drops into it */
+#splash svg { width: 96px; height: 96px; overflow: visible; }
+#splash .splash-bubble {
+  transform-box: fill-box;
+  transform-origin: 50% 60%;
+  animation: splash-pop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+#splash .splash-pin {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: splash-drop 0.5s cubic-bezier(0.34, 1.4, 0.64, 1) 0.35s both;
+}
+#splash .splash-name {
+  font: 800 22px/1 "Plus Jakarta Sans", system-ui, sans-serif;
+  letter-spacing: -0.01em;
+  color: #fff;
+  animation: splash-rise 0.4s ease-out 0.6s both;
+}
+
+@keyframes splash-pop {
+  from { transform: scale(0.2); opacity: 0; }
+  60%  { opacity: 1; }
+  to   { transform: scale(1); opacity: 1; }
+}
+@keyframes splash-drop {
+  from { transform: translateY(-60%) scale(0.8); opacity: 0; }
+  to   { transform: translateY(0) scale(1); opacity: 1; }
+}
+@keyframes splash-rise {
+  from { transform: translateY(8px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+
+/* Animations turned off on the phone: the logo is simply there */
+@media (prefers-reduced-motion: reduce) {
+  #splash .splash-bubble, #splash .splash-pin, #splash .splash-name { animation: none; }
+}

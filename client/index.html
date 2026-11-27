@@ -13,8 +13,21 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <title>TripPlanner</title>
+    <link rel="stylesheet" href="/splash.css" />
   </head>
   <body>
+    <!-- The start-up animation of the installed app (splash.css, splash.js): the logo from components/layout/icons.tsx -->
+    <div id="splash" aria-hidden="true">
+      <svg viewBox="0 0 32 32">
+        <path class="splash-bubble" d="M4 9a6 6 0 0 1 6-6h12a6 6 0 0 1 6 6v9a6 6 0 0 1-6 6h-8l-6 5v-5.3A6 6 0 0 1 4 18z" fill="#fff" />
+        <g class="splash-pin">
+          <path d="M16 20s-5-4.3-5-8.1a5 5 0 0 1 10 0c0 3.8-5 8.1-5 8.1z" fill="#485978" />
+          <circle cx="16" cy="11.9" r="1.9" fill="#fff" />
+        </g>
+      </svg>
+      <span class="splash-name">TripPlanner</span>
+    </div>
+    <script src="/splash.js"></script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

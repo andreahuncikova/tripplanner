@@ -18,7 +18,7 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',      // a new version is used as soon as it is deployed
       injectRegister: 'script',        // a separate registerSW.js file, allowed by our Content-Security-Policy
-      includeAssets: ['favicon.svg', 'icons/apple-touch-icon-180.png'],
+      includeAssets: ['favicon.svg', 'icons/apple-touch-icon-180.png', 'splash.css', 'splash.js'],
       manifest: {
         name: 'TripPlanner',
         short_name: 'TripPlanner',
@@ -27,7 +27,7 @@ export default defineConfig({
         start_url: '/dashboard',
         scope: '/',
         display: 'standalone',
-        background_color: '#f3f6f8',
+        background_color: '#485978',   // the phone's own splash, the same blue as our start-up animation (public/splash.css)
         theme_color: '#ffffff',
         icons: [
           { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
