@@ -8,6 +8,8 @@ import { cn } from '../../../lib/cn'
 import type { TripPlan } from '../../../socket/useTripPlan'
 import { Avatar, Button, useToast } from '../../../components/ui'
 import ExpenseDialog from './ExpenseDialog'
+import EmptyGuide from '../EmptyGuide'
+import { BudgetIcon } from '../../../components/layout/icons'
 
 // The Budget tab from the mockups: what the group spent, what you paid and your share, and the list of expenses.
 // Every amount is shown in the group's currency; an expense in another currency also shows what was really paid.
@@ -23,7 +25,7 @@ export default function BudgetSection({ plan }: { plan: TripPlan }) {
 
   if (state.phase !== 'done') {
     return (
-      <p className="rounded-lg bg-white p-4 text-sm text-subtle">
+      <p className="rounded-lg bg-white p-4 shadow-card text-sm text-subtle">
         The budget opens when the group has agreed on the destination and the dates.
       </p>
     )
@@ -40,9 +42,9 @@ export default function BudgetSection({ plan }: { plan: TripPlan }) {
   return (
     <div className="flex w-full flex-col gap-5">
       <div className="flex flex-col gap-3 lg:flex-row lg:gap-3.5">
-        <div className="flex flex-col gap-3.5 rounded-xl bg-sommet p-4.5 text-white lg:flex-[2_1_260px] lg:gap-1.5 lg:px-5">
-          <span className="text-caption text-line-strong">Group spent</span>
-          <strong className="text-[32px] font-extrabold tracking-tight">{fx ? formatMoney(totals.spent, currency) : '…'}</strong>
+        <div className="flex flex-col gap-3 rounded-xl bg-sommet p-4 text-white lg:flex-[2_1_260px] lg:gap-1 lg:px-5">
+          <span className="text-sm text-line-strong">Group spent</span>
+          <strong className="text-title font-extrabold tracking-tight">{fx ? formatMoney(totals.spent, currency) : '…'}</strong>
           {/* Phones: the two numbers inside the dark card. Desktop: white cards next to it */}
           <div className="flex gap-2.5 lg:hidden">
             <Tile label="You paid" value={fx ? formatMoney(totals.paid, currency) : '…'} dark />
@@ -55,7 +57,7 @@ export default function BudgetSection({ plan }: { plan: TripPlan }) {
         </div>
       </div>
       {totals.missing > 0 && (
-        <p className="text-caption text-chemin-dark">{totals.missing} {totals.missing === 1 ? 'expense is' : 'expenses are'} not in the totals, because the exchange rate is missing right now.</p>
+        <p className="text-sm text-chemin-dark">{totals.missing} {totals.missing === 1 ? 'expense is' : 'expenses are'} not in the totals, because the exchange rate is missing right now.</p>
       )}
 
       {state.expenses.length > 0 && (
@@ -67,13 +69,22 @@ export default function BudgetSection({ plan }: { plan: TripPlan }) {
 
       <section aria-labelledby="expenses-title" className="flex flex-col gap-2.5">
         <div className="flex items-center justify-between">
-          <h2 id="expenses-title" className="text-base font-extrabold lg:text-[17px]">Expenses</h2>
+          <h2 id="expenses-title" className="text-base font-extrabold lg:text-lg">Expenses</h2>
           <Button variant="dark" size="sm" onClick={() => setAdding(true)}>+ Add expense</Button>
         </div>
         {state.expenses.length === 0 ? (
-          <p className="rounded-lg bg-white p-4 text-sm text-muted">No expenses yet. Add the first one, for example the stay or the car.</p>
+          <EmptyGuide
+            icon={<BudgetIcon />} label="No expenses yet"
+            title="No expenses yet."
+            text="Share the costs of the trip."
+            steps={[
+              { title: 'Add an expense', text: 'The stay, the car…' },
+              { title: 'Split it', text: 'Equally or your way' },
+              { title: 'Settle up', text: 'Pay with one tap' },
+            ]}
+          />
         ) : (
-          <ul className="flex flex-col rounded-lg bg-white">
+          <ul className="flex flex-col rounded-lg bg-white shadow-card">
             {[...state.expenses].reverse().map(e => (
               <ExpenseRow
                 key={e._id}
@@ -87,7 +98,7 @@ export default function BudgetSection({ plan }: { plan: TripPlan }) {
             ))}
           </ul>
         )}
-        <p className="text-caption text-muted">Only the person who added an expense can edit or delete it.</p>
+        {state.expenses.length > 0 && <p className="text-sm text-muted">Only the person who added an expense can edit or delete it.</p>}
       </section>
 
       <ExpenseDialog open={adding} onClose={() => setAdding(false)} plan={plan} state={state as TripState} me={user._id} rates={rates} />
@@ -102,8 +113,8 @@ function Tile({ label, value, dark }: { label: string; value: string; dark?: boo
       <span className="text-xs text-line-strong">{label}</span><strong>{value}</strong>
     </div>
   ) : (
-    <div className="flex flex-col gap-1.5 rounded-xl bg-white px-5 py-4.5 lg:flex-[1_1_160px]">
-      <span className="text-caption text-muted">{label}</span><strong className="text-2xl">{value}</strong>
+    <div className="flex flex-col gap-1.5 rounded-xl bg-white px-5 shadow-card py-4.5 lg:flex-[1_1_160px]">
+      <span className="text-sm text-muted">{label}</span><strong className="text-title">{value}</strong>
     </div>
   )
 }
@@ -133,15 +144,15 @@ function SettleUp({ plan, transfers, payments, me, members, currency, name }: {
   return (
     <section aria-labelledby="settle-title" className="flex flex-col gap-2.5">
       <div className="flex flex-col gap-0.5">
-        <h2 id="settle-title" className="text-base font-extrabold lg:text-[17px]">Settle up</h2>
-        <p className="text-caption text-muted">Who pays whom, so everyone has paid their part — in as few payments as possible.</p>
+        <h2 id="settle-title" className="text-base font-extrabold lg:text-lg">Settle up</h2>
+        <p className="text-sm text-muted">Who pays whom, so everyone has paid their part — in as few payments as possible.</p>
       </div>
       {lines.length === 0 ? (
-        <p className="rounded-lg bg-white p-4 text-sm font-semibold text-success">
+        <p className="rounded-lg bg-white p-4 shadow-card text-sm font-semibold text-success">
           {payments.length ? 'Everyone has paid their part.' : 'Everyone is even — nobody owes anything.'}
         </p>
       ) : (
-        <ul aria-label="Left to pay" className="flex flex-col rounded-lg bg-white">
+        <ul aria-label="Left to pay" className="flex flex-col rounded-lg bg-white shadow-card">
           {lines.map(t => (
             <TransferRow
               key={`${t.from}-${t.to}`} transfer={t} me={me} members={members} currency={currency} name={name} busy={busy}
@@ -153,8 +164,8 @@ function SettleUp({ plan, transfers, payments, me, members, currency, name }: {
 
       {madeLines.length > 0 && (
         <>
-          <h3 className="mt-1.5 text-md font-bold">Payments</h3>
-          <ul aria-label="Payments" className="flex flex-col rounded-lg bg-white">
+          <h3 className="mt-1.5 text-base font-bold">Payments</h3>
+          <ul aria-label="Payments" className="flex flex-col rounded-lg bg-white shadow-card">
             {madeLines.map(p => (
               <PaymentRow
                 key={p._id} payment={p} me={me} members={members} name={name} busy={busy}
@@ -185,13 +196,13 @@ function Status({ kind, children }: { kind: 'unpaid' | 'paid' | 'confirmed'; chi
 function Who({ dim, status, children }: { dim: boolean; status: ReactNode; children: ReactNode }) {
   return (
     <div className="flex min-w-0 flex-1 flex-col items-start gap-1 lg:flex-row lg:items-center lg:justify-between lg:gap-3">
-      <span className={cn('text-md', dim && 'text-subtle')}>{children}</span>
+      <span className={cn('text-base', dim && 'text-subtle')}>{children}</span>
       {status}
     </div>
   )
 }
 
-const payLink = 'inline-flex min-h-10 items-center rounded-md bg-sommet px-4 text-sm font-bold text-white no-underline hover:bg-sommet-dark hover:text-white lg:min-h-9'
+const payLink = 'inline-flex min-h-10 items-center rounded-md bg-roche px-4 text-sm font-bold text-white no-underline hover:bg-roche-light hover:text-white lg:min-h-9'
 
 function TransferRow({ transfer: t, me, members, currency, name, busy, onPaid }: {
   transfer: Transfer; me: string; members: Member[]; currency: string; name: (id: string) => string; busy: boolean; onPaid: () => void
@@ -215,7 +226,7 @@ function TransferRow({ transfer: t, me, members, currency, name, busy, onPaid }:
               Pay
             </a>
           ) : !payee?.mobilePay && (
-            <span className="mr-auto text-caption text-muted lg:mr-0">
+            <span className="mr-auto text-sm text-muted lg:mr-0">
               {payee ? `${name(t.to)} has not added a way to pay yet` : 'This person has left the trip'}
             </span>
           )}
@@ -225,7 +236,7 @@ function TransferRow({ transfer: t, me, members, currency, name, busy, onPaid }:
       )}
       {iPay && payee?.mobilePay && <MobilePayLine number={payee.mobilePay} amount={t.amount} currency={currency} name={name(t.to)} />}
       {iPay && payee?.paypalMe && !PAYPAL_CURRENCIES.includes(currency) && (
-        <span className="w-full text-caption text-muted">PayPal does not take {currency}, so type the amount in PayPal yourself.</span>
+        <span className="w-full text-sm text-muted">PayPal does not take {currency}, so type the amount in PayPal yourself.</span>
       )}
     </li>
   )
@@ -293,8 +304,8 @@ function ExpenseRow({ expense: e, currency, rates, payer, groupSize, onEdit }: {
   return (
     <li className="flex items-center gap-3 border-b border-line px-3.5 py-3 last:border-b-0 lg:px-4">
       <div className="flex min-w-0 flex-1 flex-col">
-        <strong className="truncate text-md">{e.description}</strong>
-        <span className="text-caption text-muted">
+        <strong className="truncate text-base">{e.description}</strong>
+        <span className="text-sm text-muted">
           {payer} paid · {split}{e.currency !== currency && ` · ${formatMoney(e.amount, e.currency)}`}
         </span>
       </div>

@@ -41,7 +41,7 @@ test('the group saves stays into areas and likes them, and everyone sees it righ
   const { mia, theo, code } = await tripWithTwo(browser)
   await mia.goto(`/trips/${code}/stays`)
   await theo.goto(`/trips/${code}/stays`)
-  await expect(mia.getByText('No stays yet.')).toBeVisible()
+  await expect(mia.getByRole('region', { name: 'No stays yet' })).toBeVisible()
 
   // Mia adds the area Ubud; it opens, so the next stay goes into it
   await areas(mia).getByRole('button', { name: '+ Add area' }).click()
@@ -142,7 +142,9 @@ test('a booked stay fills its nights and the tab warns about nights without a st
   expect((await call(theo, 'POST', `/api/groups/${code}/join`)).ok()).toBe(true)
   await mia.goto(`/trips/${code}/stays`)
   await theo.goto(`/trips/${code}/stays`)
-  await expect(theo.getByRole('group', { name: 'No stay booked' })).toContainText('10 – 15 Jun · 5 nights')
+  // Nothing booked yet: every night says "No stay", so there is no warning box under them
+  await expect(theo.getByText('0 of 5')).toBeVisible()
+  await expect(theo.getByRole('group', { name: 'No stay booked' })).toHaveCount(0)
 
   await addStay(mia, 'https://ribeira-loft.invalid/rooms/3')
   // Booking needs nights first

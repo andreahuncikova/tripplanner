@@ -6,9 +6,11 @@ import { CurrencySelect } from '../../components/CurrencySelect'
 import { addDays, fromKey } from '../../lib/plan'
 import { nightsCover, type DayRange } from '@shared/nights'
 import PhotoCarousel from './PhotoCarousel'
+import EmptyGuide from './EmptyGuide'
+import { StaysIcon } from '../../components/layout/icons'
 import OsmCredit from './OsmCredit'
 import { useAuth } from '../../auth/useAuth'
-import { Button, Card, Input, Modal, useToast } from '../../components/ui'
+import { Button, Input, Modal, useToast } from '../../components/ui'
 import { cn } from '../../lib/cn'
 import type { TripStays } from '../../socket/useTripStays'
 
@@ -58,9 +60,7 @@ export default function StaysSection({ stays, trip }: { stays: TripStays; trip: 
       {!stays.loaded ? (
         <p className="text-muted">Loading stays…</p>
       ) : shown.length === 0 ? (
-        <Card className="text-center text-muted">
-          {current ? `No stays in ${current.name} yet. Paste a link above to add one.` : 'No stays yet. Paste a Booking.com or Airbnb link above, and the group can like the ones they want.'}
-        </Card>
+        <EmptyStays area={current?.name} />
       ) : (
         <ul aria-label={current ? `Stays in ${current.name}` : 'All stays'} className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {shown.map(s => (
@@ -107,7 +107,7 @@ function AreaChip({ label, active, onClick }: { label: string; active: boolean; 
       onClick={onClick}
       className={cn(
         'min-h-8 rounded-sm px-3.5 text-sm whitespace-nowrap transition-colors',
-        active ? 'bg-roche font-semibold text-white' : 'font-medium text-muted hover:bg-canvas hover:text-roche',
+        active ? 'bg-sommet font-semibold text-white' : 'font-medium text-muted hover:bg-canvas hover:text-roche',
       )}
     >
       {label}
@@ -152,17 +152,17 @@ function AddStayForm({ stays, areaId }: { stays: TripStays; areaId: string | nul
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? `${inputId}-error` : undefined}
           onChange={e => { setUrl(e.target.value); setError('') }}
-          className="min-w-0 flex-1 bg-transparent py-1.5 text-base text-roche placeholder:text-faint focus:outline-none lg:text-md"
+          className="min-w-0 flex-1 bg-transparent py-1.5 text-base text-roche placeholder:text-faint focus:outline-none lg:text-base"
         />
         <button
           type="submit"
           disabled={!url.trim() || busy || !stays.loaded}
-          className="min-h-8 shrink-0 rounded-sm bg-sommet px-4 text-sm font-bold text-white hover:bg-sommet-dark disabled:cursor-not-allowed disabled:opacity-40"
+          className="min-h-8 shrink-0 rounded-sm bg-roche px-4 text-sm font-bold text-white hover:bg-roche-light disabled:cursor-not-allowed disabled:opacity-40"
         >
           {busy ? 'Adding…' : 'Add'}
         </button>
       </div>
-      {error && <p id={`${inputId}-error`} className="px-3.5 text-caption text-danger">{error}</p>}
+      {error && <p id={`${inputId}-error`} className="px-3.5 text-sm text-danger">{error}</p>}
     </form>
   )
 }
@@ -277,6 +277,23 @@ function LikeButton({ stay: s, me, stays }: { stay: Stay; me?: string; stays: Tr
 
 type TripDays = { start: string; end: string }
 
+// Before the first stay: the short guide (EmptyGuide); an empty area only says so in one line
+function EmptyStays({ area }: { area?: string }) {
+  if (area) return <p className="rounded-xl bg-white p-5 text-sm text-muted shadow-card">No stays in {area} yet. Paste a link above to add one.</p>
+  return (
+    <EmptyGuide
+      icon={<StaysIcon />} label="No stays yet"
+      title="No stays yet."
+      text="Find a place to stay together."
+      steps={[
+        { title: 'Paste a link', text: 'Booking.com, Airbnb…' },
+        { title: 'Like your favourites', text: 'The group votes' },
+        { title: 'Mark one booked', text: 'Its nights fill up' },
+      ]}
+    />
+  )
+}
+
 // One problem with the nights: its name and each run of nights it is about, written like the nights on a card,
 // check-in to check-out: "13 – 15 Jun · 2 nights"
 function NightsWarning({ tone, title, runs }: { tone: 'none' | 'double'; title: string; runs: DayRange[] }) {
@@ -315,24 +332,25 @@ function NightsBar({ tripDays, stays }: { tripDays: TripDays; stays: Stay[] }) {
   }
   const ring = 2 * Math.PI * 18
   return (
-    <section aria-label="Nights" className="mb-4 flex flex-col gap-4 rounded-[18px] bg-sommet p-4.5 text-white lg:p-5.5">
-      <div className="flex flex-col gap-4 md:flex-row md:items-start md:gap-8">
+    <section aria-label="Nights" className="mb-4 flex flex-col gap-3 rounded-xl bg-sommet p-4 text-white">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-6">
       {/* How many nights are booked, as a ring that fills up */}
-      <div className="flex shrink-0 items-center gap-3.5 md:pt-1">
-        <svg width="52" height="52" viewBox="0 0 44 44" aria-hidden="true" className="-rotate-90">
+      <div className="flex shrink-0 items-center gap-2.5">
+        <svg width="38" height="38" viewBox="0 0 44 44" aria-hidden="true" className="-rotate-90">
           <circle cx="22" cy="22" r="18" fill="none" strokeWidth="4.5" className="stroke-white/15" />
           <circle cx="22" cy="22" r="18" fill="none" strokeWidth="4.5" strokeLinecap="round"
             strokeDasharray={ring} strokeDashoffset={ring * (1 - cover.booked / total)}
             className="stroke-ciel transition-[stroke-dashoffset] duration-700" />
         </svg>
         <div className="flex flex-col leading-tight">
-          <span className={cn('text-title font-extrabold', done && 'text-ciel')}>{cover.booked} of {total}</span>
-          <span className={cn('text-sm', done && cover.doubles.length === 0 ? 'font-semibold text-ciel' : 'text-white/70')}>
+          <span className={cn('text-lg font-extrabold', done && 'text-ciel')}>{cover.booked} of {total}</span>
+          <span className={cn('text-xs', done && cover.doubles.length === 0 ? 'font-semibold text-ciel' : 'text-white/70')}>
             {done && cover.doubles.length === 0 ? 'Every night has a stay' : 'nights booked'}
           </span>
         </div>
       </div>
-      <ol aria-label="Nights of the trip" className="flex min-w-0 flex-1 gap-2 overflow-x-auto pb-1">
+      {/* A long trip scrolls sideways, with a thin light scrollbar that suits the dark card and nights that snap into place */}
+      <ol aria-label="Nights of the trip" className="flex min-w-0 flex-1 snap-x gap-2 overflow-x-auto pb-2.5 [scrollbar-color:rgb(255_255_255/0.28)_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/25 [&::-webkit-scrollbar-track]:bg-transparent">
         {cover.nights.map(n => {
           const state = n.stayIds.length > 1 ? 'booked twice' : n.stayIds.length ? 'booked' : 'no stay'
           const date = fromKey(n.day)
@@ -342,12 +360,12 @@ function NightsBar({ tripDays, stays }: { tripDays: TripDays; stays: Stay[] }) {
               title={`${shortDayText(n.day)}: ${state}`}
               aria-label={`Night of ${shortDayText(n.day)}: ${state}`}
               className={cn(
-                'flex min-w-24 flex-1 flex-col gap-0.5 border-t-2 pt-2',
+                'flex min-w-24 flex-1 snap-start flex-col gap-0.5 border-t-2 pt-2',
                 n.stayIds.length > 1 ? 'border-[#ff8f80]' : n.stayIds.length ? 'border-ciel' : 'border-white/20',
               )}
             >
               <span className="text-2xs font-bold tracking-wider text-white/70 uppercase">{nightDay.format(date)}</span>
-              <span className="text-lg leading-6 font-semibold">{String(date.getDate()).padStart(2, '0')}</span>
+              <span className="text-base leading-5 font-semibold">{String(date.getDate()).padStart(2, '0')}</span>
               <span className={cn('truncate text-xs', n.stayIds.length ? 'font-semibold text-white' : 'text-chemin')}>
                 {n.stayIds.length ? n.stayIds.map(stayName).join(' + ') : 'No stay'}
               </span>
@@ -357,11 +375,12 @@ function NightsBar({ tripDays, stays }: { tripDays: TripDays; stays: Stay[] }) {
       </ol>
       </div>
       {/* The problems take the whole width of the card, under the ring and the nights */}
-      {(!done || cover.doubles.length > 0) && (
+      {/* Before anything is booked every night already says "No stay", so the amber box would only repeat it */}
+      {((!done && cover.booked > 0) || cover.doubles.length > 0) && (
         // What still needs doing, as one box per problem with its nights listed under it; one box alone takes the whole width:
         // amber for nights without a bed, rose for nights two stays are booked for
         <div role="status" className="flex flex-col gap-2.5 sm:flex-row">
-          {!done && <NightsWarning tone="none" title="No stay booked" runs={cover.gaps} />}
+          {!done && cover.booked > 0 && <NightsWarning tone="none" title="No stay booked" runs={cover.gaps} />}
           {cover.doubles.length > 0 && <NightsWarning tone="double" title="Two stays booked" runs={cover.doubles} />}
         </div>
       )}
@@ -482,19 +501,19 @@ function NightsModal({ stay, tripDays, stays, onClose }: {
             onChange={e => { setCheckOut(e.target.value); setError('') }}
           />
         </div>
-        {tripDays && <p className="text-caption text-muted">The trip is {nightsRange({ checkIn: tripDays.start, checkOut: tripDays.end })}.</p>}
+        {tripDays && <p className="text-sm text-muted">The trip is {nightsRange({ checkIn: tripDays.start, checkOut: tripDays.end })}.</p>}
 
         <div aria-live="polite" className="flex items-baseline justify-between rounded-lg bg-canvas px-4 py-3">
           <span className="font-semibold">{nights ? nightsWord(nightCount(nights)) : 'Choose the days'}</span>
           {nights && stay?.price && (
             <span className="text-right">
               <strong className="text-lg">{formatPrice(stayTotal(stay.price, nights))}</strong>
-              <span className="block text-caption text-muted">{formatPrice(stay.price)} × {nightCount(nights)}</span>
+              <span className="block text-sm text-muted">{formatPrice(stay.price)} × {nightCount(nights)}</span>
             </span>
           )}
         </div>
-        {!stay?.price && nights && <p className="text-caption text-muted">The link did not share a price, so there is no total yet.</p>}
-        {error && <p role="alert" className="text-caption text-danger">{error}</p>}
+        {!stay?.price && nights && <p className="text-sm text-muted">The link did not share a price, so there is no total yet.</p>}
+        {error && <p role="alert" className="text-sm text-danger">{error}</p>}
 
         <div className="flex items-center justify-between gap-2">
           {stay?.nights ? (
@@ -587,7 +606,7 @@ function DetailsModal({ stay, trip, stays, onClose }: {
           </div>
         </div>
 
-        {error && <p role="alert" className="text-caption text-danger">{error}</p>}
+        {error && <p role="alert" className="text-sm text-danger">{error}</p>}
         <Button type="submit" disabled={busy}>{busy ? 'Saving…' : 'Save'}</Button>
       </form>
     </Modal>
